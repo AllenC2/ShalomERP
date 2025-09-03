@@ -23,8 +23,9 @@ class RoleMiddleware
         }
         
         // Verificar si el usuario tiene alguno de los roles permitidos
+        // Devolvemos 404 en lugar de 403 para ocultar la existencia del recurso
         if (!in_array($user->role, $roles)) {
-            abort(403, 'No tienes permisossss para acceder a esta sección');
+            abort(404);
         }
         
         return $next($request);

@@ -23,9 +23,21 @@ class ClienteController extends Controller
         if ($busqueda) {
             $clientes->where(function($query) use ($busqueda) {
                 $query->where('nombre', 'like', "%$busqueda%")
-                      ->orWhere('apellido', 'like', "%$busqueda%");
+                      ->orWhere('apellido', 'like', "%$busqueda%")
+                      ->orWhere('email', 'like', "%$busqueda%")
+                      ->orWhere('telefono', 'like', "%$busqueda%")
+                      ->orWhere('domicilio_completo', 'like', "%$busqueda%")
+                      ->orWhere('colonia', 'like', "%$busqueda%")
+                      ->orWhere('municipio', 'like', "%$busqueda%");
             });
         }
+
+        // Cargar el conteo de contratos activos
+        $clientes->withCount([
+            'contratos as contratos_activos_count' => function ($query) {
+                $query->where('estado', 'activo');
+            }
+        ]);
 
         $clientes = $clientes->paginate();
 
@@ -51,7 +63,7 @@ class ClienteController extends Controller
         Cliente::create($request->validated());
 
         return Redirect::route('clientes.index')
-            ->with('success', 'Cliente created successfully.');
+            ->with('success', 'Cliente creado correctamente..');
     }
 
     /**
@@ -83,7 +95,7 @@ class ClienteController extends Controller
         $cliente->update($request->validated());
 
         return Redirect::route('clientes.index')
-            ->with('success', 'Cliente updated successfully');
+            ->with('success', 'Cliente modificado correctamente.');
     }
 
     public function destroy($id): RedirectResponse
@@ -91,6 +103,6 @@ class ClienteController extends Controller
         Cliente::find($id)->delete();
 
         return Redirect::route('clientes.index')
-            ->with('success', 'Cliente deleted successfully');
+            ->with('success', 'Cliente eliminado correctamente.');
     }
 }

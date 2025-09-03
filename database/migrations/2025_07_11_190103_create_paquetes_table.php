@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('paquetes', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->text('descripcion')->nullable();
+            $table->text('descripcion');
             $table->decimal('precio', 10, 2);
             $table->timestamps();
         });

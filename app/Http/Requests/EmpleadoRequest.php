@@ -21,12 +21,29 @@ class EmpleadoRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-			'nombre' => 'required|string',
-			'apellido' => 'required|string',
-			'email' => 'required|string',
-			'telefono' => 'string',
-			'domicilio' => 'string',
+        $rules = [
+            'nombre' => 'required|string|max:255',
+            'apellido' => 'required|string|max:255',
+            'telefono' => 'nullable|string|max:20',
+            'domicilio' => 'nullable|string|max:500',
         ];
+
+        // Solo requerir contraseña al crear (no al editar)
+        if ($this->isMethod('post')) {
+            $rules['email'] = 'required|email|unique:users,email';
+            $rules['password'] = 'required|string|min:8|confirmed';
+        }
+
+        // Al editar, permitir email duplicado si es el mismo usuario
+        if ($this->isMethod('put') || $this->isMethod('patch')) {
+            $empleado = $this->route('empleado');
+            if ($empleado && $empleado->user_id) {
+                $rules['email'] = 'required|email|unique:users,email,' . $empleado->user_id;
+            } else {
+                $rules['email'] = 'required|email|unique:users,email';
+            }
+        }
+
+        return $rules;
     }
 }

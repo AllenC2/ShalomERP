@@ -6,3 +6,9 @@
 
 // Bootstrap
 @import 'bootstrap/scss/bootstrap';
+
+// Custom Styles organized by components
+@import 'base';
+@import 'header';
+@import 'components';
+@import 'forms';

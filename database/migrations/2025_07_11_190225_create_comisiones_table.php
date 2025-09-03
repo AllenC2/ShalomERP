@@ -15,14 +15,21 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('contrato_id')->nullable(); // Relación con el contrato
             $table->unsignedBigInteger('empleado_id')->nullable(); // Empleado asociado a la comisión
-            $table->date('fecha_comision')->nullable(); // Fecha en que se generó
+            $table->unsignedBigInteger('comision_padre_id')->nullable(); // Relación con comisión padre para parcialidades
+
+            $table->datetime('fecha_comision')->default(DB::raw('CURRENT_TIMESTAMP')); // Fecha en que se generó
+            $table->string('nombre_paquete'); // Nombre del paquete
+            $table->decimal('porcentaje', 5, 2)->default(0); // Porcentaje de la comisión
             $table->string('tipo_comision')->nullable(); // e.g., 'venta', 'renovación', 'referencia'
-            $table->decimal('monto', 10, 2);
+            $table->decimal('monto', 10, 2)->default(0); // Monto de la comisión
+
             $table->string('observaciones')->nullable(); // Observaciones adicionales
             $table->string('documento')->nullable(); // e.g., recibo, factura
             $table->string('estado')->default('Pendiente'); // e.g., 'pendiente', 'pagada', 'cancelada'
+
             $table->foreign('contrato_id')->references('id')->on('contratos')->onDelete('set null');
             $table->foreign('empleado_id')->references('id')->on('empleados')->onDelete('set null');
+            $table->foreign('comision_padre_id')->references('id')->on('comisiones')->onDelete('cascade');
             $table->timestamps();
         });
     }

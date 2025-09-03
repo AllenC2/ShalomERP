@@ -1,0 +1,111 @@
+// Componentes de header
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    background: white;
+    padding: 24px 32px;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+
+    &.edit-header {
+        border-left: 4px solid #E1B240;
+    }
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 16px;
+    }
+}
+
+.header-icon {
+    width: 64px;
+    height: 64px;
+    background: #E1B240;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #79481D;
+    font-size: 1.8rem;
+    box-shadow: 0 8px 16px rgba(225, 178, 64, 0.3);
+
+    &.edit-icon {
+        background: #E1B240;
+        color: #79481D;
+        box-shadow: 0 8px 16px rgba(225, 178, 64, 0.3);
+    }
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 4px 0;
+    background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    &.edit-title {
+        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    @media (max-width: 768px) {
+        font-size: 1.5rem;
+    }
+}
+
+.page-subtitle {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+
+    .btn {
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 2px solid #e5e7eb;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+    }
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        width: 100%;
+
+        .btn {
+            width: 100%;
+        }
+    }
+}

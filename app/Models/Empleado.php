@@ -12,10 +12,12 @@ use Illuminate\Database\Eloquent\Model;
  * @property $updated_at
  * @property $nombre
  * @property $apellido
- * @property $email
+ * @property $user_id
  * @property $telefono
  * @property $domicilio
+ * @property $estado
  *
+ * @property User $user
  * @property Comisione[] $comisiones
  * @property Contrato[] $contratos
  * @package App
@@ -31,8 +33,15 @@ class Empleado extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['nombre', 'apellido', 'email', 'telefono', 'domicilio'];
+    protected $fillable = ['nombre', 'apellido', 'user_id', 'telefono', 'domicilio', 'estado'];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id', 'id');
+    }
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
@@ -43,11 +52,12 @@ class Empleado extends Model
     }
     
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
     public function contratos()
     {
-        return $this->hasMany(\App\Models\Contrato::class, 'id', 'empleado_id');
+        return $this->belongsToMany(\App\Models\Contrato::class, 'comisiones', 'empleado_id', 'contrato_id')
+                    ->distinct();
     }
     
 }

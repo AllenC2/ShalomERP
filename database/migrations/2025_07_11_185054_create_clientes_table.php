@@ -17,7 +17,15 @@ return new class extends Migration
             $table->string('apellido');
             $table->string('email')->unique();
             $table->string('telefono')->nullable();
-            $table->string('domicilio')->nullable();
+
+            $table->string('calle_y_numero');
+            $table->string('cruces')->nullable();
+            $table->string('colonia');
+            $table->string('municipio');
+            $table->string('estado')->nullable();
+            $table->string('codigo_postal')->nullable();
+
+            $table->string('domicilio_completo');
             $table->timestamps();
         });
     }

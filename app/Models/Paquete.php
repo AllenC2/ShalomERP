@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property $updated_at
  *
  * @property Contrato[] $contratos
+ * @property Porcentaje[] $porcentajes
  * @package App
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
@@ -36,7 +37,15 @@ class Paquete extends Model
      */
     public function contratos()
     {
-        return $this->hasMany(\App\Models\Contrato::class, 'id', 'paquete_id');
+        return $this->hasMany(\App\Models\Contrato::class, 'paquete_id', 'id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function porcentajes()
+    {
+        return $this->hasMany(\App\Models\Porcentaje::class, 'paquete_id', 'id');
     }
     
 }

@@ -21,12 +21,12 @@ class UserSeeder extends Seeder
             'role' => 'admin',
         ]);
 
-        // Crear usuario vendedor
+        // Crear usuario empleado de ejemplo
         User::create([
-            'name' => 'Vendedor 1',
-            'email' => 'vendedor@shalom.com',
+            'name' => 'Empleado 1',
+            'email' => 'empleado@shalom.com',
             'password' => Hash::make('password'),
-            'role' => 'vendedor',
+            'role' => 'empleado',
         ]);
 
         // Crear usuario cliente (si necesitas)

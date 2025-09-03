@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/mishoras/public_html/
+    - /bin/rsync -a --exclude 'index.php' public/ $DEPLOYPATH

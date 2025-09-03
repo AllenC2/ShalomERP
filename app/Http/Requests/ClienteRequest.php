@@ -22,11 +22,17 @@ class ClienteRequest extends FormRequest
     public function rules(): array
     {
         return [
-			'nombre' => 'required|string',
-			'apellido' => 'required|string',
-			'email' => 'required|string',
-			'telefono' => 'string',
-			'domicilio' => 'string',
+            'nombre' => 'required|string|max:255',
+            'apellido' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:clientes,email,' . $this->route('cliente')?->id,
+            'telefono' => 'nullable|string|max:20',
+            'calle_y_numero' => 'required|string|max:255',
+            'cruces' => 'nullable|string|max:255',
+            'colonia' => 'required|string|max:255',
+            'municipio' => 'required|string|max:255',
+            'estado' => 'nullable|string|max:255',
+            'codigo_postal' => 'nullable|string|max:10',
+            'domicilio_completo' => 'nullable|string'
         ];
     }
 }

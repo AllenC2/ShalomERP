@@ -1,0 +1,107 @@
+// Estilos de formularios
+.form-container {
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modern-form {
+    padding: 24px;
+}
+
+// Panel de información de edición
+.edit-info-panel {
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid #3b82f6;
+}
+
+.edit-info-content {
+    padding: 24px 32px;
+
+    @media (max-width: 768px) {
+        padding: 20px;
+    }
+}
+
+.edit-info-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f1f3f4;
+
+    i {
+        font-size: 1.25rem;
+        color: #3b82f6;
+    }
+
+    h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+}
+
+.simple-warning {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.warning-item, .recommendation {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 12px;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+
+    i {
+        font-size: 1.1rem;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    p {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: #374151;
+    }
+}
+
+.warning-item {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+
+    i {
+        color: #dc2626;
+    }
+}
+
+.recommendation {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+
+    i {
+        color: #0ea5e9;
+    }
+}

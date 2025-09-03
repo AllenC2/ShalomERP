@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Empleado;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\EmpleadoRequest;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class EmpleadoController extends Controller
@@ -16,7 +18,7 @@ class EmpleadoController extends Controller
      */
     public function index(Request $request): View
     {
-        $empleados = Empleado::paginate();
+        $empleados = Empleado::with('user')->paginate();
 
         return view('empleado.index', compact('empleados'))
             ->with('i', ($request->input('page', 1) - 1) * $empleados->perPage());
@@ -37,10 +39,25 @@ class EmpleadoController extends Controller
      */
     public function store(EmpleadoRequest $request): RedirectResponse
     {
-        Empleado::create($request->validated());
+        // Crear el usuario primero
+        $user = User::create([
+            'name' => $request->nombre . ' ' . $request->apellido,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'empleado'
+        ]);
+
+        // Crear el empleado vinculado al usuario
+        $empleado = Empleado::create([
+            'nombre' => $request->nombre,
+            'apellido' => $request->apellido,
+            'user_id' => $user->id,
+            'telefono' => $request->telefono,
+            'domicilio' => $request->domicilio,
+        ]);
 
         return Redirect::route('empleados.index')
-            ->with('success', 'Empleado created successfully.');
+            ->with('success', 'Empleado creado correctamente.');
     }
 
     /**
@@ -48,8 +65,8 @@ class EmpleadoController extends Controller
      */
     public function show($id): View
     {
-        $empleado = Empleado::find($id);
-        $comisiones = $empleado ? $empleado->comisiones : collect();
+        $empleado = Empleado::with('user')->findOrFail($id);
+        $comisiones = $empleado->comisiones()->with(['contrato.cliente', 'contrato.paquete', 'parcialidades'])->orderBy('fecha_comision', 'desc')->get();
 
         return view('empleado.show', compact('empleado', 'comisiones'));
     }
@@ -59,7 +76,7 @@ class EmpleadoController extends Controller
      */
     public function edit($id): View
     {
-        $empleado = Empleado::find($id);
+        $empleado = Empleado::with('user')->findOrFail($id);
 
         return view('empleado.edit', compact('empleado'));
     }
@@ -69,17 +86,68 @@ class EmpleadoController extends Controller
      */
     public function update(EmpleadoRequest $request, Empleado $empleado): RedirectResponse
     {
-        $empleado->update($request->validated());
+        // Actualizar datos del empleado
+        $empleado->update([
+            'nombre' => $request->nombre,
+            'apellido' => $request->apellido,
+            'telefono' => $request->telefono,
+            'domicilio' => $request->domicilio,
+        ]);
+
+        // Actualizar datos del usuario asociado
+        $empleado->user->update([
+            'name' => $request->nombre . ' ' . $request->apellido,
+            'email' => $request->email,
+        ]);
 
         return Redirect::route('empleados.index')
-            ->with('success', 'Empleado updated successfully');
+            ->with('success', 'Empleado modificado correctamente.');
     }
 
     public function destroy($id): RedirectResponse
     {
-        Empleado::find($id)->delete();
+        $empleado = Empleado::findOrFail($id);
+        
+        // Eliminar el usuario asociado (esto eliminará en cascada el empleado)
+        $empleado->user->delete();
 
         return Redirect::route('empleados.index')
-            ->with('success', 'Empleado deleted successfully');
+            ->with('success', 'Empleado eliminado correctamente.');
+    }
+
+    /**
+     * Dar de baja a un empleado (cambiar estado a inactivo)
+     */
+    public function darDeBaja($id): RedirectResponse
+    {
+        $empleado = Empleado::find($id);
+        
+        if (!$empleado) {
+            return Redirect::route('empleados.index')
+                ->with('error', 'Empleado no encontrado.');
+        }
+
+        $empleado->update(['estado' => 'inactivo']);
+
+        return Redirect::route('empleados.show', $id)
+            ->with('success', 'Empleado dado de baja correctamente.');
+    }
+
+    /**
+     * Reactivar a un empleado (cambiar estado a activo)
+     */
+    public function reactivar($id): RedirectResponse
+    {
+        $empleado = Empleado::find($id);
+        
+        if (!$empleado) {
+            return Redirect::route('empleados.index')
+                ->with('error', 'Empleado no encontrado.');
+        }
+
+        $empleado->update(['estado' => 'activo']);
+
+        return Redirect::route('empleados.show', $id)
+            ->with('success', 'Empleado reactivado correctamente.');
     }
 }

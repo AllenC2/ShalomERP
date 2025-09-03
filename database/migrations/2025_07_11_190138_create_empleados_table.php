@@ -16,9 +16,10 @@ return new class extends Migration
             $table->timestamps();
             $table->string('nombre');
             $table->string('apellido');
-            $table->string('email')->unique();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('telefono')->nullable();
             $table->string('domicilio')->nullable();
+            $table->enum('estado', ['activo', 'inactivo'])->default('activo');
         });
     }
 

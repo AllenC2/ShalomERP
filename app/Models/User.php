@@ -46,4 +46,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function empleado()
+    {
+        return $this->hasOne(\App\Models\Empleado::class, 'user_id', 'id');
+    }
 }

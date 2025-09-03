@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Paquete;
+use App\Models\Porcentaje;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\PaqueteRequest;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PaqueteController extends Controller
@@ -16,7 +18,7 @@ class PaqueteController extends Controller
      */
     public function index(Request $request): View
     {
-        $paquetes = Paquete::paginate();
+        $paquetes = Paquete::with('porcentajes')->withCount('contratos')->paginate();
 
         return view('paquete.index', compact('paquetes'))
             ->with('i', ($request->input('page', 1) - 1) * $paquetes->perPage());
@@ -37,10 +39,34 @@ class PaqueteController extends Controller
      */
     public function store(PaqueteRequest $request): RedirectResponse
     {
-        Paquete::create($request->validated());
+        try {
+            DB::beginTransaction();
 
-        return Redirect::route('paquetes.index')
-            ->with('success', 'Paquete created successfully.');
+            // Crear el paquete
+            $paquete = Paquete::create($request->validated());
+
+            // Crear los porcentajes asociados solo si existen
+            if ($request->has('porcentajes') && is_array($request->porcentajes)) {
+                foreach ($request->porcentajes as $porcentajeData) {
+                    // Verificar que los datos requeridos estén presentes
+                    if (!empty($porcentajeData['cantidad_porcentaje']) && !empty($porcentajeData['tipo_porcentaje'])) {
+                        $porcentajeData['paquete_id'] = $paquete->id;
+                        Porcentaje::create($porcentajeData);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return Redirect::route('paquetes.index')
+                ->with('success', 'Paquete creado correctamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return Redirect::back()
+                ->with('error', 'Error al crear el paquete: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
@@ -48,7 +74,7 @@ class PaqueteController extends Controller
      */
     public function show($id): View
     {
-        $paquete = Paquete::find($id);
+        $paquete = Paquete::with(['porcentajes', 'contratos.cliente', 'contratos.pagos'])->find($id);
 
         return view('paquete.show', compact('paquete'));
     }
@@ -58,7 +84,7 @@ class PaqueteController extends Controller
      */
     public function edit($id): View
     {
-        $paquete = Paquete::find($id);
+        $paquete = Paquete::with('porcentajes')->find($id);
 
         return view('paquete.edit', compact('paquete'));
     }
@@ -68,17 +94,61 @@ class PaqueteController extends Controller
      */
     public function update(PaqueteRequest $request, Paquete $paquete): RedirectResponse
     {
-        $paquete->update($request->validated());
+        try {
+            DB::beginTransaction();
 
-        return Redirect::route('paquetes.index')
-            ->with('success', 'Paquete updated successfully');
+            // Actualizar el paquete
+            $paquete->update($request->validated());
+
+            // Eliminar porcentajes existentes
+            $paquete->porcentajes()->delete();
+
+            // Crear los nuevos porcentajes solo si existen
+            if ($request->has('porcentajes') && is_array($request->porcentajes)) {
+                foreach ($request->porcentajes as $porcentajeData) {
+                    // Verificar que los datos requeridos estén presentes
+                    if (!empty($porcentajeData['cantidad_porcentaje']) && !empty($porcentajeData['tipo_porcentaje'])) {
+                        $porcentajeData['paquete_id'] = $paquete->id;
+                        Porcentaje::create($porcentajeData);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return Redirect::route('paquetes.index')
+                ->with('success', 'Paquete modificado correctamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return Redirect::back()
+                ->with('error', 'Error al actualizar el paquete: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function destroy($id): RedirectResponse
     {
-        Paquete::find($id)->delete();
+        try {
+            DB::beginTransaction();
 
-        return Redirect::route('paquetes.index')
-            ->with('success', 'Paquete deleted successfully');
+            $paquete = Paquete::find($id);
+            
+            // Eliminar porcentajes asociados
+            $paquete->porcentajes()->delete();
+            
+            // Eliminar el paquete
+            $paquete->delete();
+
+            DB::commit();
+
+            return Redirect::route('paquetes.index')
+                ->with('success', 'Paquete y porcentajes eliminados correctamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return Redirect::route('paquetes.index')
+                ->with('error', 'Error al eliminar el paquete: ' . $e->getMessage());
+        }
     }
 }

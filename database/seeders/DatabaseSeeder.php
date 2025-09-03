@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
+            ClienteSeeder::class,
+            EmpleadoSeeder::class,
+            PaqueteSeeder::class,
+            PorcentajeSeeder::class, // Debe ir después de PaqueteSeeder
+            AjustesSeeder::class,
+            WhatsAppRecordatorioSeeder::class,
         ]);
     }
 }

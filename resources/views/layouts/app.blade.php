@@ -18,6 +18,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/sass/rainbow.scss', 'resources/js/app.js'])
+    
+    <!-- Estilos de emergencia en caso de fallo de Vite -->
+    <style>
+        .navbar { background-color: #fff !important; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .navbar-brand img { height: 40px; }
+        .btn-primary { background-color: #007bff; border-color: #007bff; }
+        .card { border: 1px solid #dee2e6; border-radius: 0.375rem; }
+        .table { width: 100%; margin-bottom: 1rem; color: #212529; }
+        .table th, .table td { padding: 0.5rem; border-top: 1px solid #dee2e6; }
+    </style>
 </head>
 <body>
     <div id="app">

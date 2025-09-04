@@ -5,11 +5,22 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/css/app.scss',
+                'resources/sass/app.scss',
                 'resources/sass/rainbow.scss',
                 'resources/js/app.js',
             ],
             refresh: true,
         }),
     ],
+    build: {
+        manifest: true,
+        outDir: 'public/build',
+        rollupOptions: {
+            input: [
+                'resources/sass/app.scss',
+                'resources/sass/rainbow.scss',
+                'resources/js/app.js'
+            ]
+        }
+    }
 });

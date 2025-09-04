@@ -48,10 +48,12 @@ git push origin main
 
 ### PASO 4: Configurar Git Repository en cPanel
 
-**Repository URL:** `https://github.com/tu-usuario/tu-repositorio.git`
-**Repository Path:** `/public_html` (o el directorio donde quieras la app)
+**Repository URL:** `https://github.com/AllenC2/ShalomERP.git`
+**Repository Path:** `/public_html/shalom-erp` (subdirectorio para evitar conflictos)
 **Repository Name:** `shalom-erp`
-**Branch:** `main`
+**Branch:** `master`
+
+⚠️ **IMPORTANTE:** Si `/public_html` ya contiene archivos, usar un subdirectorio como `/public_html/shalom-erp` para evitar conflictos.
 
 ### PASO 5: Clonar repositorio
 
@@ -71,7 +73,14 @@ git push origin main
 
 1. **Navegar al directorio del proyecto** en File Manager
 2. **Copiar .env.example a .env**
-3. **Editar .env con los valores correctos:**
+
+Esto significa que debes crear el archivo `.env` (que contiene la configuración específica de tu entorno de producción) a partir del archivo de ejemplo `.env.example`. Puedes hacerlo copiando el archivo y luego editándolo con los valores correctos para tu servidor. Por ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+Luego, edita el archivo `.env` para configurar las variables necesarias (como base de datos, URL, etc.). 3. **Editar .env con los valores correctos:**
 
 ```bash
 APP_NAME="Shalom ERP"
@@ -95,7 +104,7 @@ DB_PASSWORD=tu_password_de_bd
 1. **Acceder al Terminal** en cPanel (si está disponible)
 2. **Navegar al directorio del proyecto:**
     ```bash
-    cd public_html  # o el directorio donde instalaste
+    cd public_html/shalom-erp  # o el directorio donde instalaste
     ```
 3. **Hacer el script ejecutable y ejecutarlo:**
     ```bash
@@ -103,7 +112,25 @@ DB_PASSWORD=tu_password_de_bd
     ./deployment/post-deploy.sh
     ```
 
-### PASO 9: Configurar permisos (si es necesario)
+### PASO 9: Configurar acceso desde el dominio principal
+
+Si instalaste en un subdirectorio (`/public_html/shalom-erp`), tienes dos opciones:
+
+**OPCIÓN A: Acceso vía subdirectorio**
+
+-   La aplicación estará disponible en: `https://tudominio.com/shalom-erp`
+-   No requiere configuración adicional
+
+**OPCIÓN B: Redirigir dominio principal (recomendado)**
+
+1. **Crear archivo .htaccess en `/public_html`:**
+    ```apache
+    RewriteEngine On
+    RewriteRule ^(.*)$ /shalom-erp/public/$1 [L]
+    ```
+2. **O usar cPanel para configurar un subdomain:**
+    - Crear subdomain: `erp.tudominio.com`
+    - Apuntarlo a: `/public_html/shalom-erp/public`### PASO 9: Configurar permisos (si es necesario)
 
 Si no tienes acceso al terminal, configurar manualmente:
 
@@ -156,6 +183,31 @@ Para actualizar la aplicación:
 -   Configurar **logs de errores**
 -   Monitorear **uso de recursos**
 -   Establecer **alertas** para errores críticos
+
+## 🚨 SOLUCIÓN AL ERROR "DIRECTORY ALREADY CONTAINS FILES"
+
+Si encuentras el error "cannot use directory because it already contains files":
+
+### SOLUCIÓN 1: Usar subdirectorio (Recomendado)
+
+```
+Repository Path: /public_html/shalom-erp
+```
+
+### SOLUCIÓN 2: Limpiar directorio manualmente
+
+1. **Hacer backup** de archivos importantes en `/public_html`
+2. **Mover archivos existentes** a una carpeta temporal
+3. **Usar `/public_html` como Repository Path**
+4. **Restaurar archivos importantes** después del deployment
+
+### SOLUCIÓN 3: Usar directorio alternativo
+
+```
+Repository Path: /public_html/app
+Repository Path: /public_html/erp
+Repository Path: /apps/shalom-erp
+```
 
 ## 🆘 TROUBLESHOOTING COMÚN
 

@@ -20,7 +20,7 @@
                         </div>
                     </div>
                     <div class="header-actions">
-                        <a href="{{ route('clientes.create') }}" class="btn border-secondary">
+                        <a href="{{ route('clientes.create') }}" class="btn">
                             <i class="bi bi-plus-lg me-1"></i>
                             {{ __('Nuevo Cliente') }}
                         </a>
@@ -377,6 +377,72 @@
             overflow: hidden;
         }
     </style>
+    <style>
+    .page-header {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+    }
+
+    .header-icon {
+        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1.5rem;
+        font-size: 1.5rem;
+        box-shadow: 0 10px 30px rgba(225, 178, 64, 0.3);
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .page-subtitle {
+        color: #718096;
+        font-size: 1rem;
+        margin: 0;
+        margin-top: 0.25rem;
+    }
+
+    .header-actions .btn {
+        background: white;
+        color: #79481D;
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .header-actions .btn:hover {
+        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+        color: white;
+        border-color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+    }
+</style>
 
     <script>
     $(document).ready(function() {

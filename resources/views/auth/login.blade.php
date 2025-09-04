@@ -303,9 +303,9 @@
         <!-- Logo Section -->
         <div class="logo-container mb-4 flex-column text-center">
             <h1 class="login-title mb-1">Iniciar Sesión</h1>
-            <p class="login-subtitle">Bienvenido, por favor ingresa tus credenciales</p>
+            <small class="text-muted">Shalom ERP</small>
         </div>
-        <div class="card border-0 shadow-sm rounded-4 login-card">    
+        <div class="card border-0 shadow-sm rounded-4 login-card p-4">    
             <div class="card-body">
                 <form method="POST" action="{{ route('login') }}">
                     @csrf
@@ -341,11 +341,6 @@
                                 {{ __('Recordar cuenta') }}
                             </label>
                         </div>
-                        @if (Route::has('password.request'))
-                            <a class="modern-link text-decoration-none fw-bold small" href="{{ route('password.request') }}" style="color: #79481D;">
-                                {{ __('¿Olvidaste tu contraseña?') }}
-                            </a>
-                        @endif
                     </div>
 
                     <div class="d-grid">
@@ -354,16 +349,6 @@
                         </button>
                     </div>
                 </form>
-
-                <!-- Footer del card -->
-                <div class="text-center mt-4">
-                    <div class="border-top pt-3">
-                        <small class="text-muted">
-                            <i class="bi bi-shield-check me-1" style="color: #79481D;"></i>
-                            Acceso seguro y protegido
-                        </small>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

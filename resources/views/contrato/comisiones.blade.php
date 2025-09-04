@@ -911,81 +911,81 @@ class ComisionesRealTime {
     }
     
     init() {
-        this.setupClickHandlers();
+        // this.setupClickHandlers();
         this.startPolling();
         this.setupVisibilityChange();
     }
     
-    setupClickHandlers() {
-        document.querySelectorAll('.estado-badge').forEach(badge => {
-            badge.addEventListener('click', (e) => this.handleBadgeClick(e));
-        });
-    }
+    // setupClickHandlers() {
+    //     document.querySelectorAll('.estado-badge').forEach(badge => {
+    //         badge.addEventListener('click', (e) => this.handleBadgeClick(e));
+    //     });
+    // }
     
-    async handleBadgeClick(event) {
-        const badge = event.target;
-        const comisionId = badge.getAttribute('data-id');
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    // async handleBadgeClick(event) {
+    //     const badge = event.target;
+    //     const comisionId = badge.getAttribute('data-id');
+    //     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         
-        // Guardar estado original
-        const estadoOriginal = badge.textContent;
-        const claseOriginal = badge.className;
+    //     // Guardar estado original
+    //     const estadoOriginal = badge.textContent;
+    //     const claseOriginal = badge.className;
         
-        // Cambiar a estado de loading
-        badge.style.cursor = 'wait';
-        badge.textContent = 'Cambiando...';
-        badge.className = 'modern-badge estado-badge bg-info text-white';
+    //     // Cambiar a estado de loading
+    //     badge.style.cursor = 'wait';
+    //     badge.textContent = 'Cambiando...';
+    //     badge.className = 'modern-badge estado-badge bg-info text-white';
         
-        try {
-            const response = await fetch(`/comisiones/${comisionId}/toggle-estado`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                }
-            });
+    //     try {
+    //         const response = await fetch(`/comisiones/${comisionId}/toggle-estado`, {
+    //             method: 'PATCH',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'X-CSRF-TOKEN': csrfToken,
+    //                 'Accept': 'application/json'
+    //             }
+    //         });
             
-            if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
-            }
+    //         if (!response.ok) {
+    //             throw new Error('Error en la respuesta del servidor');
+    //         }
             
-            const data = await response.json();
+    //         const data = await response.json();
             
-            if (data.success) {
-                // Actualizar inmediatamente el badge
-                this.updateBadge(badge, data.nuevo_estado, data.badge_class);
+    //         if (data.success) {
+    //             // Actualizar inmediatamente el badge
+    //             this.updateBadge(badge, data.nuevo_estado, data.badge_class);
                 
-                // Actualizar la fecha de comisión en la tabla si se proporciona
-                if (data.fecha_comision) {
-                    this.updateFechaComision(badge, data.fecha_comision);
-                }
+    //             // Actualizar la fecha de comisión en la tabla si se proporciona
+    //             if (data.fecha_comision) {
+    //                 this.updateFechaComision(badge, data.fecha_comision);
+    //             }
                 
-                // Actualizar los gráficos INMEDIATAMENTE
-                this.updateChartsFromDOM();
+    //             // Actualizar los gráficos INMEDIATAMENTE
+    //             this.updateChartsFromDOM();
                 
-                // Actualizar también la información del lado derecho del gráfico
-                this.updateChartInfo();
+    //             // Actualizar también la información del lado derecho del gráfico
+    //             this.updateChartInfo();
                 
-                // Mostrar confirmación visual
-                badge.style.transform = 'scale(1.2)';
-                badge.style.transition = 'all 0.3s ease';
-                setTimeout(() => {
-                    badge.style.transform = 'scale(1)';
-                }, 300);
+    //             // Mostrar confirmación visual
+    //             badge.style.transform = 'scale(1.2)';
+    //             badge.style.transition = 'all 0.3s ease';
+    //             setTimeout(() => {
+    //                 badge.style.transform = 'scale(1)';
+    //             }, 300);
                 
-                // Forzar una actualización inmediata para sincronizar con otros usuarios
-                setTimeout(() => this.checkForUpdates(), 200);
-            } else {
-                throw new Error(data.error || 'Error desconocido');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            this.handleError(badge, estadoOriginal, claseOriginal, error.message);
-        } finally {
-            badge.style.cursor = 'pointer';
-        }
-    }
+    //             // Forzar una actualización inmediata para sincronizar con otros usuarios
+    //             setTimeout(() => this.checkForUpdates(), 200);
+    //         } else {
+    //             throw new Error(data.error || 'Error desconocido');
+    //         }
+    //     } catch (error) {
+    //         console.error('Error:', error);
+    //         this.handleError(badge, estadoOriginal, claseOriginal, error.message);
+    //     } finally {
+    //         badge.style.cursor = 'pointer';
+    //     }
+    // }
     
     updateBadge(badge, estado, badgeClass) {
         badge.textContent = estado;

@@ -179,7 +179,6 @@
                         </div>
                     </div>
                     <div class="col-sm-4 text-end">
-
                         <div class="small">
                             <strong>{{ infoEmpresa('razon_social') }}</strong><br>
                             {!! formatearDireccionEmpresa() !!}<br>

@@ -24,13 +24,7 @@
                         <i class="bi bi-plus-lg me-1"></i>
                         {{ __('Nuevo Contrato') }}
                     </a>
-                    <style>
-                        .custom-hover-btn:hover {
-                            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important;
-                            color: #fff !important;
-                            border-color: #E1B240 !important;
-                        }
-                    </style>
+
                 </div>
             </div>
             <div class="">
@@ -540,7 +534,7 @@
     }
 
     .header-icon {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
         color: white;
         width: 60px;
         height: 60px;
@@ -550,7 +544,7 @@
         justify-content: center;
         margin-right: 1.5rem;
         font-size: 1.5rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 10px 30px rgba(225, 178, 64, 0.3);
     }
 
     .page-title {
@@ -631,6 +625,9 @@
         color: white;
     }
 </style>
+
+
+
 
 @section('scripts')
 <script>

@@ -9,6 +9,10 @@
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('shalom_ico.svg') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
@@ -21,7 +25,6 @@
     
     <!-- Estilos de emergencia en caso de fallo de Vite -->
     <style>
-        .navbar { background-color: #fff !important; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
         .navbar-brand img { height: 40px; }
         .btn-primary { background-color: #007bff; border-color: #007bff; }
         .card { border: 1px solid #dee2e6; border-radius: 0.375rem; }
@@ -31,7 +34,7 @@
 </head>
 <body>
     <div id="app">
-        <nav class="d-print-none navbar navbar-expand-md navbar-light">
+        <nav class="d-print-none navbar navbar-expand-md navbar-light" style="background-color: transparent !important; box-shadow: none !important;">
             <div class="container">
                 <a class="navbar-brand" href="{{ url('/home') }}">
                     <img src="{{ asset('shalom_logo.svg') }}" alt="Shalom Logo" height="40">
@@ -53,12 +56,6 @@
                             @if (Route::has('login'))
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
-                                </li>
-                            @endif
-
-                            @if (Route::has('register'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
                                 </li>
                             @endif
                         @else

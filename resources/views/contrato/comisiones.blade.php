@@ -86,13 +86,13 @@
                                                                     <div class="col-6 mb-2">
                                                                         <small class="text-muted d-block">Fecha Inicio</small>
                                                                         <small class="fw-bold text-primary">
-                                                                            {{ $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->translatedFormat('d M Y') : 'No definida' }}
+                                                                            {{ $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d M Y') : 'No definida' }}
                                                                         </small>
                                                                     </div>
                                                                     <div class="col-6 mb-2">
                                                                         <small class="text-muted d-block">Fecha Fin</small>
                                                                         <small class="fw-bold text-primary">
-                                                                            {{ $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin)->locale('es')->translatedFormat('d M Y') : 'Indefinida' }}
+                                                                            {{ $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin)->translatedFormat('d M Y') : 'Indefinida' }}
                                                                         </small>
                                                                     </div>
                                                                 </div>
@@ -395,7 +395,7 @@
                                             <div class="contact-info">
                                                 <div>
                                                     <i class="bi bi-calendar me-2"></i>
-                                                    <span class="{{ $comision->tipo_comision == 'PARCIALIDAD' ? 'text-muted' : 'text-dark' }}">{{ \Carbon\Carbon::parse($comision->fecha_comision)->locale('es')->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm:ss') }}</span>
+                                                    <span class="{{ $comision->tipo_comision == 'PARCIALIDAD' ? 'text-muted' : 'text-dark' }}">{{ \Carbon\Carbon::parse($comision->fecha_comision)->translatedFormat('D [de] MMMM [de] YYYY [a las] HH:mm:ss') }}</span>
                                                 </div>
                                             </div>
                                         </td>

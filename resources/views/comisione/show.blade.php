@@ -186,7 +186,7 @@
                                     Recibo de Comisión #{{ str_pad($comisione->id ?? 0, 6, '0', STR_PAD_LEFT) }}
                                 </h2>
                                 <div class="text-muted" style="font-size: .8rem;">
-                                    {{ $comisione->fecha_comision ? \Carbon\Carbon::parse($comisione->fecha_comision)->locale('es')->translatedFormat('d \d\e F \d\e Y') : 'Fecha no disponible' }}
+                                    {{ $comisione->fecha_comision ? \Carbon\Carbon::parse($comisione->fecha_comision)->translatedFormat('d \d\e F \d\e Y') : 'Fecha no disponible' }}
                                 </div>
                             </div>
                         </div>
@@ -427,7 +427,7 @@
                                             <div class="mb-1">
                                                 <small class="d-block text-muted">
                                                     <i class="bi bi-calendar me-1"></i>Fecha: 
-                                                    <span class="fw-bold">{{ \Carbon\Carbon::parse($comisione->fecha_comision)->locale('es_MX')->translatedFormat('d \d\e F \d\e Y') }}</span>
+                                                    <span class="fw-bold">{{ \Carbon\Carbon::parse($comisione->fecha_comision)->translatedFormat('d \d\e F \d\e Y') }}</span>
                                                 </small>
                                             </div>
                                             <div>

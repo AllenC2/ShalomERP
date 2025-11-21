@@ -199,9 +199,7 @@
                                         CLIENTE
                                     </span>
                                     <p class="text-muted mb-0 mt-2">
-                                        Cliente desde: {{ $cliente->created_at->format('d') }} de
-                                        {{ ucfirst($cliente->created_at->locale('es')->monthName) }} de
-                                        {{ $cliente->created_at->format('Y') }}
+                                        Cliente desde: {{ $cliente->created_at->translatedFormat('d \d\e F \d\e Y') }}
                                     </p>
                                 </div>
                             </div>
@@ -296,9 +294,9 @@
                                                             <div class="client-stat">
                                                                 <i class="bi bi-calendar-plus text-info d-block fs-5 mb-1"></i>
                                                                 <small class="text-muted d-block">Cliente desde</small>
-                                                                <small class="fw-bold">
-                                                                    {{ ucfirst($cliente->created_at->locale('es')->monthName) }} {{ $cliente->created_at->format('Y') }}
-                                                                </small>
+                                                                    <small class="fw-bold">
+                                                                        {{ $cliente->created_at->translatedFormat('F Y') }}
+                                                                    </small>
                                                             </div>
                                                         </div>
                                                         <div class="col-4">
@@ -320,7 +318,7 @@
 
                                                 <!-- Indicador de tiempo como cliente -->
                                                 @php
-                                                $tiempoCliente = $cliente->created_at->locale('es')->diffForHumans(null, true);
+                                                $tiempoCliente = $cliente->created_at->diffForHumans(null, true);
                                                 @endphp
                                                 <div class="mt-3">
                                                     <div class="border border-muted rounded p-2 text-center">
@@ -583,7 +581,7 @@
                                                                     <div class="d-flex align-items-center">
                                                                         <i class="bi bi-calendar3 me-2 text-muted"></i>
                                                                         <span class="text-dark small">
-                                                                            {{ $pago->fecha_pago->locale('es')->isoFormat('D MMM YYYY HH:mm') }}
+                                                                            {{ $pago->fecha_pago->translatedFormat('D MMM YYYY HH:mm') }}
                                                                         </span>
                                                                     </div>
                                                                 </td>
@@ -673,7 +671,7 @@
                                                                 </h6>
                                                                 <small class="text-muted">
                                                                     <i class="bi bi-calendar-event me-1"></i>
-                                                                    {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->isoFormat('D MMM YYYY') }}
+                                                                    {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('D MMM YYYY') }}
                                                                 </small>
                                                             </div>
                                                         </div>

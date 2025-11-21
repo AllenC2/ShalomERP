@@ -77,10 +77,10 @@
                         
                         @if(($filtrarPorPeriodo ?? false) && $periodoSeleccionado)
                             <p class="small mb-1">
-                                <strong>Del:</strong> {{ $periodoSeleccionado['fecha_inicio']->locale('es')->translatedFormat('d \d\e F \d\e Y') }}
+                                <strong>Del:</strong> {{ $periodoSeleccionado['fecha_inicio']->translatedFormat('d \d\e F \d\e Y') }}
                             </p>
                             <p class="small mb-2">
-                                <strong>Al:</strong> {{ $periodoSeleccionado['fecha_fin']->locale('es')->translatedFormat('d \d\e F \d\e Y') }}
+                                <strong>Al:</strong> {{ $periodoSeleccionado['fecha_fin']->translatedFormat('d \d\e F \d\e Y') }}
                             </p>
                         @endif
                         
@@ -118,8 +118,8 @@
                         <strong>Detalles de tu Contrato</strong> <br>
 
                         Paquete: {{ $contrato->paquete->nombre }} <br>
-                        Inicio: {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->translatedFormat('d \d\e F \d\e Y') }} <br>    
-                        Fin: {{ \Carbon\Carbon::parse($contrato->fecha_fin)->locale('es')->translatedFormat('d \d\e F \d\e Y') }} <br>
+                        Inicio: {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d \d\e F \d\e Y') }} <br>    
+                        Fin: {{ \Carbon\Carbon::parse($contrato->fecha_fin)->translatedFormat('d \d\e F \d\e Y') }} <br>
                         @if(($filtrarPorPeriodo ?? false) && $periodoSeleccionado)
                         <h2>
                             {{ numeroOrdinal($periodoSeleccionado['numero']) }} Periodo<br>
@@ -293,8 +293,8 @@
                 <p class="mb-2">
                     No se encontraron pagos (realizados, pendientes o parcialidades) para el 
                     <strong>Período {{ $periodoSeleccionado['numero'] }}</strong>
-                    ({{ $periodoSeleccionado['fecha_inicio']->locale('es')->translatedFormat('d \d\e F') }} - 
-                    {{ $periodoSeleccionado['fecha_fin']->locale('es')->translatedFormat('d \d\e F \d\e Y') }}).
+                    ({{ $periodoSeleccionado['fecha_inicio']->translatedFormat('d \d\e F') }} - 
+                    {{ $periodoSeleccionado['fecha_fin']->translatedFormat('d \d\e F \d\e Y') }}).
                 </p>
                 <a href="{{ route('contratos.estado', $contrato->id) }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-list-ul me-1"></i>Ver estado completo del contrato
@@ -379,8 +379,8 @@
                 <h5><i class="bi bi-info-circle me-2"></i>Período con parcialidades únicamente</h5>
                 <p class="mb-2">
                     Durante el <strong>Período {{ $periodoSeleccionado['numero'] }}</strong>
-                    ({{ $periodoSeleccionado['fecha_inicio']->locale('es')->translatedFormat('d \d\e F') }} - 
-                    {{ $periodoSeleccionado['fecha_fin']->locale('es')->translatedFormat('d \d\e F \d\e Y') }})
+                    ({{ $periodoSeleccionado['fecha_inicio']->translatedFormat('d \d\e F') }} - 
+                    {{ $periodoSeleccionado['fecha_fin']->translatedFormat('d \d\e F \d\e Y') }})
                     no se completaron cuotas, pero <strong>sí se registraron {{ ($parcialidadesPeriodo ?? collect())->count() }} parcialidad(es)</strong> 
                     por un total de <strong>${{ number_format(($parcialidadesPeriodo ?? collect())->sum('monto'), 2) }}</strong>.
                 </p>

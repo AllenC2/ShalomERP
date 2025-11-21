@@ -65,10 +65,31 @@ class EmpleadoController extends Controller
      */
     public function show($id): View
     {
-        $empleado = Empleado::with('user')->findOrFail($id);
-        $comisiones = $empleado->comisiones()->with(['contrato.cliente', 'contrato.paquete', 'parcialidades'])->orderBy('fecha_comision', 'desc')->get();
+        try {
+            $empleado = Empleado::with('user')->findOrFail($id);
+            
+            // Verificar que el empleado tenga un usuario asociado
+            if (!$empleado->user) {
+                return view('empleado.show', [
+                    'empleado' => null,
+                    'comisiones' => collect([])
+                ]);
+            }
+            
+            $comisiones = $empleado->comisiones()
+                ->with(['contrato.cliente', 'contrato.paquete', 'parcialidades'])
+                ->orderBy('fecha_comision', 'desc')
+                ->get();
 
-        return view('empleado.show', compact('empleado', 'comisiones'));
+            return view('empleado.show', compact('empleado', 'comisiones'));
+        } catch (\Exception $e) {
+            \Log::error('Error en empleado.show: ' . $e->getMessage());
+            
+            return view('empleado.show', [
+                'empleado' => null,
+                'comisiones' => collect([])
+            ])->with('error', 'Error al cargar el empleado: ' . $e->getMessage());
+        }
     }
 
     /**

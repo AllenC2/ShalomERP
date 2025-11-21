@@ -239,6 +239,58 @@
                             @endif
                         </div>
                     </div>
+
+                    <!-- Gestión de rol de usuario -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="fw-bold mb-3">
+                                <i class="bi bi-shield-lock me-2"></i>Gestión de Permisos
+                            </h6>
+                            
+                            <!-- Leyenda de estado actual -->
+                            <div class="alert {{ $empleado->user->role === 'admin' ? 'alert-info' : 'alert-light' }} mb-3 py-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <small>
+                                        @if($empleado->user->role === 'admin')
+                                            <strong>Este empleado tiene permisos de Administrador</strong>
+                                            <br>Puede acceder a todas las funciones del sistema.
+                                        @else
+                                            <strong>Este empleado tiene permisos de Empleado</strong>
+                                            <br>Acceso limitado a funciones básicas del sistema.
+                                        @endif
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Switch para cambiar rol -->
+                            <form action="{{ route('empleados.toggleRol', $empleado->id) }}" method="POST" id="toggleRolForm">
+                                @csrf
+                                @method('PATCH')
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <label class="form-label mb-0 fw-semibold">Rol de usuario</label>
+                                        <small class="d-block text-muted">Cambiar entre Empleado y Administrador</small>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input 
+                                            class="form-check-input" 
+                                            type="checkbox" 
+                                            role="switch" 
+                                            id="rolSwitch" 
+                                            {{ $empleado->user->role === 'admin' ? 'checked' : '' }}
+                                            onchange="confirmarCambioRol()"
+                                            style="width: 3rem; height: 1.5rem; cursor: pointer;">
+                                        <label class="form-check-label ms-2 fw-bold" for="rolSwitch" id="rolLabel">
+                                            {{ $empleado->user->role === 'admin' ? 'ADMIN' : 'EMPLEADO' }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
                 </div>
 
                 <div class="col-md-8">
@@ -402,5 +454,26 @@
             }
         }
     </style>
+
+    <script>
+        function confirmarCambioRol() {
+            const switchElement = document.getElementById('rolSwitch');
+            const isChecked = switchElement.checked;
+            const nuevoRol = isChecked ? 'Administrador' : 'Empleado';
+            const rolActual = isChecked ? 'Empleado' : 'Administrador';
+            
+            const mensaje = `¿Estás seguro de que quieres cambiar el rol de ${rolActual} a ${nuevoRol}?\n\n` +
+                          (isChecked ? 
+                              'Como Administrador tendrá acceso completo al sistema.' : 
+                              'Como Empleado tendrá acceso limitado al sistema.');
+            
+            if (confirm(mensaje)) {
+                document.getElementById('toggleRolForm').submit();
+            } else {
+                // Revertir el switch si el usuario cancela
+                switchElement.checked = !isChecked;
+            }
+        }
+    </script>
     @endif
 @endsection

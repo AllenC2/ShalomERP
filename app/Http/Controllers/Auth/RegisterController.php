@@ -37,7 +37,21 @@ class RegisterController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('guest');
+        // Permitir acceso a usuarios no autenticados (guest) o administradores autenticados
+        $this->middleware(function ($request, $next) {
+            // Si el usuario está autenticado y es admin, permitir acceso
+            if (auth()->check() && auth()->user()->role === 'admin') {
+                return $next($request);
+            }
+            
+            // Si no está autenticado, permitir acceso (comportamiento normal de guest)
+            if (!auth()->check()) {
+                return $next($request);
+            }
+            
+            // Si está autenticado pero no es admin, redirigir a home
+            return redirect('/home');
+        });
     }
 
     /**

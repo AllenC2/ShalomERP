@@ -71,8 +71,10 @@ class ClienteController extends Controller
      */
     public function show($id): View
     {
-        $cliente = Cliente::find($id);
-        $cliente_contratos = Contrato::where('cliente_id', $id)->get();
+        $cliente = Cliente::findOrFail($id);
+        $cliente_contratos = Contrato::where('cliente_id', $id)
+            ->with(['paquete', 'pagos'])
+            ->get();
         
         return view('cliente.show', compact('cliente', 'cliente_contratos'));
     }
@@ -82,7 +84,7 @@ class ClienteController extends Controller
      */
     public function edit($id): View
     {
-        $cliente = Cliente::find($id);
+        $cliente = Cliente::findOrFail($id);
 
         return view('cliente.edit', compact('cliente'));
     }
@@ -100,7 +102,7 @@ class ClienteController extends Controller
 
     public function destroy($id): RedirectResponse
     {
-        Cliente::find($id)->delete();
+        Cliente::findOrFail($id)->delete();
 
         return Redirect::route('clientes.index')
             ->with('success', 'Cliente eliminado correctamente.');

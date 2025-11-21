@@ -41,13 +41,6 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('porcentajes', App\Http\Controllers\PorcentajeController::class)->except([
         'index', 'show', 'create', 'edit'
     ]);
-    
-    // Rutas de clientes específicos - Solo administrador
-    Route::get('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'show'])->name('clientes.show');
-    Route::get('clientes/{cliente}/edit', [App\Http\Controllers\ClienteController::class, 'edit'])->name('clientes.edit');
-    Route::put('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'update'])->name('clientes.update');
-    Route::patch('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'update']);
-    Route::delete('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'destroy'])->name('clientes.destroy');
 });
 
 // Ruta para servir PDFs de contratos - Accesible para cualquier usuario autenticado
@@ -69,7 +62,7 @@ Route::middleware(['auth', 'role:admin,empleado'])->group(function () {
 
 // Rutas de clientes, contratos y pagos con middleware específico para empleados
 Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->group(function () {
-    // Rutas de clientes - Solo índice y crear para empleados
+    // Rutas de clientes - index, create y store para empleados y admin
     Route::get('clientes', [App\Http\Controllers\ClienteController::class, 'index'])->name('clientes.index');
     Route::get('clientes/create', [App\Http\Controllers\ClienteController::class, 'create'])->name('clientes.create');
     Route::post('clientes', [App\Http\Controllers\ClienteController::class, 'store'])->name('clientes.store');
@@ -101,3 +94,11 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     Route::get('pagos_alt', [PagoController::class, 'index'])->name('pagos_alt.index');
 });
 
+// Rutas de clientes específicas - Solo administrador (deben ir después de las rutas con 'create' para evitar conflictos)
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'show'])->name('clientes.show');
+    Route::get('clientes/{cliente}/edit', [App\Http\Controllers\ClienteController::class, 'edit'])->name('clientes.edit');
+    Route::put('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'update'])->name('clientes.update');
+    Route::patch('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'update']);
+    Route::delete('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'destroy'])->name('clientes.destroy');
+});

@@ -60,9 +60,7 @@
                                         {{ strtoupper($empleado->estado ?? 'ACTIVO') }}
                                     </span>
                                     <p class="text-muted mb-0 mt-2">
-                                        Empleado desde: {{ $empleado->created_at->format('d') }} de
-                                        {{ ucfirst($empleado->created_at->locale('es')->monthName) }} de
-                                        {{ $empleado->created_at->format('Y') }}
+                                        Empleado desde: {{ $empleado->created_at->translatedFormat('d \d\e F \d\e Y') }}
                                     </p>
                                 </div>
                             </div>
@@ -173,7 +171,7 @@
                                             <i class="bi bi-calendar-plus text-info d-block fs-5 mb-1"></i>
                                             <small class="text-muted d-block">Empleado desde</small>
                                             <small class="fw-bold">
-                                                {{ ucfirst($empleado->created_at->locale('es')->monthName) }} {{ $empleado->created_at->format('Y') }}
+                                                {{ $empleado->created_at->translatedFormat('F Y') }}
                                             </small>
                                         </div>
                                     </div>
@@ -196,7 +194,7 @@
 
                             <!-- Indicador de tiempo como empleado -->
                             @php
-                            $tiempoEmpleado = $empleado->created_at->locale('es')->diffForHumans(null, true);
+                            $tiempoEmpleado = $empleado->created_at->diffForHumans(null, true);
                             @endphp
                             <div class="mt-3">
                                 <div class="border border-muted rounded p-2 text-center">
@@ -339,7 +337,7 @@
                                                     </td>
                                                     <td>
                                                         <small class="text-muted">
-                                                            {{ \Carbon\Carbon::parse($comision->fecha_comision)->locale('es_MX')->isoFormat('D [de] MMMM [de] YYYY') }}
+                                                            {{ \Carbon\Carbon::parse($comision->fecha_comision)->translatedFormat('d \\d\\e F \\d\\e Y') }}
                                                         </small>
                                                     </td>
                                                     <td>

@@ -66,7 +66,7 @@
                                     @endif
                                 </div>
                                 <p class="text-muted mb-0 mt-2">
-                                    Creado: {{ $contrato->created_at->format('d') }} de {{ ucfirst($contrato->created_at->locale('es')->monthName) }} de {{ $contrato->created_at->format('Y') }}
+                                    Creado: {{ $contrato->created_at->translatedFormat('d \d\e F \d\e Y') }}
                                 </p>
                             </div>
                         </div>
@@ -170,7 +170,7 @@
                                                                     <i class="bi bi-calendar-plus text-info d-block fs-5 mb-1"></i>
                                                                     <small class="text-muted d-block">Cliente desde</small>
                                                                     <small class="fw-bold">
-                                                                        {{ ucfirst($contrato->cliente->created_at->locale('es')->monthName) }} {{ $contrato->cliente->created_at->format('Y') }}
+                                                                        {{ $contrato->cliente->created_at->translatedFormat('F Y') }}
                                                                     </small>
                                                                 </div>
                                                             </div>
@@ -193,7 +193,7 @@
 
                                                     <!-- Indicador de tiempo como cliente -->
                                                     @php
-                                                    $tiempoCliente = $contrato->cliente->created_at->locale('es')->diffForHumans(null, true);
+                                                    $tiempoCliente = $contrato->cliente->created_at->diffForHumans(null, true);
                                                     $añosCliente = $contrato->cliente->created_at->diffInYears(now());
                                                     @endphp
                                                     <div class="mt-3">
@@ -235,12 +235,12 @@
                                                         </div>
                                                         <div class="mb-1">
                                                             <small class="d-block text-muted">
-                                                                <i class="bi bi-calendar-event me-1"></i>Inicio: <span class="fw-bold">{{ \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->translatedFormat('d \d\e F \d\e Y') }}</span>
+                                                                <i class="bi bi-calendar-event me-1"></i>Inicio: <span class="fw-bold">{{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d \d\e F \d\e Y') }}</span>
                                                             </small>
                                                         </div>
                                                         <div>
                                                             <small class="d-block text-muted">
-                                                                <i class="bi bi-calendar-check me-1"></i>Fin: <span class="fw-bold">{{ $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin)->locale('es')->translatedFormat('d \d\e F \d\e Y') : 'Indefinido' }}</span>
+                                                                <i class="bi bi-calendar-check me-1"></i>Fin: <span class="fw-bold">{{ $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin)->translatedFormat('d \d\e F \d\e Y') : 'Indefinido' }}</span>
                                                             </small>
                                                         </div>
                                                     </div>
@@ -461,7 +461,7 @@
                                 }
                                 
                                 // Formatear fecha como en el historial
-                                $fechaCuotaFormateada = \Carbon\Carbon::parse($siguienteCuota->fecha_pago)->locale('es');
+                                $fechaCuotaFormateada = \Carbon\Carbon::parse($siguienteCuota->fecha_pago);
                                 $diaCuota = ucfirst($fechaCuotaFormateada->dayName);
                                 $fechaCuotaTexto = $fechaCuotaFormateada->format('d') . ' de ' . ucfirst($fechaCuotaFormateada->monthName) . ' de ' . $fechaCuotaFormateada->format('Y');
                                 @endphp
@@ -620,7 +620,7 @@
                                         @forelse($pagos_contrato->sortBy('fecha_pago') as $pago)
                                         <div class="timeline-item mb-4">
                                 @php
-                                $fechaPago = \Carbon\Carbon::parse($pago->fecha_pago)->locale('es');
+                                $fechaPago = \Carbon\Carbon::parse($pago->fecha_pago);
                                 $diaSemana = ucfirst($fechaPago->dayName);
                                 $mesNombre = ucfirst($fechaPago->monthName);
                                 $fechaFormateada = $fechaPago->format('d') . ' de ' . $mesNombre . ' de ' . $fechaPago->format('Y');
@@ -868,7 +868,7 @@
                             <p class="fw-bold mb-0">
                                 ${{ number_format($proximoPago->monto, 2) }}
                                 <span class="text-muted">
-                                    ({{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->format('d') }} de {{ ucfirst(\Carbon\Carbon::parse($proximoPago->fecha_pago)->locale('es')->monthName) }} de {{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->format('Y') }} )
+                                    ({{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->translatedFormat('d \d\e F \d\e Y') }} )
                                 </span>
                             </p>
                             @else
@@ -2280,7 +2280,7 @@
                         <strong>Información del contrato:</strong><br>
                         Este contrato tiene <strong>{{ $numeroCuotas }} períodos</strong> de 
                         <strong>{{ $frecuenciaDias }} días</strong> cada uno, iniciando el 
-                        <strong>{{ \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->translatedFormat('d \d\e F \d\e Y') }}</strong>.
+                        <strong>{{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d \d\e F \d\e Y') }}</strong>.
                         <br><small class="text-muted mt-1 d-block">
                             <i class="bi bi-calendar-check me-1"></i>
                             Se muestran únicamente los períodos con fechas que ya han transcurrido 
@@ -2297,8 +2297,8 @@
                 <div class="row g-3">
                     @foreach($periodosCompletos as $periodo)
                     @php
-                    $fechaInicioFormateada = $periodo['fecha_inicio']->locale('es')->translatedFormat('d \d\e F \d\e Y');
-                    $fechaFinFormateada = $periodo['fecha_fin']->locale('es')->translatedFormat('d \d\e F \d\e Y');
+                    $fechaInicioFormateada = $periodo['fecha_inicio']->translatedFormat('d \d\e F \d\e Y');
+                    $fechaFinFormateada = $periodo['fecha_fin']->translatedFormat('d \d\e F \d\e Y');
                     @endphp
                     
                     <div class="col-md-6">
@@ -2398,7 +2398,7 @@
                                 </p>
                                 <small class="text-muted">
                                     Estará disponible después del 
-                                    <strong>{{ $proximoPeriodo['fecha_fin']->locale('es')->translatedFormat('d \d\e F \d\e Y') }}</strong>
+                                    <strong>{{ $proximoPeriodo['fecha_fin']->translatedFormat('d \d\e F \d\e Y') }}</strong>
                                 </small>
                             </div>
                         </div>

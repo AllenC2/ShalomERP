@@ -30,7 +30,7 @@
                         ${{ number_format($paquete->precio, 2) }}
                     </span>
                     <p class="text-muted mb-0 mt-2">
-                        Creado: {{ $paquete->created_at->format('d') }} de {{ ucfirst($paquete->created_at->locale('es')->monthName) }} de {{ $paquete->created_at->format('Y') }}
+                        Creado: {{ $paquete->created_at->translatedFormat('d \d\e F \d\e Y') }}
                     </p>
                 </div>
             </div>

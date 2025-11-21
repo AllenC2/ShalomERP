@@ -133,7 +133,7 @@
 
                             <!-- Información de contacto -->
                             <div class="row g-3 mb-3">
-                                @if($empleado->user->email)
+                                @if($empleado->user && $empleado->user->email)
                                 <div class="col-12">
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="bi bi-envelope text-primary"></i>
@@ -239,6 +239,7 @@
                     </div>
 
                     <!-- Gestión de rol de usuario -->
+                    @if($empleado->user)
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body p-3">
                             <h6 class="fw-bold mb-3">
@@ -288,6 +289,7 @@
                             </form>
                         </div>
                     </div>
+                    @endif
                     
                 </div>
 

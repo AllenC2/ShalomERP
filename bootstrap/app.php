@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'empleado.index.access' => \App\Http\Middleware\EmpleadoContratoAccess::class,
         ]);
+        
+        // Aplicar middleware de registro público a todas las rutas web
+        $middleware->web(append: [
+            \App\Http\Middleware\CheckRegistroPublico::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Renderizador personalizado para mantener autenticación en páginas de error

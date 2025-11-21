@@ -283,6 +283,11 @@
                     </div>
                 </div>
             </div>
+            </div>
+            
+            <div class="text-center mt-3">
+                <small class="text-muted">Version 1.3</small>
+            </div>
         </div>
     </body>
 </html>

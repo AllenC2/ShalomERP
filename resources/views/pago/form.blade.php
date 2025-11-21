@@ -29,7 +29,7 @@
                             <p class="contract-client">{{$contrato->cliente->nombre}} {{$contrato->cliente->apellido}}</p>
                             <small class="contract-date">
                                 <i class="bi bi-calendar-event me-1"></i>
-                                Contrato desde {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->translatedFormat('d \d\e F \d\e Y') }}
+                                Contrato desde {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d \d\e F \d\e Y') }}
                             </small>
                         </div>
                         <div class="contract-amount">

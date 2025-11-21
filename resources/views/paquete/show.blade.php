@@ -33,7 +33,7 @@
                                     ACTIVO
                                 </span>
                                 <p class="text-muted mb-0 mt-2">
-                                    Creado: {{ $paquete->created_at->format('d') }} de {{ ucfirst($paquete->created_at->locale('es')->monthName) }} de {{ $paquete->created_at->format('Y') }}
+                                    Creado: {{ $paquete->created_at->translatedFormat('d \d\e F \d\e Y') }}
                                 </p>
                             </div>
                         </div>
@@ -74,13 +74,13 @@
 
                                             <div class="mb-1">
                                                 <small class="d-block text-muted">
-                                                    <i class="bi bi-calendar-plus me-1"></i>Creado: <span class="fw-bold">{{ $paquete->created_at->locale('es')->translatedFormat('d \d\e F \d\e Y') }}</span>
+                                                    <i class="bi bi-calendar-plus me-1"></i>Creado: <span class="fw-bold">{{ $paquete->created_at->translatedFormat('d \d\e F \d\e Y') }}</span>
                                                 </small>
                                             </div>
                                             
                                             <div>
                                                 <small class="d-block text-muted">
-                                                    <i class="bi bi-clock me-1"></i>Actualizado: <span class="fw-bold">{{ $paquete->updated_at->locale('es')->diffForHumans() }}</span>
+                                                    <i class="bi bi-clock me-1"></i>Actualizado: <span class="fw-bold">{{ $paquete->updated_at->diffForHumans() }}</span>
                                                 </small>
                                             </div>
                                         </div>

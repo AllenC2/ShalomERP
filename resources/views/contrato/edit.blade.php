@@ -38,7 +38,7 @@
                         {{ strtoupper($contrato->estado) }}
                     </span>
                     <p class="text-muted mb-0 mt-2">
-                        Creado: {{ $contrato->created_at->format('d') }} de {{ ucfirst($contrato->created_at->locale('es')->monthName) }} de {{ $contrato->created_at->format('Y') }}
+                        Creado: {{ $contrato->created_at->translatedFormat('d \d\e F \d\e Y') }}
                     </p>
                 </div>
             </div>

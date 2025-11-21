@@ -150,4 +150,30 @@ class EmpleadoController extends Controller
         return Redirect::route('empleados.show', $id)
             ->with('success', 'Empleado reactivado correctamente.');
     }
+
+    /**
+     * Cambiar el rol del usuario entre admin y empleado
+     */
+    public function toggleRol($id): RedirectResponse
+    {
+        $empleado = Empleado::with('user')->find($id);
+        
+        if (!$empleado) {
+            return Redirect::route('empleados.index')
+                ->with('error', 'Empleado no encontrado.');
+        }
+
+        $user = $empleado->user;
+        
+        // Cambiar el rol
+        $nuevoRol = $user->role === 'admin' ? 'empleado' : 'admin';
+        $user->update(['role' => $nuevoRol]);
+
+        $mensaje = $nuevoRol === 'admin' 
+            ? 'El empleado ahora tiene rol de Administrador.' 
+            : 'El empleado ahora tiene rol de Empleado.';
+
+        return Redirect::route('empleados.show', $id)
+            ->with('success', $mensaje);
+    }
 }

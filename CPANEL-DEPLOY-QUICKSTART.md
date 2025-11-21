@@ -64,6 +64,31 @@ chmod +x deployment/post-deploy.sh
 ./deployment/post-deploy.sh
 ```
 
+**O si prefieres empezar desde cero (recomendado para primera instalación):**
+
+```bash
+cd ~/public_html
+
+# Verificar que estás en el directorio correcto
+ls -la artisan  # Debe mostrar el archivo artisan
+
+# Si NO ves el archivo artisan, verifica la ruta:
+pwd  # Debe mostrar /home/mishoras/public_html
+
+# Si el archivo artisan no existe, el proyecto no se clonó correctamente
+# Vuelve al paso 2 para configurar Git
+
+# Una vez que confirmes que estás en el directorio correcto:
+php artisan migrate:fresh --seed --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan storage:link
+chmod -R 755 storage bootstrap/cache
+```
+
+> ⚠️ **Nota:** `migrate:fresh` elimina TODAS las tablas y las recrea. Úsalo solo si no hay datos importantes.
+
 ### 6️⃣ VERIFICAR
 
 Visita tu sitio: `https://tudominio.com`
@@ -100,6 +125,39 @@ git push origin master
 
 ## 🆘 PROBLEMAS COMUNES
 
+### "Could not open input file: artisan"
+
+Este error significa que NO estás en el directorio correcto del proyecto.
+
+```bash
+# Verificar dónde estás
+pwd
+
+# Debe mostrar: /home/mishoras/public_html
+# Si estás en otro lugar, navega al directorio correcto:
+cd ~/public_html
+
+# Verificar que el archivo artisan existe
+ls -la artisan
+
+# Si NO existe, el proyecto no se clonó correctamente
+# Vuelve al paso 2 (Git Version Control en cPanel)
+```
+
+**Causas comunes:**
+- ✗ El proyecto se clonó en un subdirectorio (ej: `public_html/ShalomERP`)
+- ✗ La ruta en Git Version Control estaba incorrecta
+- ✗ No se completó el clonado del repositorio
+
+**Solución:**
+```bash
+# Si el proyecto está en un subdirectorio:
+cd ~/public_html/ShalomERP  # O el nombre que tenga
+
+# Luego ejecuta los comandos desde ahí
+php artisan migrate:fresh --seed --force
+```
+
 ### Error 500
 ```bash
 cd ~/public_html
@@ -116,6 +174,19 @@ tail -f storage/logs/laravel.log
 ```bash
 php artisan storage:link
 php artisan config:cache
+```
+
+### Necesitas reinstalar la BD
+```bash
+cd ~/public_html
+php artisan migrate:fresh --seed --force
+```
+
+> ✅ Esto elimina todas las tablas, las recrea y ejecuta los seeders
+
+### Ver estado de migraciones
+```bash
+php artisan migrate:status
 ```
 
 ---

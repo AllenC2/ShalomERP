@@ -8,18 +8,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Verificar si el registro público está habilitado
-$registroPublico = false;
-try {
-    $ajusteRegistroPublico = Ajuste::where('nombre', 'registro_publico_activo')
-                                  ->where('activo', true)
-                                  ->first();
-    $registroPublico = $ajusteRegistroPublico ? filter_var($ajusteRegistroPublico->valor, FILTER_VALIDATE_BOOLEAN) : false;
-} catch (\Exception $e) {
-    $registroPublico = false;
-}
-
-Auth::routes(['register' => $registroPublico]);
+// Habilitar rutas de autenticación con registro
+Auth::routes(['register' => true]);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
@@ -36,6 +26,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('empleados', App\Http\Controllers\EmpleadoController::class);
     Route::patch('empleados/{id}/dar-de-baja', [App\Http\Controllers\EmpleadoController::class, 'darDeBaja'])->name('empleados.darDeBaja');
     Route::patch('empleados/{id}/reactivar', [App\Http\Controllers\EmpleadoController::class, 'reactivar'])->name('empleados.reactivar');
+    Route::patch('empleados/{id}/toggle-rol', [App\Http\Controllers\EmpleadoController::class, 'toggleRol'])->name('empleados.toggleRol');
     
     // Rutas de comisiones
     Route::resource('comisiones', App\Http\Controllers\ComisioneController::class);

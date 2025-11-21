@@ -142,6 +142,80 @@
             </div>
         </div>
 
+        <!-- Botones para abrir modales de configuración -->
+        <div class="config-buttons-section mb-5">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <button type="button" class="config-btn-card text-decoration-none" data-bs-toggle="modal" data-bs-target="#empresaModal">
+                        <div class="config-card-icon" style="background: linear-gradient(90deg, #E1B240 0%, #79481D 100%);">
+                            <i class="bi bi-bank"></i>
+                        </div>
+                        <div class="config-card-content">
+                            <h6 class="config-card-title">Información de la Empresa</h6>
+                            <p class="config-card-subtitle">Gestión de datos corporativos</p>
+                        </div>
+                        <div class="config-card-arrow">
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+                    </button>
+                </div>
+                
+                <div class="col-md-6">
+                    <button type="button" class="config-btn-card text-decoration-none" data-bs-toggle="modal" data-bs-target="#whatsappModal">
+                        <div class="config-card-icon" style="background: linear-gradient(90deg, #25D366 0%, #128C7E 100%);">
+                            <i class="bi bi-whatsapp"></i>
+                        </div>
+                        <div class="config-card-content">
+                            <h6 class="config-card-title">Mensajes WhatsApp</h6>
+                            <p class="config-card-subtitle">Personalizar recordatorios</p>
+                        </div>
+                        <div class="config-card-arrow">
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+                    </button>
+                </div>
+                
+                <div class="col-md-6">
+                    <button type="button" class="config-btn-card text-decoration-none" data-bs-toggle="modal" data-bs-target="#registroModal">
+                        <div class="config-card-icon" style="background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <div class="config-card-content">
+                            <h6 class="config-card-title">Registro Público</h6>
+                            <p class="config-card-subtitle">Control de acceso</p>
+                        </div>
+                        <div class="config-card-arrow">
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+                    </button>
+                </div>
+                
+                <div class="col-md-6">
+                    <button type="button" class="config-btn-card text-decoration-none" data-bs-toggle="modal" data-bs-target="#toleranciaModal">
+                        <div class="config-card-icon" style="background: linear-gradient(90deg, #ff6b35 0%, #f7931e 100%);">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div class="config-card-content">
+                            <h6 class="config-card-title">Tolerancia de Pagos</h6>
+                            <p class="config-card-subtitle">Configurar períodos de gracia</p>
+                        </div>
+                        <div class="config-card-arrow">
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Información de la Empresa -->
+        <div class="modal fade" id="empresaModal" tabindex="-1" aria-labelledby="empresaModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                    <div class="modal-body" style="padding: 2rem;">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1050;">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+
         <!-- Tarjeta de Información de la Empresa -->
         <div class="enterprise-info-section mb-5 w-100" style="margin-right: 0; margin-left: 0; max-width: 100%;">
             <div class="card modern-card">
@@ -305,8 +379,19 @@
                 </div>
             </div>
         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        
+        <!-- Modal de Mensaje de Recordatorio WhatsApp -->
+        <div class="modal fade" id="whatsappModal" tabindex="-1" aria-labelledby="whatsappModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                    <div class="modal-body" style="padding: 2rem;">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1050;">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
 
         <!-- Tarjeta de Mensaje de Recordatorio WhatsApp -->
         <div class="whatsapp-reminder-section mb-5 w-100" style="margin-right: 0; margin-left: 0; max-width: 100%;">
@@ -408,6 +493,147 @@
                 </div>
             </div>
         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Registro Público -->
+        <div class="modal fade" id="registroModal" tabindex="-1" aria-labelledby="registroModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                    <div class="modal-body" style="padding: 2rem;">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1050;">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+
+        <!-- Tarjeta de Registro Público -->
+        <div class="registro-publico-section mb-5 w-100" style="margin-right: 0; margin-left: 0; max-width: 100%;">
+            <div class="card modern-card">
+                <div class="card-header" style="background: #fff;">
+                    <div class="header-content">
+                        <div class="header-icon" style="background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%); color:#fff;">
+                            <i class="bi bi-person-plus-fill"></i>
+                        </div>
+                        <div class="header-text">
+                            <h4 class="card-title mb-1">Registro Público</h4>
+                            <p class="card-subtitle text-muted mb-0">Controla si cualquier persona puede registrarse o solo los administradores</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="registro-publico-form" action="{{ route('ajustes.registroPublico') }}" method="POST">
+                        @csrf
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-shield-lock me-2"></i>Estado del Registro Público
+                                    </label>
+                                    <div class="form-check form-switch" style="font-size: 1.2rem;">
+                                        <input class="form-check-input" 
+                                               type="checkbox" 
+                                               role="switch" 
+                                               id="registro_publico" 
+                                               name="registro_publico" 
+                                               value="1"
+                                               {{ old('registro_publico', $registroPublico) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="registro_publico" id="switch-label">
+                                            <strong id="switch-text">{{ $registroPublico ? 'Activado' : 'Desactivado' }}</strong>
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        <span id="switch-description">
+                                            @if($registroPublico)
+                                                Cualquier persona puede crear una cuenta nueva
+                                            @else
+                                                Solo los administradores pueden crear nuevos usuarios
+                                            @endif
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Información adicional -->
+                                <div class="alert alert-info mb-3">
+                                    <h6 class="alert-heading mb-2">
+                                        <i class="bi bi-info-circle-fill me-1"></i>
+                                        ¿Qué hace esta configuración?
+                                    </h6>
+                                    <ul class="mb-0 small">
+                                        <li><strong>Activado:</strong> La página de registro estará disponible públicamente</li>
+                                        <li><strong>Desactivado:</strong> Solo los administradores podrán crear nuevos usuarios desde el panel de empleados</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <!-- Vista previa del efecto -->
+                                <div class="mb-2">
+                                    <label class="form-label">
+                                        <i class="bi bi-eye me-2"></i>Estado actual del sistema
+                                    </label>
+                                </div>
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <div class="registro-preview p-3 rounded w-100" id="registro-preview">
+                                            <div class="d-flex align-items-start">
+                                                <i class="bi bi-person-check text-primary me-2 mt-1" id="preview-icon"></i>
+                                                <div>
+                                                    <small class="text-muted d-block mb-1">Acceso al registro:</small>
+                                                    <p id="previewRegistro" class="mb-2" style="font-size: 0.95rem; line-height: 1.4;">
+                                                        @if($registroPublico)
+                                                            El registro está <strong class="text-success">disponible públicamente</strong>. Cualquier persona puede crear una cuenta nueva.
+                                                        @else
+                                                            El registro está <strong class="text-warning">restringido</strong>. Solo los administradores pueden crear nuevos usuarios.
+                                                        @endif
+                                                    </p>
+                                                    <div class="small text-muted">
+                                                        <strong>URL de registro:</strong> 
+                                                        <span id="urlRegistro">
+                                                            @if($registroPublico)
+                                                                <span class="text-success">{{ url('/register') }} (Activa)</span>
+                                                            @else
+                                                                <span class="text-muted">{{ url('/register') }} (Bloqueada)</span>
+                                                            @endif
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="card-actions mt-4 border-0">
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetRegistroPublico()">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Restablecer
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save me-2"></i>Guardar Configuración
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Tolerancia de Pagos -->
+        <div class="modal fade" id="toleranciaModal" tabindex="-1" aria-labelledby="toleranciaModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                    <div class="modal-body" style="padding: 2rem;">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1050;">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
 
         <!-- Tarjeta de Tolerancia de Pagos -->
         <div class="tolerancia-pagos-section mb-5 w-100" style="margin-right: 0; margin-left: 0; max-width: 100%;">
@@ -540,6 +766,12 @@
                 </div>
             </div>
         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
 
         @auth
         <div class="w-100 mb-5">
@@ -688,6 +920,204 @@
             width: 100%;
             max-width: 100%;
         }
+    }
+
+    /* Estilos para los botones de configuración */
+    .config-buttons-section {
+        margin-top: 2rem;
+    }
+
+    .config-btn-card {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    .config-btn-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #E1B240 0%, #79481D 100%);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+
+    .config-btn-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 28px rgba(225, 178, 64, 0.3);
+        border-color: #E1B240;
+    }
+
+    .config-btn-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .config-card-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(225, 178, 64, 0.4);
+    }
+
+    .config-card-content {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .config-card-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        line-height: 1.3;
+        text-align: left;
+    }
+
+    .config-card-subtitle {
+        margin: 0.25rem 0 0 0;
+        font-size: 0.875rem;
+        color: #6b7280;
+        line-height: 1.3;
+        text-align: left;
+    }
+
+    .config-card-arrow {
+        color: #9ca3af;
+        font-size: 1.25rem;
+        transition: all 0.3s ease;
+        margin-left: 1rem;
+    }
+
+    .config-btn-card:hover .config-card-arrow {
+        color: #E1B240;
+        transform: translateX(4px);
+    }
+
+    /* Efectos adicionales para botones de configuración */
+    .config-btn-card:active {
+        transform: translateY(-2px);
+    }
+
+    /* Responsivo para botones de configuración */
+    @media (max-width: 991px) {
+        .config-btn-card {
+            margin-bottom: 1rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .config-btn-card {
+            padding: 1.25rem;
+        }
+        
+        .config-card-icon {
+            width: 42px;
+            height: 42px;
+            font-size: 1.25rem;
+        }
+        
+        .config-card-title {
+            font-size: 1rem;
+        }
+        
+        .config-card-subtitle {
+            font-size: 0.8rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .config-buttons-section .row {
+            flex-direction: column;
+        }
+        
+        .config-buttons-section .col-lg-3 {
+            width: 100%;
+            max-width: 100%;
+        }
+    }
+
+    /* Estilos para modales */
+    .modal-dialog-scrollable .modal-content {
+        max-height: 90vh;
+    }
+
+    .modal-body .modern-card {
+        box-shadow: none !important;
+        border: none !important;
+        margin-bottom: 0 !important;
+    }
+
+    .modal-body .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+        border-bottom: 2px solid #E1B240 !important;
+        padding: 1.5rem 2rem !important;
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+    /* Botón de cerrar posicionado */
+    .modal .btn-close {
+        background: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 2px solid #e5e7eb;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 1;
+        padding: 0;
+    }
+
+    .modal .btn-close i {
+        font-size: 1.2rem;
+        color: #6b7280;
+        transition: color 0.3s ease;
+    }
+
+    .modal .btn-close:hover {
+        background: #f8f9fa;
+        border-color: #E1B240;
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    .modal .btn-close:hover i {
+        color: #E1B240;
+    }
+
+    .modal .btn-close:focus {
+        box-shadow: 0 0 0 0.25rem rgba(225, 178, 64, 0.25);
+        opacity: 1;
+    }
+
+    /* Ajustar el z-index para que el botón esté por encima */
+    .modal-content {
+        position: relative;
     }
 
     /* Estilos para la tarjeta de información del usuario */
@@ -1125,6 +1555,84 @@
         color: #0277bd;
         border: 1px solid #81d4fa;
     }
+
+    /* Estilos para la tarjeta de registro público */
+    .registro-publico-section {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .form-check-input:checked {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+        border-color: #3b82f6;
+    }
+
+    .registro-preview {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border-left: 4px solid #3b82f6;
+        transition: all 0.3s ease;
+    }
+
+    .registro-preview:hover {
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Estilos mejorados para el switch */
+    .form-check-input[type=checkbox] {
+        width: 3rem;
+        height: 1.5rem;
+        border-radius: 1rem;
+        background-color: #e5e7eb;
+        border: 2px solid #d1d5db;
+        transition: all 0.3s ease;
+    }
+
+    .form-check-input[type=checkbox]:checked {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
+    }
+
+    .form-check-input[type=checkbox]:focus {
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+        border-color: #3b82f6;
+    }
+
+    .form-check-label {
+        margin-left: 0.5rem;
+        font-size: 1rem;
+        color: #374151;
+        cursor: pointer;
+    }
+
+    /* Animación suave para cambios de estado */
+    #switch-text, #switch-description, #previewRegistro, #urlRegistro {
+        transition: all 0.3s ease;
+    }
+
+    /* Estilos para los iconos de estado */
+    .text-success {
+        color: #10b981 !important;
+    }
+
+    .text-warning {
+        color: #f59e0b !important;
+    }
+
+    /* Mejorar la apariencia de la alerta informativa */
+    .alert-info h6 {
+        margin-bottom: 0.75rem;
+    }
+
+    .alert-info ul li {
+        margin-bottom: 0.25rem;
+        color: #0369a1;
+    }
 </style>
 
 <!-- Script personalizado -->
@@ -1381,6 +1889,8 @@
         const userCard = document.querySelector('.user-info-section .modern-card');
         const empresaCard = document.querySelector('.enterprise-info-section .modern-card');
         const whatsappCard = document.querySelector('.whatsapp-reminder-section .modern-card');
+        const registroCard = document.querySelector('.registro-publico-section .modern-card');
+        const toleranciaCard = document.querySelector('.tolerancia-pagos-section .modern-card');
         
         if (userCard) {
             userCard.style.opacity = '0';
@@ -1413,6 +1923,28 @@
                 whatsappCard.style.opacity = '1';
                 whatsappCard.style.transform = 'translateY(0)';
             }, 600);
+        }
+
+        if (registroCard) {
+            registroCard.style.opacity = '0';
+            registroCard.style.transform = 'translateY(30px)';
+            registroCard.style.transition = 'all 0.6s ease';
+            
+            setTimeout(() => {
+                registroCard.style.opacity = '1';
+                registroCard.style.transform = 'translateY(0)';
+            }, 800);
+        }
+
+        if (toleranciaCard) {
+            toleranciaCard.style.opacity = '0';
+            toleranciaCard.style.transform = 'translateY(30px)';
+            toleranciaCard.style.transition = 'all 0.6s ease';
+            
+            setTimeout(() => {
+                toleranciaCard.style.opacity = '1';
+                toleranciaCard.style.transform = 'translateY(0)';
+            }, 1000);
         }
 
         // Inicializar funcionalidad de WhatsApp con más delay
@@ -1631,6 +2163,87 @@
             const dias = parseInt(document.getElementById('tolerancia_dias').value) || 0;
             
             if(!confirm(`¿Estás seguro de establecer la tolerancia de pagos a ${dias} días? Esto afectará cómo se muestran los pagos retrasados en todo el sistema.`)) {
+                e.preventDefault();
+                return false;
+            }
+            
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalHtml = submitBtn.innerHTML;
+            
+            // Estado de carga
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Guardando...';
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            
+            // El formulario se enviará normalmente al servidor
+        });
+    }
+
+    // Funciones para registro público
+    function resetRegistroPublico() {
+        const switchElement = document.getElementById('registro_publico');
+        if (switchElement) {
+            switchElement.checked = false;
+            updateRegistroPreview();
+        }
+    }
+
+    function updateRegistroPreview() {
+        const switchElement = document.getElementById('registro_publico');
+        const switchText = document.getElementById('switch-text');
+        const switchDescription = document.getElementById('switch-description');
+        const previewRegistro = document.getElementById('previewRegistro');
+        const urlRegistro = document.getElementById('urlRegistro');
+        const previewIcon = document.getElementById('preview-icon');
+        
+        if (switchElement && switchText && switchDescription && previewRegistro && urlRegistro && previewIcon) {
+            const isActive = switchElement.checked;
+            
+            // Actualizar texto del switch
+            switchText.textContent = isActive ? 'Activado' : 'Desactivado';
+            
+            // Actualizar descripción
+            switchDescription.textContent = isActive 
+                ? 'Cualquier persona puede crear una cuenta nueva'
+                : 'Solo los administradores pueden crear nuevos usuarios';
+            
+            // Actualizar preview
+            previewRegistro.innerHTML = isActive
+                ? 'El registro está <strong class="text-success">disponible públicamente</strong>. Cualquier persona puede crear una cuenta nueva.'
+                : 'El registro está <strong class="text-warning">restringido</strong>. Solo los administradores pueden crear nuevos usuarios.';
+            
+            // Actualizar URL
+            urlRegistro.innerHTML = isActive
+                ? '<span class="text-success">{{ url("/register") }} (Activa)</span>'
+                : '<span class="text-muted">{{ url("/register") }} (Bloqueada)</span>';
+            
+            // Actualizar icono
+            previewIcon.className = isActive 
+                ? 'bi bi-person-check text-success me-2 mt-1'
+                : 'bi bi-person-x text-warning me-2 mt-1';
+        }
+    }
+
+    // Event listener para el switch de registro público
+    const registroPublicoSwitch = document.getElementById('registro_publico');
+    if (registroPublicoSwitch) {
+        registroPublicoSwitch.addEventListener('change', updateRegistroPreview);
+        // Actualizar preview inicial
+        updateRegistroPreview();
+    }
+
+    // Manejar envío del formulario de registro público
+    const registroPublicoForm = document.getElementById('registro-publico-form');
+    if (registroPublicoForm) {
+        registroPublicoForm.addEventListener('submit', function(e) {
+            const switchElement = document.getElementById('registro_publico');
+            const isActive = switchElement.checked;
+            
+            const mensaje = isActive 
+                ? '¿Estás seguro de activar el registro público? Esto permitirá que cualquier persona pueda crear una cuenta en el sistema.'
+                : '¿Estás seguro de desactivar el registro público? Solo los administradores podrán crear nuevos usuarios.';
+            
+            if(!confirm(mensaje)) {
                 e.preventDefault();
                 return false;
             }

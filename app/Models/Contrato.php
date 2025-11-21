@@ -130,7 +130,7 @@ class Contrato extends Model
      */
     public function calcularSaldoDespuesDePago($montoPago, $excluirPagoId = null)
     {
-        $query = $this->pagos()->where('estado', 'Hecho');
+        $query = $this->pagos()->where('estado', 'hecho');
         
         if ($excluirPagoId) {
             $query->where('id', '!=', $excluirPagoId);
@@ -190,13 +190,15 @@ class Contrato extends Model
     }
 
     /**
-     * Obtiene el monto total de cuotas vencidas
+     * Obtiene el monto total de cuotas vencidas (considerando parcialidades)
      * 
      * @return float
      */
     public function getMontoVencidoAttribute()
     {
-        return $this->cuotas_vencidas->sum('monto');
+        return $this->cuotas_vencidas->sum(function($pago) {
+            return $pago->monto_pendiente;
+        });
     }
 
     /**
@@ -260,13 +262,15 @@ class Contrato extends Model
     }
 
     /**
-     * Obtiene el monto total de cuotas en período de tolerancia
+     * Obtiene el monto total de cuotas en período de tolerancia (considerando parcialidades)
      * 
      * @return float
      */
     public function getMontoEnToleranciaAttribute()
     {
-        return $this->cuotas_en_tolerancia->sum('monto');
+        return $this->cuotas_en_tolerancia->sum(function($pago) {
+            return $pago->monto_pendiente;
+        });
     }
 
     /**
@@ -284,13 +288,15 @@ class Contrato extends Model
     }
 
     /**
-     * Obtiene el monto total pendiente de todas las cuotas
+     * Obtiene el monto total pendiente de todas las cuotas (considerando parcialidades)
      * 
      * @return float
      */
     public function getMontoPendienteTotalAttribute()
     {
-        return $this->cuotas_pendientes->sum('monto');
+        return $this->cuotas_pendientes->sum(function($pago) {
+            return $pago->monto_pendiente;
+        });
     }
 
     /**
@@ -316,6 +322,19 @@ class Contrato extends Model
             ->where('fecha_pago', '>=', now())
             ->orderBy('fecha_pago', 'asc')
             ->first();
+    }
+
+    /**
+     * Obtiene el número de cuotas pagadas del contrato
+     * 
+     * @return int
+     */
+    public function getCuotasPagadasAttribute()
+    {
+        return $this->pagos()
+            ->where('estado', 'hecho')
+            ->where('tipo_pago', 'cuota')
+            ->count();
     }
 
     /**

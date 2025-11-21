@@ -51,60 +51,73 @@ class HomeController extends Controller
             return \Carbon\Carbon::parse($fecha)->isoFormat('ddd'); // Ej: Lun, Mar, etc.
         });
 
-        // Agenda de pagos - obtener el offset de semana desde la URL
-        $weekOffset = $request->input('week', 0);
+        // Agenda de pagos - obtener el offset de día desde la URL
+        $dayOffset = $request->input('day', 0);
         
         // Validar y convertir a entero de forma segura
+        if (!is_numeric($dayOffset)) {
+            $dayOffset = 0;
+        } else {
+            $dayOffset = (int) $dayOffset;
+            // Limitar el rango para evitar fechas extremas
+            $dayOffset = max(-365, min(365, $dayOffset));
+        }
+
+        // Obtener el offset de semana para empleados
+        $weekOffset = $request->input('week', 0);
         if (!is_numeric($weekOffset)) {
             $weekOffset = 0;
         } else {
             $weekOffset = (int) $weekOffset;
-            // Limitar el rango para evitar fechas extremas
+            // Limitar el rango de semanas
             $weekOffset = max(-52, min(52, $weekOffset));
         }
         
         // Configurar locale en español
         Carbon::setLocale('es');
         
-        // Calcular la fecha de inicio de la semana
-        $startDate = Carbon::now()->addWeeks($weekOffset)->startOfWeek(Carbon::MONDAY);
+        // Calcular la fecha específica
+        $fecha = Carbon::now()->addDays($dayOffset);
         
-        // Generar 7 días consecutivos empezando desde startDate
-        $agendaDias = collect();
-        $totalPagosSemana = 0;
-        
-        for ($i = 0; $i < 7; $i++) {
-            $fecha = $startDate->copy()->addDays($i);
-            $pagosPendientes = \App\Models\Pago::with(['contrato', 'contrato.cliente'])
-                ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
-                ->where('estado', 'pendiente')
-                ->get();
-                
-            $pagosHechos = \App\Models\Pago::with(['contrato', 'contrato.cliente'])
-                ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
-                ->where('estado', 'hecho')
-                ->get();
-                
-            $totalPagosSemana += $pagosPendientes->count();
+        // Obtener pagos para el día específico
+        $pagosPendientes = \App\Models\Pago::with(['contrato', 'contrato.cliente'])
+            ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
+            ->where('estado', 'pendiente')
+            ->get();
             
-            $agendaDias->push([
-                'fecha' => $fecha,
-                'dia_nombre' => ucfirst($fecha->isoFormat('dddd')),
-                'dia_numero' => $fecha->format('d'),
-                'mes' => ucfirst($fecha->isoFormat('MMM')),
-                'pagos_pendientes' => $pagosPendientes,
-                'pagos_hechos' => $pagosHechos
+        $pagosHechos = \App\Models\Pago::with(['contrato', 'contrato.cliente'])
+            ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
+            ->where('estado', 'hecho')
+            ->get();
+        
+        // Crear estructura de datos para el día
+        $agendaDia = [
+            'fecha' => $fecha,
+            'dia_nombre' => ucfirst($fecha->isoFormat('dddd')),
+            'dia_numero' => $fecha->format('d'),
+            'mes' => ucfirst($fecha->isoFormat('MMM')),
+            'pagos_pendientes' => $pagosPendientes,
+            'pagos_hechos' => $pagosHechos
+        ];
+
+        // Si es una petición AJAX para cambiar semana
+        if ($request->ajax() && $request->has('week')) {
+            $empleadoAgenda = $this->getEmpleadoAgenda($weekOffset);
+            
+            return response()->json([
+                'success' => true,
+                'empleadoAgenda' => $this->formatEmpleadoAgendaForAjax($empleadoAgenda)
             ]);
         }
 
         return view('home', [
             'contratosLabels' => $labels,
             'contratosData' => $cantidades,
-            'agendaDias' => $agendaDias,
-            'currentWeekOffset' => $weekOffset,
-            'totalPagosSemana' => $totalPagosSemana,
+            'agendaDia' => $agendaDia,
+            'currentDayOffset' => $dayOffset,
+            'totalPagosDay' => $pagosPendientes->count() + $pagosHechos->count(),
             'empleadoContratos' => $this->getEmpleadoContratos(),
-            'empleadoAgenda' => $this->getEmpleadoAgenda(),
+            'empleadoAgenda' => $this->getEmpleadoAgenda($weekOffset),
             'empleadoPagosVencidos' => $this->getEmpleadoPagosVencidos()
         ]);
     }
@@ -145,7 +158,7 @@ class HomeController extends Controller
     /**
      * Obtener agenda de pagos próximos para el empleado del usuario logueado
      */
-    private function getEmpleadoAgenda()
+    private function getEmpleadoAgenda($weekOffset = 0)
     {
         $user = Auth::user();
         
@@ -170,12 +183,12 @@ class HomeController extends Controller
         // Configurar locale en español
         Carbon::setLocale('es');
         
-        // Generar los próximos 7 días
+        // Generar los 7 días basados en el offset de semana
         $agendaDias = collect();
-        $hoy = Carbon::now();
+        $fechaInicio = Carbon::now()->addWeeks($weekOffset);
         
         for ($i = 0; $i < 7; $i++) {
-            $fecha = $hoy->copy()->addDays($i);
+            $fecha = $fechaInicio->copy()->addDays($i);
             
             // Obtener pagos para contratos del empleado en esta fecha
             $pagosPendientes = Pago::with(['contrato', 'contrato.cliente'])
@@ -246,5 +259,37 @@ class HomeController extends Controller
             ->get();
 
         return $pagosVencidos;
+    }
+
+    /**
+     * Formatear la agenda del empleado para respuesta AJAX
+     */
+    private function formatEmpleadoAgendaForAjax($empleadoAgenda)
+    {
+        return $empleadoAgenda->map(function ($dia) {
+            $pagosPendientes = $dia['pagos_pendientes'] ?? collect();
+            $pagosHechos = $dia['pagos_hechos'] ?? collect();
+            
+            // Combinar pagos pendientes y hechos para el formato del JS
+            $todosPagos = $pagosPendientes->merge($pagosHechos)->map(function ($pago) {
+                return [
+                    'id' => $pago->id,
+                    'monto' => $pago->monto,
+                    'cliente_nombre' => $pago->contrato->cliente->nombre ?? 'Cliente desconocido',
+                    'contrato_id' => $pago->contrato_id,
+                    'estado' => $pago->estado
+                ];
+            });
+            
+            return [
+                'fecha' => $dia['fecha']->format('Y-m-d'),
+                'dia_nombre' => $dia['dia_nombre'],
+                'dia_numero' => $dia['dia_numero'],
+                'mes' => $dia['mes'],
+                'pagos' => $todosPagos,
+                'pagos_pendientes_count' => $pagosPendientes->count(),
+                'pagos_hechos_count' => $pagosHechos->count()
+            ];
+        });
     }
 }

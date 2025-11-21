@@ -159,10 +159,10 @@
                                                                 <i class="bi bi-clock me-1"></i>
                                                                 {{ $estadoPagos['cuotas_en_tolerancia'] }} cuota{{ $estadoPagos['cuotas_en_tolerancia'] > 1 ? 's' : '' }} en período de gracia
                                                             </div>
-                                                            <small>
+                                                            <div style="font-size: 0.75rem;">
                                                                 Total: ${{ number_format($estadoPagos['monto_en_tolerancia'], 2) }}
                                                                 <br>Tolerancia: {{ $estadoPagos['tolerancia_dias'] }} día{{ $estadoPagos['tolerancia_dias'] > 1 ? 's' : '' }}
-                                                            </small>
+                                                            </div>
                                                         </div>
                                                     @elseif($estadoPagos['proxima_cuota'])
                                                         <div class="alert alert-success p-2 mb-2" style="font-size: 0.85rem;">

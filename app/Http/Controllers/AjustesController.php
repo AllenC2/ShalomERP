@@ -69,8 +69,21 @@ class AjustesController extends Controller
             \Log::error('Error al obtener tolerancia de pagos: ' . $e->getMessage());
             $toleranciaPagos = 0;
         }
+
+        // Obtener configuración de registro público
+        $registroPublico = false;
+        try {
+            $ajusteRegistroPublico = Ajuste::where('nombre', 'registro_publico_activo')
+                                          ->where('activo', true)
+                                          ->first();
+            
+            $registroPublico = $ajusteRegistroPublico ? filter_var($ajusteRegistroPublico->valor, FILTER_VALIDATE_BOOLEAN) : false;
+        } catch (\Exception $e) {
+            \Log::error('Error al obtener configuración de registro público: ' . $e->getMessage());
+            $registroPublico = false;
+        }
         
-        return view('ajustes.index', compact('infoEmpresa', 'mensajeRecordatorio', 'toleranciaPagos'));
+        return view('ajustes.index', compact('infoEmpresa', 'mensajeRecordatorio', 'toleranciaPagos', 'registroPublico'));
     }
 
     /**
@@ -253,6 +266,46 @@ class AjustesController extends Controller
             
             return redirect()->route('ajustes.index')
                            ->with('error', 'Error al guardar la tolerancia de pagos: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualizar configuración de registro público
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function actualizarRegistroPublico(Request $request)
+    {
+        $request->validate([
+            'registro_publico' => 'required|boolean',
+        ]);
+
+        try {
+            $activado = filter_var($request->registro_publico, FILTER_VALIDATE_BOOLEAN);
+
+            Ajuste::updateOrCreate(
+                ['nombre' => 'registro_publico_activo'],
+                [
+                    'valor' => $activado ? 'true' : 'false',
+                    'tipo' => 'boolean',
+                    'descripcion' => 'Permite el registro público de nuevos usuarios sin autenticación de administrador',
+                    'activo' => true
+                ]
+            );
+
+            $mensaje = $activado 
+                ? 'Registro público activado. Ahora cualquier persona puede registrarse en el sistema.'
+                : 'Registro público desactivado. Solo los administradores pueden crear nuevos usuarios.';
+
+            return redirect()->route('ajustes.index')
+                           ->with('success', $mensaje);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al actualizar configuración de registro público', ['error' => $e->getMessage()]);
+            
+            return redirect()->route('ajustes.index')
+                           ->with('error', 'Error al actualizar la configuración de registro público: ' . $e->getMessage());
         }
     }
 }

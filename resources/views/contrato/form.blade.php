@@ -49,6 +49,16 @@
                     </div>
                     
                     <div class="form-group">
+                        <label for="contrato_id" class="form-label">ID del Contrato</label>
+                        <input type="text" name="id" class="form-control @error('id') is-invalid @enderror" 
+                               value="{{ old('id', isset($contrato) && !$contrato->exists ? '' : $contrato?->id) }}" 
+                               id="contrato_id" maxlength="6" pattern="[0-9]{1,6}" 
+                               placeholder="Ingrese ID..." {{ isset($contrato) && $contrato->exists ? 'readonly' : 'required' }}>
+                        <div id="id_status" class="id-status-message"></div>
+                        @error('id')<div class="error-text">{{ $message }}</div>@enderror
+                    </div>
+                    
+                    <div class="form-group">
                         <label for="paquete_id" class="form-label">Paquete</label>
                         <select name="paquete_id" class="form-control @error('paquete_id') is-invalid @enderror" id="paquete_id" required>
                             <option value="">Seleccionar paquete</option>
@@ -333,15 +343,15 @@
                             <label for="numero_cuotas" class="form-label">Número de Cuotas</label>
                             <input type="number" name="numero_cuotas" class="form-control @error('numero_cuotas') is-invalid @enderror" 
                                    value="{{ old('numero_cuotas', $contrato?->numero_cuotas) }}" id="numero_cuotas" 
-                                   placeholder="12" min="1" required>
+                                   placeholder="Escriba el numero de cuotas" min="1" required>
                             @error('numero_cuotas')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                         
                         <div class="form-group">
                             <label for="frecuencia_cuotas" class="form-label">Frecuencia (Días)</label>
                             <input type="number" name="frecuencia_cuotas" class="form-control @error('frecuencia_cuotas') is-invalid @enderror" 
-                                   value="{{ old('frecuencia_cuotas', $contrato?->frecuencia_cuotas ?? 7) }}" id="frecuencia_cuotas" 
-                                   placeholder="7" min="1" required>
+                                   value="{{ old('frecuencia_cuotas', $contrato?->frecuencia_cuotas ?? 'Cada cuantos dias') }}" id="frecuencia_cuotas" 
+                                   placeholder="Cada cuantos dias" min="1" required>
                             @error('frecuencia_cuotas')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
@@ -387,7 +397,7 @@
 
                 <!-- Comisiones -->
                 <div class="form-section" id="comisiones_section" style="display: none;">
-                    <div class="accordion-header" onclick="toggleAccordion('comisiones_accordion')">
+                    <div class="accordion-header open" onclick="toggleAccordion('comisiones_accordion')">
                         <h6 class="section-title">Comisiones</h6>
                         <div class="accordion-toggle">
                             <svg class="accordion-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -395,7 +405,7 @@
                             </svg>
                         </div>
                     </div>
-                    <div class="accordion-content" id="comisiones_accordion">
+                    <div class="accordion-content open" id="comisiones_accordion">
                         <div id="comisiones_container"></div>
                     </div>
                 </div>
@@ -559,6 +569,7 @@
         function setupFormValidation() {
             const requiredFields = [
                 'cliente_search', // Cambiado de cliente_id a cliente_search
+                'contrato_id',
                 'paquete_id', 
                 'fecha_inicio',
                 'numero_cuotas',
@@ -611,12 +622,21 @@
                     }
                     
                     // Validar otros campos
-                    ['paquete_id', 'fecha_inicio', 'numero_cuotas', 'frecuencia_cuotas'].forEach(fieldId => {
+                    ['contrato_id', 'paquete_id', 'fecha_inicio', 'numero_cuotas', 'frecuencia_cuotas'].forEach(fieldId => {
                         const field = document.getElementById(fieldId);
                         if (field && !validateField(field)) {
                             hasErrors = true;
                         }
                     });
+
+                    // Validar que el ID esté disponible (solo para contratos nuevos)
+                    const idField = document.getElementById('contrato_id');
+                    const idStatus = document.getElementById('id_status');
+                    if (idField && !idField.readOnly && idStatus.classList.contains('unavailable')) {
+                        hasErrors = true;
+                        idField.classList.add('is-invalid');
+                        showNotification('El ID del contrato ya está en uso. Por favor ingrese un ID diferente.', 'error');
+                    }
 
                     // Validar selects de comisiones
                     const comisionSelects = document.querySelectorAll('#comisiones_container select[required]');
@@ -675,6 +695,20 @@
             if (field.hasAttribute('required') && !value) {
                 isValid = false;
                 errorMessage = getRequiredFieldMessage(fieldName);
+            }
+            // Validar ID del contrato
+            else if (fieldName === 'id' && value) {
+                if (!/^[0-9]{1,6}$/.test(value)) {
+                    isValid = false;
+                    errorMessage = 'El ID debe contener solo números y máximo 6 dígitos';
+                } else if (!field.readOnly) {
+                    // Verificar disponibilidad solo si no es readonly (contratos nuevos)
+                    const idStatus = document.getElementById('id_status');
+                    if (idStatus && idStatus.classList.contains('unavailable')) {
+                        isValid = false;
+                        errorMessage = 'Este ID ya está en uso';
+                    }
+                }
             }
             // Validar campos numéricos
             else if (field.type === 'number' && value) {
@@ -738,6 +772,7 @@
         function getRequiredFieldMessage(fieldName) {
             const messages = {
                 'cliente_id': 'Debe seleccionar un cliente',
+                'id': 'El ID del contrato es obligatorio',
                 'paquete_id': 'Debe seleccionar un paquete',
                 'fecha_inicio': 'La fecha de inicio es obligatoria',
                 'numero_cuotas': 'El número de cuotas es obligatorio',
@@ -755,7 +790,91 @@
         // Inicializar validación cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
             setupFormValidation();
+            setupIdValidation();
         });
+
+        // Función para configurar la validación del ID en tiempo real
+        function setupIdValidation() {
+            const idInput = document.getElementById('contrato_id');
+            const idStatus = document.getElementById('id_status');
+            let debounceTimeout;
+
+            if (!idInput || !idStatus) return;
+            
+            // Si es readonly (editando), no hacer validación
+            if (idInput.readOnly) return;
+
+            idInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                
+                // Limpiar timeout anterior
+                clearTimeout(debounceTimeout);
+                
+                // Limpiar clases de estado
+                idStatus.className = 'id-status-message';
+                
+                // Validar formato
+                if (!value) {
+                    idStatus.textContent = '';
+                    idStatus.classList.remove('show');
+                    return;
+                }
+                
+                if (!/^[0-9]{1,6}$/.test(value)) {
+                    idStatus.textContent = 'El ID debe contener solo números y máximo 6 dígitos';
+                    idStatus.classList.add('show', 'unavailable');
+                    return;
+                }
+                
+                // Mostrar estado de verificación
+                idStatus.textContent = 'Verificando disponibilidad...';
+                idStatus.classList.add('show', 'checking');
+                
+                // Verificar disponibilidad con debounce
+                debounceTimeout = setTimeout(() => {
+                    checkIdAvailability(value, idStatus);
+                }, 500);
+            });
+            
+            // Verificar disponibilidad al cargar si ya hay un valor
+            if (idInput.value.trim() && /^[0-9]{1,6}$/.test(idInput.value.trim())) {
+                checkIdAvailability(idInput.value.trim(), idStatus);
+            }
+        }
+
+        // Función para verificar disponibilidad del ID
+        function checkIdAvailability(id, statusElement) {
+            const currentContratoId = '{{ $contrato?->id ?? "" }}';
+            
+            fetch('/ajax/check-contrato-id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({ 
+                    id: id,
+                    exclude_id: currentContratoId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusElement.className = 'id-status-message show';
+                
+                if (data.available) {
+                    statusElement.textContent = '✓ ID disponible';
+                    statusElement.classList.add('available');
+                } else {
+                    statusElement.textContent = '✗ ID ya está en uso';
+                    statusElement.classList.add('unavailable');
+                }
+            })
+            .catch(error => {
+                console.error('Error al verificar ID:', error);
+                statusElement.className = 'id-status-message show unavailable';
+                statusElement.textContent = 'Error al verificar disponibilidad';
+            });
+        }
     </script>
 <style>
     /* Diseño Minimalista en 2 Columnas */
@@ -834,6 +953,7 @@
     /* Estilo alternativo: agregar asterisco a labels de campos requeridos */
     .form-label[for="cliente_id"]::after,
     .form-label[for="cliente_search"]::after,
+    .form-label[for="contrato_id"]::after,
     .form-label[for="paquete_id"]::after,
     .form-label[for="fecha_inicio"]::after,
     .form-label[for="numero_cuotas"]::after,
@@ -1135,6 +1255,39 @@
         font-size: 12px;
         color: #da3633;
         margin-top: 4px;
+    }
+
+    /* Estilos para el mensaje de estado del ID */
+    .id-status-message {
+        font-size: 12px;
+        margin-top: 4px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .id-status-message.show {
+        opacity: 1;
+    }
+
+    .id-status-message.available {
+        color: #10b981;
+        background-color: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .id-status-message.unavailable {
+        color: #da3633;
+        background-color: rgba(218, 54, 51, 0.1);
+        border: 1px solid rgba(218, 54, 51, 0.2);
+    }
+
+    .id-status-message.checking {
+        color: #656d76;
+        background-color: rgba(101, 109, 118, 0.1);
+        border: 1px solid rgba(101, 109, 118, 0.2);
     }
 
     /* Comisiones minimalistas con layout mejorado */

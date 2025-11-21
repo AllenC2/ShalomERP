@@ -97,9 +97,10 @@
                                 if (!$pago->exists && isset($contrato) && $contrato) {
                                     // Para nuevos pagos desde contrato (parcialidades)
                                     if (isset($proximoPagoPendiente) && $proximoPagoPendiente) {
-                                        // Usar el monto del próximo pago pendiente como valor por defecto y máximo
-                                        $valorPorDefecto = number_format($proximoPagoPendiente->monto, 2, '.', '');
-                                        $maxMonto = $proximoPagoPendiente->monto;
+                                        // Usar el monto restante (después de parcialidades) como valor por defecto y máximo
+                                        $montoRestante = $proximoPagoPendiente->monto_restante ?? $proximoPagoPendiente->monto;
+                                        $valorPorDefecto = $montoRestante > 0 ? number_format($montoRestante, 2, '.', '') : '';
+                                        $maxMonto = $montoRestante;
                                     } else {
                                         // Si no hay pagos pendientes, usar la cuota sugerida
                                         $montoInicial = $contrato->monto_inicial ?? 0;
@@ -121,6 +122,17 @@
                                    placeholder="$0.00">
                             @error('monto')<div class="error-text">{{ $message }}</div>@enderror
                             
+                            <!-- Información de parcialidades aplicadas -->
+                            @if(!$pago->exists && isset($proximoPagoPendiente) && $proximoPagoPendiente && isset($proximoPagoPendiente->parcialidades_aplicadas) && $proximoPagoPendiente->parcialidades_aplicadas > 0)
+                                <div class="mt-2 p-2 bg-info bg-opacity-10 border border-info border-opacity-25 rounded">
+                                    <small class="text-info">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Esta cuota ya tiene ${{ number_format($proximoPagoPendiente->parcialidades_aplicadas, 2) }} pagados en parcialidades.
+                                        <br>
+                                        <strong>Monto restante: ${{ number_format($proximoPagoPendiente->monto_restante ?? 0, 2) }}</strong>
+                                    </small>
+                                </div>
+                            @endif
                         </div>
                         
                         <div class="form-group">
@@ -385,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (currentValue > maxMonto) {
                 value = maxMonto.toFixed(2);
                 // Mostrar mensaje temporal
-                showTemporaryMessage('El monto no puede exceder la cuota sugerida de $' + maxMonto.toFixed(2));
+                showTemporaryMessage('El monto no puede exceder el saldo restante de $' + maxMonto.toFixed(2));
             }
         }
         
@@ -407,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validar monto máximo para nuevos pagos desde contrato
         if (isNewPaymentFromContract && maxMonto && !isNaN(maxMonto) && monto > maxMonto) {
             e.preventDefault();
-            alert('El monto no puede exceder la cuota sugerida de $' + maxMonto.toFixed(2));
+            alert('El monto no puede exceder el saldo restante de $' + maxMonto.toFixed(2));
             montoInput.focus();
             return false;
         }

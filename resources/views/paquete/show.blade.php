@@ -192,7 +192,7 @@
                                                 </td>
                                                 <td>
                                                     @php
-                                                        $totalPagado = $contrato->pagos->where('estado', 'hecho')->sum('monto');
+                                                        $totalPagado = calcularMontoPagadoContrato($contrato->pagos);
                                                     @endphp
                                                     <div class="text-center">
                                                         <span class="fw-bold text-success">
@@ -272,7 +272,7 @@
                                                 <i class="bi bi-currency-dollar fs-4 text-success"></i>
                                                 @php
                                                     $totalPagadoGeneral = $paquete->contratos->sum(function($contrato) {
-                                                        return $contrato->pagos->where('estado', 'hecho')->sum('monto');
+                                                        return calcularMontoPagadoContrato($contrato->pagos);
                                                     });
                                                 @endphp
                                                 <div><strong>${{ number_format($totalPagadoGeneral, 2) }}</strong></div>

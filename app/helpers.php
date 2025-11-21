@@ -229,3 +229,142 @@ if (!function_exists('diasDeRetraso')) {
         }
     }
 }
+
+if (!function_exists('diasDeGraciaRestantes')) {
+    /**
+     * Calcula los días de gracia restantes para un pago en tolerancia
+     *
+     * @param string|\Carbon\Carbon $fechaPago Fecha de vencimiento del pago
+     * @param string $estado Estado actual del pago
+     * @return int Días de gracia restantes (0 si no está en gracia o ya está retrasado)
+     */
+    function diasDeGraciaRestantes($fechaPago, $estado = 'pendiente')
+    {
+        try {
+            // Solo los pagos pendientes pueden estar en gracia
+            if ($estado !== 'pendiente') {
+                return 0;
+            }
+
+            $fechaPago = \Carbon\Carbon::parse($fechaPago);
+            $tolerancia = toleranciaPagos();
+            
+            // Si no hay tolerancia configurada, no hay días de gracia
+            if ($tolerancia <= 0) {
+                return 0;
+            }
+
+            $fechaLimite = $fechaPago->copy()->addDays($tolerancia);
+            $ahora = \Carbon\Carbon::now();
+            
+            // Si ya pasó la fecha límite, está retrasado (no en gracia)
+            if ($ahora->isAfter($fechaLimite)) {
+                return 0;
+            }
+            
+            // Si aún no vence, no está en gracia
+            if ($ahora->isBefore($fechaPago)) {
+                return 0;
+            }
+            
+            // Está en período de gracia, calcular días restantes (entero)
+            return max(0, intval($ahora->diffInDays($fechaLimite, false)));
+        } catch (Exception $e) {
+            \Log::error('Error al calcular días de gracia restantes: ' . $e->getMessage());
+            return 0;
+        }
+    }
+}
+
+if (!function_exists('calcularMontoPagadoContrato')) {
+    /**
+     * Calcula el monto total pagado de un contrato evitando conteo duplicado
+     * entre cuotas completadas por parcialidades y las parcialidades mismas.
+     *
+     * @param \Illuminate\Support\Collection $pagos_contrato Colección de pagos del contrato
+     * @param bool $soloHechos Si true, solo considera pagos con estado 'hecho'
+     * @return float Monto total pagado sin duplicados
+     */
+    function calcularMontoPagadoContrato($pagos_contrato, $soloHechos = true)
+    {
+        try {
+            $montoPagado = 0;
+            $pagosConsiderar = $soloHechos ? $pagos_contrato->where('estado', 'hecho') : $pagos_contrato;
+            
+            foreach ($pagosConsiderar as $pago) {
+                if ($pago->tipo_pago === 'parcialidad') {
+                    // Las parcialidades siempre se suman
+                    $montoPagado += $pago->monto;
+                } elseif ($pago->tipo_pago === 'cuota') {
+                    // Para cuotas, solo sumar si NO tienen parcialidades que las completen
+                    $tieneParcialidades = $pagos_contrato
+                        ->where('tipo_pago', 'parcialidad')
+                        ->where('estado', 'hecho')
+                        ->where('pago_padre_id', $pago->id)
+                        ->count() > 0;
+                    
+                    if (!$tieneParcialidades) {
+                        // Cuota pagada directamente, sin parcialidades
+                        $montoPagado += $pago->monto;
+                    }
+                    // Si tiene parcialidades, NO sumar la cuota (se suma por las parcialidades)
+                } else {
+                    // Pagos especiales (inicial, bonificación, etc.)
+                    $montoPagado += $pago->monto;
+                }
+            }
+            
+            return $montoPagado;
+        } catch (Exception $e) {
+            \Log::error('Error al calcular monto pagado del contrato: ' . $e->getMessage());
+            return 0;
+        }
+    }
+}
+
+if (!function_exists('numeroOrdinal')) {
+    /**
+     * Convierte un número a su forma ordinal en español
+     *
+     * @param int $numero El número a convertir
+     * @return string El número con su terminación ordinal (1ra, 2da, 3ra, etc.)
+     */
+    function numeroOrdinal($numero)
+    {
+        // Casos especiales del 1 al 10
+        if ($numero == 1) return '1er';
+        if ($numero == 2) return '2do';
+        if ($numero == 3) return '3er';
+        if ($numero == 4) return '4to';
+        if ($numero == 5) return '5to';
+        if ($numero == 6) return '6to';
+        if ($numero == 7) return '7mo';
+        if ($numero == 8) return '8vo';
+        if ($numero == 9) return '9no';
+        if ($numero == 10) return '10mo';
+
+        // Del 11 al 20 usan 'va'
+        if ($numero >= 11 && $numero <= 20) {
+            return $numero . 'va';
+        }
+        
+        // Casos especiales mayores a 20
+        if ($numero == 21) return '21ro';
+        if ($numero == 22) return '22do';
+        if ($numero == 23) return '23ro';
+
+        // Para números mayores, usar el último dígito
+        $ultimoDigito = $numero % 10;
+
+        if ($ultimoDigito == 1) return $numero . 'ro';
+        if ($ultimoDigito == 2) return $numero . 'do';
+        if ($ultimoDigito == 3) return $numero . 'er';
+        if ($ultimoDigito == 7) return $numero . 'mo';
+        if ($ultimoDigito == 8) return $numero . 'vo';
+        if ($ultimoDigito == 9) return $numero . 'no';
+        if ($ultimoDigito == 0) return $numero . 'mo';
+        
+        // Para 4, 5, 6 usar 'ta'
+        return $numero . 'to';
+    }
+}

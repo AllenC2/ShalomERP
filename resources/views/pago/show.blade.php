@@ -7,131 +7,282 @@
 @section('content')
 <style>
     @media print {
-        /* Evitar saltos de página en elementos específicos */
-        .bg-light,
-        .border,
-        .shadow-lg,
-        .p-4,
-        .pb-2 {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-        
-        /* Controlar saltos de página entre secciones */
-        .bg-light.text-dark.p-4.pb-2 {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-        }
-        
-        /* Mantener elementos juntos */
-        .row {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-        
-        /* Evitar saltos de página innecesarios */
-        * {
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-        }
-        
-        /* Asegurar que el contenido principal no se rompa */
-        .border.shadow-lg {
-            box-shadow: none !important;
-            page-break-inside: avoid !important;
-        }
-        
-        /* Optimizar espaciado para impresión */
-        .p-4 {
-            padding: 1rem !important;
-        }
-        
-        .pb-2 {
-            padding-bottom: 0.5rem !important;
-        }
-        
-        /* Evitar salto de página específico después del header */
-        .bg-light.text-dark.p-4.pb-2 + .p-4 {
-            page-break-before: avoid !important;
-            break-before: avoid !important;
-        }
-        
-        /* Evitar páginas en blanco al final */
-        section:last-child,
-        .text-center.mt-4.mb-3:last-child,
-        .modal:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-        }
-        
-        /* Limitar altura del contenido para evitar desbordamiento */
-        .col-md-8 {
-            page-break-after: avoid !important;
-        }
-        
-        /* Ocultar completamente elementos que no son necesarios en impresión */
-        .modal,
-        script,
-        .d-print-none,
-        .btn {
-            display: none !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        
-        /* Optimizar márgenes para impresión */
-        body, html {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        
-        section {
-            margin: 0 !important;
-            padding: 1rem !important;
-        }
-        
-        /* Evitar saltos de página al final del documento */
-        .border.shadow-lg.p-0:last-child {
-            page-break-after: avoid !important;
-            margin-bottom: 0 !important;
-        }
-        
-        /* Ajustar altura de elementos altos que pueden causar páginas extras */
-        .mt-4, .mb-3, .py-4 {
-            margin: 0.5rem 0 !important;
-            padding: 0.5rem 0 !important;
-        }
-        
-        /* Control estricto del final del documento */
+        /* ===== FORMATO TICKET 58MM MINIMALISTA ===== */
         @page {
-            margin: 1cm;
-            size: letter;
+            size: 58mm auto !important;
+            margin: 0 !important;
         }
         
-        /* Eliminar cualquier contenido después del recibo principal */
-        .modal,
-        .modal + *,
-        script,
-        script + * {
+        html, body {
+            width: 58mm !important;
+            font-size: 9px !important;
+            font-family: 'Courier New', monospace !important;
+            line-height: 1.2 !important;
+            margin: 0 !important;
+            padding: 2mm !important;
+            color: #000 !important;
+        }
+        
+        /* OCULTAR ELEMENTOS ESPECÍFICOS NO ESENCIALES */
+        .d-print-none, .btn, .modal, .alert, 
+        h6, .position-relative, .hover-card,
+        .client-stat, script, .avatar-circle, .progress-ring, 
+        svg, #dropZone, #filePreview, #uploadProgress,
+        .document-thumbnail, .spinner-border,
+        /* OCULTAR GRÁFICO CIRCULAR DE PROGRESO */
+        .text-center .position-relative.d-inline-block,
+        .progress-ring, svg, .text-center svg,
+        .translate-middle.text-center,
+        .mt-2 .text-muted.d-block,
+        .text-end .text-center,
+        /* OCULTAR INFORMACIÓN DEL CLIENTE */
+        .col-sm-4:first-child, .card:not(.bg-white), .card-body:not(.bg-white),
+        .d-flex.align-items-center.mb-3, 
+        .d-flex.align-items-center.gap-2, .d-flex.align-items-start.gap-2 {
             display: none !important;
-            position: absolute !important;
-            left: -9999px !important;
-            top: -9999px !important;
-            width: 0 !important;
-            height: 0 !important;
-            overflow: hidden !important;
         }
         
-        /* Asegurar que el documento termine limpiamente */
-        section:last-of-type {
-            page-break-after: auto !important;
+        /* CONTENEDORES PRINCIPALES */
+        section {
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
         
-        /* Eliminar espacios al final */
-        *:last-child {
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
+        .col-md-8, .border.shadow-lg {
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        .row, .col-sm-8 {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* MOSTRAR COLUMNA PRINCIPAL CON DETALLES DEL PAGO */
+        .col-sm-8:last-child {
+            display: block !important;
+            width: 100% !important;
+        }
+        
+        /* ===== INFORMACIÓN DEL USUARIO LOGUEADO ===== */
+        .ticket-header-info {
+            display: block !important;
+            text-align: center !important;
+            font-size: 7px !important;
+            margin-bottom: 3mm !important;
+            border-bottom: 1px solid #000 !important;
+            padding-bottom: 2mm !important;
+            font-family: 'Courier New', monospace !important;
+        }
+        
+        /* ===== LOGO Y HEADER ===== */
+        .bg-light.text-dark.p-4.pb-2 {
+            background: none !important;
+            padding: 0 !important;
+            text-align: center !important;
+            border-bottom: 1px dashed #000 !important;
+            margin-bottom: 4mm !important;
+        }
+        
+        .bg-light .row .col-sm-8 img {
+            height: 25px !important;
+            display: block !important;
+            margin: 0 auto 3mm auto !important;
+        }
+        
+        /* ===== TÍTULO DEL RECIBO ===== */
+        .bg-light h2 {
+            font-size: 11px !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            margin: 0 0 2mm 0 !important;
+            text-transform: uppercase !important;
+        }
+        
+        .bg-light .text-muted {
+            font-size: 8px !important;
+            text-align: center !important;
+            margin: 0 0 3mm 0 !important;
+        }
+        
+        /* ===== MONTO TOTAL ESTILO TICKET ===== */
+        .fw-bold[style*="font-size:2em"] {
+            display: flex !important;
+            justify-content: space-between !important;
+            font-size: 9px !important;
+            font-weight: bold !important;
+            margin: 1mm 0 !important;
+            padding: 0.5mm 0 !important;
+            border-bottom: 1px dotted #ccc !important;
+        }
+        
+        .fw-bold[style*="font-size:2em"]::before {
+            content: "TOTAL PAGADO:" !important;
+            font-weight: normal !important;
+        }
+        
+        /* ===== MOSTRAR CONTENEDOR DE DETALLES DEL PAGO ===== */
+        .p-3.bg-success, .p-3.bg-warning, .p-3.bg-danger,
+        .border.rounded {
+            display: block !important;
+            background: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        /* ===== DESCRIPCIÓN DEL RECIBO ===== */
+        .small.d-block.text-muted {
+            display: block !important;
+            font-size: 8px !important;
+            color: #000 !important;
+            text-align: center !important;
+            margin: 1mm 0 !important;
+        }
+        
+        /* ===== RESUMEN FINANCIERO EN ORDEN SOLICITADO ===== */
+        .bg-white.bg-opacity-50 {
+            background: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 3mm 0 !important;
+        }
+        
+        .bg-white.bg-opacity-50 .text-muted.fw-bold {
+            display: block !important;
+            text-align: left !important;
+            font-size: 9px !important;
+            font-weight: bold !important;
+            margin-bottom: 2mm !important;
+            text-transform: uppercase !important;
+        }
+        
+        /* Estilo para cada línea del resumen */
+        .d-flex.justify-content-between {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin: 0.5mm 0 !important;
+            padding: 0.5mm 0 !important;
+            border-bottom: 1px dotted #ccc !important;
+        }
+        
+        .d-flex.justify-content-between small {
+            font-size: 8px !important;
+            color: #000 !important;
+        }
+        
+        /* ===== DETALLES DEL PAGO (MÉTODO Y TIPO) ===== */
+        .small.d-block.text-muted {
+            display: flex !important;
+            justify-content: space-between !important;
+            font-size: 8px !important;
+            color: #000 !important;
+            margin: 0.5mm 0 !important;
+            padding: 0.5mm 0 !important;
+            border-bottom: 1px dotted #ccc !important;
+        }
+        
+        .small.d-block.text-muted .fw-bold,
+        .small.d-block.text-muted span.fw-bold {
+            font-weight: bold !important;
+        }
+        
+        /* MOSTRAR BADGES COMO TEXTO */
+        .badge {
+            display: inline !important;
+            background: none !important;
+            color: #000 !important;
+            border: none !important;
+            padding: 0 !important;
+            font-weight: bold !important;
+        }
+        
+        /* MOSTRAR MÉTODO DE PAGO EN TICKET */
+        .d-none.d-print-inline.fw-bold {
+            display: inline !important;
+            font-weight: bold !important;
+            color: #000 !important;
+        }
+        
+        /* OCULTAR SELECT Y MOSTRAR SPAN EN IMPRESIÓN */
+        #metodo_pago_select {
+            display: none !important;
+        }
+        
+        .d-inline-block.position-relative {
+            display: inline !important;
+        }
+        
+        .bi-pencil-square {
+            display: none !important;
+        }
+        
+        #loading_metodo {
+            display: none !important;
+        }
+        
+        /* ===== SEPARADORES (SIN LINEAS DECORATIVAS DESPUÉS DE FECHA) ===== */
+        .bg-light.text-dark.p-4.pb-2::after {
+            display: none !important;
+        }
+        
+        .bg-white.bg-opacity-50::after {
+            content: "¡GRACIAS POR SU PAGO!" !important;
+            display: block !important;
+            text-align: center !important;
+            font-size: 8px !important;
+            font-weight: bold !important;
+            margin-top: 3mm !important;
+            border-top: 1px dashed #000 !important;
+            padding-top: 2mm !important;
+        }
+        
+        /* ===== INFORMACIÓN MÍNIMA DEL CLIENTE ===== */
+        .fw-semibold.text-dark {
+            display: block !important;
+            text-align: center !important;
+            font-size: 9px !important;
+            font-weight: bold !important;
+            margin: 2mm 0 !important;
+            border-bottom: 1px solid #000 !important;
+            padding-bottom: 1mm !important;
+        }
+        
+        /* ===== OBSERVACIONES Y DETALLES ===== */
+        .border.rounded.p-3.bg-light.small {
+            display: block !important;
+            background: none !important;
+            border: 1px solid #000 !important;
+            padding: 2mm !important;
+            margin: 3mm 0 !important;
+            font-size: 8px !important;
+        }
+        
+        .border.rounded.p-3.bg-light.small::before {
+            content: "DESCRIPCIONES Y DETALLES:" !important;
+            display: block !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            margin-bottom: 1mm !important;
+            font-size: 8px !important;
+        }
+        
+        /* OCULTAR EMPRESA INFO Y LEYENDA ORIGINAL */
+        .col-sm-4.text-end .small,
+        .small.text-muted:has-text("Recibo emitido el"),
+        .small.text-muted:contains("Recibo emitido el") {
+            display: none !important;
+        }
+        
+        /* Ocultar específicamente la leyenda al final */
+        .col-sm-4 > .small.text-muted {
+            display: none !important;
         }
     }
 </style>
@@ -155,6 +306,12 @@
         </a>
         <div class="border shadow-lg p-0" style="background: #fff; margin: auto; font-family: 'Arial', sans-serif;">
             
+            <!-- Información del Usuario y Fecha (solo en impresión) -->
+            <div class="ticket-header-info d-none d-print-block">
+                Emitido el: {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}<br>
+                Emitido por: {{ auth()->user()->name ?? 'N/A' }}
+            </div>
+            
             <!-- Header del Recibo -->
             <div class="bg-light text-dark p-4 pb-2">
                 <div class="row">
@@ -173,23 +330,23 @@
                                     @endif
                                 </h2>
                                 <div class="text-muted" style="font-size: .8rem;">
-                                    {{ $pago->fecha_pago ? $pago->fecha_pago->locale('es')->translatedFormat('d \d\e F \d\e Y \a \l\a\s H:i') : 'Fecha no disponible' }}
+                                    <div class="small">
+                                        <strong>{{ infoEmpresa('razon_social') }}</strong><br>
+                                        {!! formatearDireccionEmpresa() !!}<br>
+                                        RFC: {{ infoEmpresa('rfc') }}<br>
+                                        @if(infoEmpresa('telefono'))
+                                            Tel: {{ infoEmpresa('telefono') }}<br>
+                                        @endif
+                                        @if(infoEmpresa('email'))
+                                            Email: {{ infoEmpresa('email') }}
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-4 text-end">
-                        <div class="small">
-                            <strong>{{ infoEmpresa('razon_social') }}</strong><br>
-                            {!! formatearDireccionEmpresa() !!}<br>
-                            RFC: {{ infoEmpresa('rfc') }}<br>
-                            @if(infoEmpresa('telefono'))
-                                Tel: {{ infoEmpresa('telefono') }}<br>
-                            @endif
-                            @if(infoEmpresa('email'))
-                                Email: {{ infoEmpresa('email') }}
-                            @endif
-                        </div>
+                    <div class="col-sm-4 text-center">
+                        
                     </div>
                 </div>
             </div>
@@ -555,143 +712,128 @@
                                                         </small>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+                                        @if($pago->observaciones)
+                                        <div class="mb-4 mt-2">
+                                            <div class="border rounded p-3 bg-light small">
+                                                {{ $pago->observaciones }}
+                                            </div>
+                                        </div>
+                                        @endif
 
-                                                <!-- <div class="col-12">
-                                                    <div class="bg-primary bg-opacity-10 rounded p-2">
-                                                        <div class="text-center">
-                                                            <small class="text-muted">Estado del contrato</small>
+                                        <!-- Parcialidades (solo para cuotas) -->
+                                        @if($pago->tipo_pago === 'cuota' && $pago->parcialidades->count() > 0)
+                                        <div class="mb-4">
+                                            <h6 class="text-muted text-uppercase small fw-bold mb-3">
+                                                <i class="bi bi-layout-split me-2"></i>Parcialidades Aplicadas
+                                            </h6>
+                                            <div class="border rounded p-3 bg-light">
+                                                @php
+                                                    $totalParcialidades = $pago->parcialidades->where('estado', 'hecho')->sum('monto');
+                                                    $montoOriginalCuota = $pago->monto_original_cuota;
+                                                    $montoActualCuota = $pago->monto;
+                                                    $montoPendiente = max(0, $montoOriginalCuota - $totalParcialidades);
+                                                @endphp
+                                                
+                                                <div class="mb-3">
+                                                    <div class="row">
+                                                        <div class="col-sm-3">
+                                                            <small class="text-muted">Monto original de la cuota:</small>
+                                                            <div class="fw-bold text-info">${{ number_format($montoOriginalCuota, 2) }}</div>
                                                         </div>
-                                                        <div class="row mt-1">
-                                                            <div class="col-6 text-center">
-                                                                <small class="text-muted d-block">Progreso</small>
-                                                                <strong class="text-primary">{{ number_format($progreso, 1) }}%</strong>
-                                                            </div>
-                                                            <div class="col-6 text-center">
-                                                                <small class="text-muted d-block">Estado</small>
-                                                                <strong class="text-primary">{{ ucfirst($pago->contrato->estado ?? 'N/A') }}</strong>
+                                                        <div class="col-sm-3">
+                                                            <small class="text-muted">Total en parcialidades:</small>
+                                                            <div class="fw-bold text-success">${{ number_format($totalParcialidades, 2) }}</div>
+                                                        </div>
+                                                        <div class="col-sm-3">
+                                                            <small class="text-muted">Monto actual de la cuota:</small>
+                                                            <div class="fw-bold text-primary">${{ number_format($montoActualCuota, 2) }}</div>
+                                                        </div>
+                                                        <div class="col-sm-3">
+                                                            <small class="text-muted">Estado:</small>
+                                                            <div class="fw-bold">
+                                                                @if($montoPendiente <= 0)
+                                                                    <span class="badge bg-success">Completo</span>
+                                                                @else
+                                                                    <span class="badge bg-warning">Parcial</span>
+                                                                @endif
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div> -->
+                                                </div>
+
+                                                @if($montoPendiente > 0)
+                                                <div class="alert alert-info alert-sm mb-3">
+                                                    <i class="bi bi-info-circle me-2"></i>
+                                                    <small>
+                                                        El monto de la cuota se ha reducido automáticamente de 
+                                                        <strong>${{ number_format($montoOriginalCuota, 2) }}</strong> a 
+                                                        <strong>${{ number_format($montoActualCuota, 2) }}</strong> 
+                                                        debido a las parcialidades aplicadas.
+                                                    </small>
+                                                </div>
+                                                @endif
+
+                                                <div class="border-top pt-3">
+                                                    <small class="text-muted fw-bold d-block mb-2">Detalle de parcialidades:</small>
+                                                    @foreach($pago->parcialidades->sortBy('created_at') as $parcialidad)
+                                                        <div class="d-flex justify-content-between align-items-center py-1">
+                                                            <div class="d-flex align-items-center">
+                                                                <i class="bi bi-circle-fill text-success me-2" style="font-size: 0.5rem;"></i>
+                                                                <small>
+                                                                    Pago #{{ str_pad($parcialidad->id, 6, '0', STR_PAD_LEFT) }}
+                                                                    <span class="text-muted">
+                                                                        - {{ \Carbon\Carbon::parse($parcialidad->fecha_pago)->format('d/m/Y H:i') }}
+                                                                    </span>
+                                                                </small>
+                                                            </div>
+                                                            <div class="d-flex align-items-center">
+                                                                <span class="badge bg-success me-2">${{ number_format($parcialidad->monto, 2) }}</span>
+                                                                <span class="badge {{ $parcialidad->estado == 'hecho' ? 'bg-success' : 'bg-warning' }}">
+                                                                    {{ ucfirst($parcialidad->estado) }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
                                             </div>
                                         </div>
+                                        @endif
+
+                                        <!-- Información del pago padre (solo para parcialidades) -->
+                                        @if($pago->tipo_pago === 'parcialidad' && $pago->pagoPadre)
+                                        <div class="mb-4">
+                                            <h6 class="text-muted text-uppercase small fw-bold mb-3">
+                                                <i class="bi bi-link-45deg me-2"></i>Pago Asociado
+                                            </h6>
+                                            <div class="border rounded p-3 bg-info bg-opacity-10">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <small class="text-muted">Esta parcialidad está aplicada a:</small>
+                                                        <div class="fw-bold">
+                                                            Cuota #{{ str_pad($pago->pagoPadre->id, 6, '0', STR_PAD_LEFT) }}
+                                                        </div>
+                                                        <small class="text-muted">{{ $pago->pagoPadre->observaciones }}</small>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <a href="{{ route('pagos.show', $pago->pagoPadre->id) }}" 
+                                                        class="btn btn-sm btn-outline-primary">
+                                                            <i class="bi bi-eye me-1"></i>Ver Cuota
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
                         </div>
                         <!-- Observaciones -->
-                        @if($pago->observaciones)
-                        <div class="mb-4">
-                            <div class="border rounded p-3 bg-light small">
-                                {{ $pago->observaciones }}
-                            </div>
-                        </div>
-                        @endif
+                        
 
-                        <!-- Parcialidades (solo para cuotas) -->
-                        @if($pago->tipo_pago === 'cuota' && $pago->parcialidades->count() > 0)
-                        <div class="mb-4">
-                            <h6 class="text-muted text-uppercase small fw-bold mb-3">
-                                <i class="bi bi-layout-split me-2"></i>Parcialidades Aplicadas
-                            </h6>
-                            <div class="border rounded p-3 bg-light">
-                                @php
-                                    $totalParcialidades = $pago->parcialidades->where('estado', 'hecho')->sum('monto');
-                                    $montoOriginalCuota = $pago->monto_original_cuota;
-                                    $montoActualCuota = $pago->monto;
-                                    $montoPendiente = max(0, $montoOriginalCuota - $totalParcialidades);
-                                @endphp
-                                
-                                <div class="mb-3">
-                                    <div class="row">
-                                        <div class="col-sm-3">
-                                            <small class="text-muted">Monto original de la cuota:</small>
-                                            <div class="fw-bold text-info">${{ number_format($montoOriginalCuota, 2) }}</div>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <small class="text-muted">Total en parcialidades:</small>
-                                            <div class="fw-bold text-success">${{ number_format($totalParcialidades, 2) }}</div>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <small class="text-muted">Monto actual de la cuota:</small>
-                                            <div class="fw-bold text-primary">${{ number_format($montoActualCuota, 2) }}</div>
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <small class="text-muted">Estado:</small>
-                                            <div class="fw-bold">
-                                                @if($montoPendiente <= 0)
-                                                    <span class="badge bg-success">Completo</span>
-                                                @else
-                                                    <span class="badge bg-warning">Parcial</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @if($montoPendiente > 0)
-                                <div class="alert alert-info alert-sm mb-3">
-                                    <i class="bi bi-info-circle me-2"></i>
-                                    <small>
-                                        El monto de la cuota se ha reducido automáticamente de 
-                                        <strong>${{ number_format($montoOriginalCuota, 2) }}</strong> a 
-                                        <strong>${{ number_format($montoActualCuota, 2) }}</strong> 
-                                        debido a las parcialidades aplicadas.
-                                    </small>
-                                </div>
-                                @endif
-
-                                <div class="border-top pt-3">
-                                    <small class="text-muted fw-bold d-block mb-2">Detalle de parcialidades:</small>
-                                    @foreach($pago->parcialidades->sortBy('created_at') as $parcialidad)
-                                        <div class="d-flex justify-content-between align-items-center py-1">
-                                            <div class="d-flex align-items-center">
-                                                <i class="bi bi-circle-fill text-success me-2" style="font-size: 0.5rem;"></i>
-                                                <small>
-                                                    Pago #{{ str_pad($parcialidad->id, 6, '0', STR_PAD_LEFT) }}
-                                                    <span class="text-muted">
-                                                        - {{ \Carbon\Carbon::parse($parcialidad->fecha_pago)->format('d/m/Y H:i') }}
-                                                    </span>
-                                                </small>
-                                            </div>
-                                            <div class="d-flex align-items-center">
-                                                <span class="badge bg-success me-2">${{ number_format($parcialidad->monto, 2) }}</span>
-                                                <span class="badge {{ $parcialidad->estado == 'hecho' ? 'bg-success' : 'bg-warning' }}">
-                                                    {{ ucfirst($parcialidad->estado) }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-
-                        <!-- Información del pago padre (solo para parcialidades) -->
-                        @if($pago->tipo_pago === 'parcialidad' && $pago->pagoPadre)
-                        <div class="mb-4">
-                            <h6 class="text-muted text-uppercase small fw-bold mb-3">
-                                <i class="bi bi-link-45deg me-2"></i>Pago Asociado
-                            </h6>
-                            <div class="border rounded p-3 bg-info bg-opacity-10">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="text-muted">Esta parcialidad está aplicada a:</small>
-                                        <div class="fw-bold">
-                                            Cuota #{{ str_pad($pago->pagoPadre->id, 6, '0', STR_PAD_LEFT) }}
-                                        </div>
-                                        <small class="text-muted">{{ $pago->pagoPadre->observaciones }}</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <a href="{{ route('pagos.show', $pago->pagoPadre->id) }}" 
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye me-1"></i>Ver Cuota
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
+                        
                     </div>
                 </div>
 
@@ -711,7 +853,7 @@
                     @endif
                     
                     <button class="btn btn-primary me-2" onclick="window.print()">
-                        <i class="fas fa-print"></i> Imprimir Recibo
+                        <i class="fas fa-print"></i> Imprimir Ticket
                     </button>
                 </div>
             </div>

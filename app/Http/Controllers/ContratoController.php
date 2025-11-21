@@ -12,6 +12,7 @@ use App\Http\Requests\ContratoRequest;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ContratoController extends Controller
@@ -87,6 +88,19 @@ class ContratoController extends Controller
     public function store(ContratoRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        
+        // Extraer el ID personalizado si se proporcionó
+        $customId = null;
+        if (isset($data['id'])) {
+            $customId = $data['id'];
+            unset($data['id']); // Removerlo de $data para evitar conflictos
+            
+            // Verificar que el ID no esté en uso
+            $existingContract = Contrato::find($customId);
+            if ($existingContract) {
+                return back()->withErrors(['id' => 'El ID del contrato ya está en uso.'])->withInput();
+            }
+        }
 
         // Manejar subida de archivo PDF
         if ($request->hasFile('documento')) {
@@ -110,6 +124,7 @@ class ContratoController extends Controller
         }
 
         // Los montos ya vienen limpios desde ContratoRequest::prepareForValidation()
+        // Asegurar valores por defecto para campos que no pueden ser null
         $data['monto_inicial'] = $data['monto_inicial'] ?? 0;
         $data['monto_bonificacion'] = $data['monto_bonificacion'] ?? 0;
         $data['monto_cuota'] = $data['monto_cuota'] ?? 0;
@@ -132,7 +147,17 @@ class ContratoController extends Controller
             $data['fecha_fin'] = $fechaInicio->copy()->addYear()->format('Y-m-d'); // Por defecto 1 año
         }
 
-        $contrato = Contrato::create($data);
+        // Crear el contrato
+        if ($customId) {
+            // Crear con ID personalizado usando DB::statement para saltarse auto-increment
+            \DB::statement('SET foreign_key_checks = 0');
+            $contrato = new Contrato($data);
+            $contrato->id = $customId;
+            $contrato->save();
+            \DB::statement('SET foreign_key_checks = 1');
+        } else {
+            $contrato = Contrato::create($data);
+        }
 
         // Crear pago inicial si existe monto_inicial
         if ($montoInicial > 0) {
@@ -365,18 +390,10 @@ class ContratoController extends Controller
         }
 
         // Los montos ya vienen limpios desde ContratoRequest::prepareForValidation()
-        // Solo necesitamos asegurar valores por defecto
-        if (isset($data['monto_inicial'])) {
-            $data['monto_inicial'] = $data['monto_inicial'] ?? 0;
-        }
-
-        if (isset($data['monto_bonificacion'])) {
-            $data['monto_bonificacion'] = $data['monto_bonificacion'] ?? 0;
-        }
-
-        if (isset($data['monto_cuota'])) {
-            $data['monto_cuota'] = $data['monto_cuota'] ?? 0;
-        }
+        // Asegurar valores por defecto para campos que no pueden ser null
+        $data['monto_inicial'] = $data['monto_inicial'] ?? 0;
+        $data['monto_bonificacion'] = $data['monto_bonificacion'] ?? 0;
+        $data['monto_cuota'] = $data['monto_cuota'] ?? 0;
 
         // Si el paquete fue actualizado, obtener el precio del nuevo paquete
         if (isset($data['paquete_id']) && $data['paquete_id'] != $contrato->paquete_id) {
@@ -782,5 +799,162 @@ class ContratoController extends Controller
                 'message' => 'Error al crear la parcialidad: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Verificar disponibilidad del ID personalizado del contrato
+     */
+    public function checkContratoId(Request $request)
+    {
+        try {
+            $request->validate([
+                'id' => 'required|integer|min:1|max:999999',
+                'exclude_id' => 'nullable|integer'
+            ]);
+
+            $contratoId = $request->input('id');
+            $excludeId = $request->input('exclude_id');
+
+            // Buscar si existe otro contrato con el mismo ID
+            $query = Contrato::where('id', $contratoId);
+            
+            // Excluir el contrato actual si se está editando
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+            
+            $exists = $query->exists();
+
+            return response()->json([
+                'available' => !$exists,
+                'message' => $exists ? 'ID ya está en uso' : 'ID disponible'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Formato de ID inválido'
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Error al verificar disponibilidad'
+            ], 500);
+        }
+    }
+
+    /**
+     * Mostrar el estado de cuenta detallado del contrato
+     */
+    public function estado(Request $request, $id): View
+    {
+        $contrato = Contrato::with([
+            'cliente', 
+            'paquete', 
+            'empleado',
+            'pagos' => function($query) {
+                $query->orderBy('fecha_pago', 'asc');
+            }
+        ])->findOrFail($id);
+
+        // Obtener información de la empresa desde los ajustes
+        $empresa = \App\Models\Ajuste::obtenerDatosEmpresa();
+
+        // Verificar si se está filtrando por período
+        $filtrarPorPeriodo = $request->has(['periodo', 'fecha_inicio', 'fecha_fin']);
+        $periodoSeleccionado = null;
+        
+        if ($filtrarPorPeriodo) {
+            $periodoSeleccionado = [
+                'numero' => $request->get('periodo'),
+                'fecha_inicio' => \Carbon\Carbon::parse($request->get('fecha_inicio')),
+                'fecha_fin' => \Carbon\Carbon::parse($request->get('fecha_fin'))
+            ];
+            
+            // Filtrar pagos por el rango de fechas del período
+            $fechaInicioPeriodo = $periodoSeleccionado['fecha_inicio']->startOfDay();
+            $fechaFinPeriodo = $periodoSeleccionado['fecha_fin']->endOfDay();
+            
+            // Obtener todos los pagos hechos del período
+            $todosPagosHechos = $contrato->pagos()
+                ->where('estado', 'hecho')
+                ->whereBetween('fecha_pago', [$fechaInicioPeriodo, $fechaFinPeriodo])
+                ->get();
+                
+            // Separar pagos realizados (no parcialidades) y parcialidades
+            $pagosRealizados = $todosPagosHechos->where('tipo_pago', '!=', 'parcialidad');
+            $parcialidadesPeriodo = $todosPagosHechos->where('tipo_pago', 'parcialidad');
+                
+            // Obtener pagos pendientes del período
+            $pagosPendientes = $contrato->pagos()
+                ->where('estado', 'pendiente')
+                ->whereBetween('fecha_pago', [$fechaInicioPeriodo, $fechaFinPeriodo])
+                ->get();
+                
+        } else {
+            // Mostrar todos los pagos (comportamiento original)
+            $pagosRealizados = $contrato->pagos()->where('estado', 'hecho')->get();
+            $pagosPendientes = $contrato->pagos()->where('estado', 'pendiente')->get();
+            $parcialidadesPeriodo = collect(); // Vacío para el estado completo
+        }
+
+        // Calcular estadísticas del contrato
+        if ($filtrarPorPeriodo) {
+            // Estadísticas solo para el período seleccionado
+            $totalPagado = $pagosRealizados->sum('monto') + $parcialidadesPeriodo->sum('monto');
+            
+            $montoTotalPeriodo = $pagosRealizados->sum('monto') + $pagosPendientes->sum('monto') + $parcialidadesPeriodo->sum('monto');
+            
+            // Calcular el monto de cuota esperado para este período
+            $montoFinanciado = $contrato->monto_total - ($contrato->monto_inicial ?? 0) - ($contrato->monto_bonificacion ?? 0);
+            $numeroCuotas = $contrato->numero_cuotas ?? 1;
+            $montoCuotaPeriodo = $numeroCuotas > 0 ? $montoFinanciado / $numeroCuotas : 0;
+            
+            // Si hay cuotas/pagos pendientes en el período, usar su monto como referencia
+            if ($pagosPendientes->count() > 0) {
+                $montoCuotaPeriodo = $pagosPendientes->sum('monto');
+                $saldoPendiente = $pagosPendientes->sum('monto_pendiente') ?: $pagosPendientes->sum('monto');
+            } else {
+                // Si no hay pagos pendientes pero hay parcialidades, calcular el saldo pendiente
+                // basado en la cuota esperada menos lo pagado parcialmente
+                if ($parcialidadesPeriodo->count() > 0) {
+                    $saldoPendiente = max(0, $montoCuotaPeriodo - $totalPagado);
+                } else {
+                    $saldoPendiente = 0;
+                }
+            }
+            
+            // Calcular porcentaje basado en el progreso hacia la cuota del período
+            if ($montoCuotaPeriodo > 0) {
+                $porcentajePagado = min(100, ($totalPagado / $montoCuotaPeriodo) * 100);
+            } else {
+                $porcentajePagado = $totalPagado > 0 ? 100 : 0;
+            }
+        } else {
+            // Estadísticas completas del contrato
+            $totalPagado = $contrato->total_pagado;
+            $saldoPendiente = $contrato->saldo_pendiente ?: ($contrato->monto_total - $contrato->total_pagado);
+            $porcentajePagado = $contrato->monto_total > 0 ? ($totalPagado / $contrato->monto_total) * 100 : 0;
+            $montoCuotaPeriodo = null; // No aplicable para vista completa
+        }
+        
+        // Información adicional del estado de pagos
+        $estadoPagos = $contrato->estado_pagos;
+
+        return view('contrato.estado', compact(
+            'contrato', 
+            'empresa',
+            'totalPagado', 
+            'saldoPendiente', 
+            'porcentajePagado',
+            'pagosRealizados',
+            'pagosPendientes',
+            'estadoPagos',
+            'filtrarPorPeriodo',
+            'periodoSeleccionado',
+            'parcialidadesPeriodo',
+            'montoCuotaPeriodo'
+        ));
     }
 }

@@ -140,25 +140,38 @@ class Pago extends Model
             return $this->monto;
         }
         
+        // Si la cuota está completada (estado = 'hecho'), el monto pendiente es 0
+        if ($this->estado === 'hecho') {
+            return 0;
+        }
+        
         return max(0, $this->monto - $this->getMontoParcialidadesAttribute());
     }
 
     /**
-     * Obtener el monto original de la cuota según el contrato
+     * Obtener el monto original de la cuota (antes de aplicar parcialidades)
      * @return float
      */
     public function getMontoOriginalCuotaAttribute()
     {
-        if ($this->tipo_pago !== 'cuota' || !$this->contrato) {
+        if ($this->tipo_pago !== 'cuota') {
             return $this->monto;
         }
         
-        $contrato = $this->contrato;
-        $montoInicial = $contrato->monto_inicial ?? 0;
-        $montoBonificacion = $contrato->monto_bonificacion ?? 0;
-        $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
+        // Si la cuota está pendiente, el monto actual ES el monto original
+        // (ya que ahora no modificamos el monto cuando aplicamos parcialidades)
+        if ($this->estado === 'pendiente') {
+            return $this->monto;
+        }
         
-        return $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
+        // Si está completada por parcialidades, el monto original es la suma de todas las parcialidades
+        $totalParcialidades = $this->getMontoParcialidadesAttribute();
+        if ($totalParcialidades > 0) {
+            return $totalParcialidades;
+        }
+        
+        // Si no hay parcialidades pero está completada, el monto actual es el original
+        return $this->monto;
     }
 
     /**

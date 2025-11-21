@@ -150,4 +150,29 @@ class Ajuste extends Model
 
         return $ajuste ? (int)$ajuste->valor : 0;
     }
+
+    /**
+     * Obtener datos de la empresa para mostrar en documentos
+     *
+     * @return array
+     */
+    public static function obtenerDatosEmpresa()
+    {
+        $info = self::obtenerInfoEmpresa();
+        
+        // Mapear a nombres más estándar para documentos
+        return [
+            'nombre' => $info['razon_social'],
+            'rfc' => $info['rfc'],
+            'direccion' => trim($info['calle_numero'] . ', ' . $info['colonia'] . ', ' . $info['ciudad'] . ', ' . $info['estado'] . ', ' . $info['pais'] . ' ' . $info['codigo_postal'], ', '),
+            'calle_numero' => $info['calle_numero'],
+            'colonia' => $info['colonia'],
+            'municipio' => $info['ciudad'],
+            'estado' => $info['estado'],
+            'pais' => $info['pais'],
+            'codigo_postal' => $info['codigo_postal'],
+            'telefono' => $info['telefono'],
+            'email' => $info['email'],
+        ];
+    }
 }

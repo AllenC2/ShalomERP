@@ -63,9 +63,21 @@ class PagoController extends Controller
                     ->orderBy('fecha_pago', 'asc')
                     ->first();
                 
-                // Si existe un pago pendiente de tipo cuota, usar su monto como sugerencia para parcialidad
+                // Si existe un pago pendiente de tipo cuota, calcular el monto restante después de parcialidades
                 if ($proximoPagoPendiente) {
-                    $montoParcialidadSugerido = $proximoPagoPendiente->monto;
+                    // Calcular parcialidades ya aplicadas a esta cuota
+                    $parcialidadesAplicadas = $contrato->pagos()
+                        ->where('tipo_pago', 'parcialidad')
+                        ->where('estado', 'hecho')
+                        ->where('pago_padre_id', $proximoPagoPendiente->id)
+                        ->sum('monto');
+                    
+                    // El monto sugerido es el monto restante de la cuota
+                    $montoParcialidadSugerido = max(0, $proximoPagoPendiente->monto - $parcialidadesAplicadas);
+                    
+                    // Agregar información sobre el monto restante al objeto del pago pendiente
+                    $proximoPagoPendiente->monto_restante = $montoParcialidadSugerido;
+                    $proximoPagoPendiente->parcialidades_aplicadas = $parcialidadesAplicadas;
                 }
             }
         }
@@ -199,12 +211,21 @@ class PagoController extends Controller
         
         $parcialidadCreada = Pago::create($validatedData);
 
+        // Refrescar la relación para asegurar que incluya la nueva parcialidad
+        $proximaCuotaPendiente->load('parcialidades');
+        
         // Verificar si las parcialidades aplicadas (incluyendo la nueva) cubren completamente la cuota
         $totalParcialidades = $proximaCuotaPendiente->parcialidades()
             ->where('estado', 'hecho')
             ->sum('monto');
+        
+        // Obtener el monto original de la cuota (que es el monto actual ya que no lo modificamos)
+        $montoOriginalCuota = $proximaCuotaPendiente->monto;
+        
+        // Debug: agregar información a las observaciones para tracking
+        \Log::info("Verificando completado de cuota #{$proximaCuotaPendiente->id}: Total parcialidades: {$totalParcialidades}, Monto original: {$montoOriginalCuota}");
             
-        if ($totalParcialidades >= $proximaCuotaPendiente->monto) {
+        if ($totalParcialidades >= $montoOriginalCuota) {
             // Las parcialidades cubren completamente la cuota
             $observacionOriginal = $proximaCuotaPendiente->observaciones ?? '';
             
@@ -226,13 +247,8 @@ class PagoController extends Controller
             
             $nuevaObservacion = $numeroCuota . "Liquidado completamente por parcialidades.";
             
-            // Establecer la fecha de la cuota como 1 minuto después de la última parcialidad
-            $fechaParcialidad = \Carbon\Carbon::parse($validatedData['fecha_pago']);
-            $fechaCuota = $fechaParcialidad->copy()->addMinute();
-            
+            // Conservar la fecha original de la cuota (no cambiarla cuando se completa por parcialidades)
             $proximaCuotaPendiente->update([
-                'monto' => 0, // Reducir el monto a 0 porque está completamente liquidado
-                'fecha_pago' => $fechaCuota,
                 'estado' => 'hecho',
                 'observaciones' => $nuevaObservacion
             ]);
@@ -242,8 +258,8 @@ class PagoController extends Controller
                 'observaciones' => trim($validatedData['observaciones'] . " Esta parcialidad completó el pago de la cuota #{$proximaCuotaPendiente->id}.")
             ]);
         } else {
-            // Las parcialidades aún no cubren la cuota completa - reducir el monto de la cuota
-            $montoPendiente = $proximaCuotaPendiente->monto - $totalParcialidades;
+            // Las parcialidades aún no cubren la cuota completa - actualizar solo observaciones
+            $montoPendiente = $montoOriginalCuota - $totalParcialidades;
             
             $observacionOriginal = $proximaCuotaPendiente->observaciones ?? '';
             
@@ -263,10 +279,9 @@ class PagoController extends Controller
                 $numeroCuota = "Cuota {$numeroActual} de {$contrato->numero_cuotas} - ";
             }
             
-            $nuevaObservacion = $numeroCuota . "Monto reducido por parcialidades: $" . number_format($totalParcialidades, 2) . " aplicados de $" . number_format($proximaCuotaPendiente->monto, 2) . " originales.";
+            $nuevaObservacion = $numeroCuota . "Parcialidades aplicadas: $" . number_format($totalParcialidades, 2) . " de $" . number_format($montoOriginalCuota, 2) . " totales. Pendiente: $" . number_format($montoPendiente, 2) . ".";
             
             $proximaCuotaPendiente->update([
-                'monto' => $montoPendiente,
                 'observaciones' => $nuevaObservacion
             ]);
         }
@@ -285,7 +300,6 @@ class PagoController extends Controller
         $nuevaObservacion = trim($observacionOriginal . " Pagado mediante " . strtolower($validatedData['metodo_pago']) . " el " . date('d/m/Y H:i', strtotime($validatedData['fecha_pago'])) . ".");
         
         $proximoPagoPendiente->update([
-            'fecha_pago' => $validatedData['fecha_pago'],
             'metodo_pago' => $validatedData['metodo_pago'],
             'estado' => 'hecho',
             'documento' => $validatedData['documento'] ?? null,
@@ -315,7 +329,6 @@ class PagoController extends Controller
                 $nuevaObservacion = trim($observacionOriginal . " Pagado mediante " . strtolower($validatedData['metodo_pago']) . " el " . date('d/m/Y H:i', strtotime($validatedData['fecha_pago'])) . ".");
                 
                 $pagoPendiente->update([
-                    'fecha_pago' => $validatedData['fecha_pago'],
                     'metodo_pago' => $validatedData['metodo_pago'],
                     'estado' => 'hecho',
                     'documento' => $validatedData['documento'] ?? null,
@@ -842,11 +855,17 @@ class PagoController extends Controller
         // Calcular el monto original de la cuota
         $montoCuotaOriginal = $pagoPadre->monto_original_cuota;
         
+        // Preservar la fecha original de la cuota antes de cualquier actualización
+        // Esto garantiza que al deshacer parcialidades, la cuota mantenga su fecha original
+        $fechaOriginalCuota = $pagoPadre->fecha_pago;
+        
         if ($totalParcialidadesRestantes >= $montoCuotaOriginal) {
             // Aún hay suficientes parcialidades para cubrir la cuota completa
+            // Mantener el monto original, solo cambiar el estado
             $pagoPadre->update([
                 'estado' => 'hecho',
-                'monto' => 0  // La cuota sigue liquidada, monto a 0
+                'monto' => $montoCuotaOriginal,  // Mantener monto original
+                'fecha_pago' => $fechaOriginalCuota  // Conservar fecha original
             ]);
         } elseif ($totalParcialidadesRestantes > 0) {
             // Hay algunas parcialidades pero no cubren la cuota completa
@@ -869,12 +888,13 @@ class PagoController extends Controller
                 $numeroCuota = "Cuota {$numeroActual} de {$contrato->numero_cuotas} - ";
             }
             
-            $nuevaObservacion = $numeroCuota . "Monto reducido por parcialidades: $" . number_format($totalParcialidadesRestantes, 2) . " aplicados de $" . number_format($montoCuotaOriginal, 2) . " originales.";
+            $nuevaObservacion = $numeroCuota . "Parcialidades aplicadas: $" . number_format($totalParcialidadesRestantes, 2) . " de $" . number_format($montoCuotaOriginal, 2) . " totales. Pendiente: $" . number_format($montoPendiente, 2) . ".";
             
             $pagoPadre->update([
                 'estado' => 'pendiente',
-                'monto' => $montoPendiente,
-                'observaciones' => $nuevaObservacion
+                'monto' => $montoCuotaOriginal,  // Mantener monto original, no el reducido
+                'observaciones' => $nuevaObservacion,
+                'fecha_pago' => $fechaOriginalCuota  // Conservar fecha original
             ]);
         } else {
             // No quedan parcialidades, restaurar la cuota a su estado original
@@ -891,7 +911,8 @@ class PagoController extends Controller
             $pagoPadre->update([
                 'estado' => 'pendiente',
                 'monto' => $montoCuotaOriginal,
-                'observaciones' => $observacionesOriginales
+                'observaciones' => $observacionesOriginales,
+                'fecha_pago' => $fechaOriginalCuota  // Conservar fecha original
             ]);
         }
         

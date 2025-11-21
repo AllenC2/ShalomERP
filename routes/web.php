@@ -2,12 +2,24 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PagoController;
+use App\Models\Ajuste;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Auth::routes(['register' => false]);
+// Verificar si el registro público está habilitado
+$registroPublico = false;
+try {
+    $ajusteRegistroPublico = Ajuste::where('nombre', 'registro_publico_activo')
+                                  ->where('activo', true)
+                                  ->first();
+    $registroPublico = $ajusteRegistroPublico ? filter_var($ajusteRegistroPublico->valor, FILTER_VALIDATE_BOOLEAN) : false;
+} catch (\Exception $e) {
+    $registroPublico = false;
+}
+
+Auth::routes(['register' => $registroPublico]);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
@@ -18,6 +30,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('ajustes/empresa', [App\Http\Controllers\AjustesController::class, 'actualizarEmpresa'])->name('ajustes.empresa');
     Route::post('ajustes/recordatorio-whatsapp', [App\Http\Controllers\AjustesController::class, 'actualizarRecordatorioWhatsApp'])->name('ajustes.recordatorioWhatsApp');
     Route::post('ajustes/tolerancia-pagos', [App\Http\Controllers\AjustesController::class, 'actualizarToleranciaPagos'])->name('ajustes.toleranciaPagos');
+    Route::post('ajustes/registro-publico', [App\Http\Controllers\AjustesController::class, 'actualizarRegistroPublico'])->name('ajustes.registroPublico');
     
     // Rutas de empleados
     Route::resource('empleados', App\Http\Controllers\EmpleadoController::class);
@@ -37,17 +50,38 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('porcentajes', App\Http\Controllers\PorcentajeController::class)->except([
         'index', 'show', 'create', 'edit'
     ]);
+    
+    // Rutas de clientes específicos - Solo administrador
+    Route::get('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'show'])->name('clientes.show');
+    Route::get('clientes/{cliente}/edit', [App\Http\Controllers\ClienteController::class, 'edit'])->name('clientes.edit');
+    Route::put('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'update'])->name('clientes.update');
+    Route::patch('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'update']);
+    Route::delete('clientes/{cliente}', [App\Http\Controllers\ClienteController::class, 'destroy'])->name('clientes.destroy');
 });
+
+// Ruta para servir PDFs de contratos - Accesible para cualquier usuario autenticado
+Route::middleware(['auth'])->get('/storage/contratos/{filename}', function ($filename) {
+    $path = storage_path('app/public/contratos/' . $filename);
+    
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    
+    return response()->file($path);
+})->where('filename', '.*\.pdf$');
 
 Route::middleware(['auth', 'role:admin,empleado'])->group(function () {
     // Rutas AJAX
     Route::get('ajax/porcentajes/{paquete_id}', [App\Http\Controllers\ContratoController::class, 'getPorcentajesByPaquete'])->name('ajax.porcentajes');
+    Route::post('ajax/check-contrato-id', [App\Http\Controllers\ContratoController::class, 'checkContratoId'])->name('ajax.checkContratoId');
 });
 
 // Rutas de clientes, contratos y pagos con middleware específico para empleados
 Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->group(function () {
-    // Rutas de clientes
-    Route::resource('clientes', App\Http\Controllers\ClienteController::class);
+    // Rutas de clientes - Solo índice y crear para empleados
+    Route::get('clientes', [App\Http\Controllers\ClienteController::class, 'index'])->name('clientes.index');
+    Route::get('clientes/create', [App\Http\Controllers\ClienteController::class, 'create'])->name('clientes.create');
+    Route::post('clientes', [App\Http\Controllers\ClienteController::class, 'store'])->name('clientes.store');
     
     // Rutas de contratos
     Route::resource('contratos', App\Http\Controllers\ContratoController::class);
@@ -58,6 +92,7 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     Route::patch('contratos/{contrato}/observaciones', [App\Http\Controllers\ContratoController::class, 'updateObservaciones'])->name('contratos.updateObservaciones');
     Route::patch('contratos/{contrato}/documento', [App\Http\Controllers\ContratoController::class, 'updateDocumento'])->name('contratos.updateDocumento');
     Route::get('contratos/{id}/comisiones', [App\Http\Controllers\ContratoController::class, 'comisiones'])->name('contratos.comisiones');
+    Route::get('contratos/{id}/estado', [App\Http\Controllers\ContratoController::class, 'estado'])->name('contratos.estado');
     Route::post('contratos/crear-parcialidad', [App\Http\Controllers\ContratoController::class, 'crearParcialidad'])->name('contratos.crearParcialidad');
     
     // Rutas de pagos

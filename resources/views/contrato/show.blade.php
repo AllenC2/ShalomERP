@@ -47,15 +47,14 @@
                                             </small>
                                         </div>
                                     @elseif($estadoPagos['tiene_en_tolerancia'])
-                                        <div class="badge bg-warning text-dark p-2 mb-2" style="font-size: 0.85rem;">
-                                            <div class="fw-bold">
+                                        <div class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning p-2 mb-2" style="font-size: 0.85rem;">
+                                            <div class="fw-bold text-start">
                                                 <i class="bi bi-clock me-1"></i>
                                                 {{ $estadoPagos['cuotas_en_tolerancia'] }} cuota{{ $estadoPagos['cuotas_en_tolerancia'] > 1 ? 's' : '' }} en período de gracia
+                                                <small>
+                                                    <br>Tolerancia: {{ $estadoPagos['tolerancia_dias'] }} día{{ $estadoPagos['tolerancia_dias'] > 1 ? 's' : '' }}
+                                                </small>
                                             </div>
-                                            <small>
-                                                Total: ${{ number_format($estadoPagos['monto_en_tolerancia'], 2) }}
-                                                <br>Tolerancia: {{ $estadoPagos['tolerancia_dias'] }} día{{ $estadoPagos['tolerancia_dias'] > 1 ? 's' : '' }}
-                                            </small>
                                         </div>
                                     @else
                                         <div class="badge bg-success p-2 mb-2" style="font-size: 0.85rem;">
@@ -77,155 +76,13 @@
         </div>
 
         <div class="row">
-            @if(Auth::check() && Auth::user()->role === 'empleado')
-            <!-- columna para empleados -->
-            <div class="col-lg-4">
-                <div class="info-section">
-                    <h6 class="text-muted text-uppercase small fw-bold mb-3">
-                        <i class="bi bi-currency-dollar me-2"></i>Información Financiera
-                    </h6>
-
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <div class="p-3 bg-success bg-opacity-10 border border-success border-opacity-25 rounded">
-                                <div class="d-flex align-items-start justify-content-between">
-                                    <div>
-                                        <div class="mb-1">
-                                            <span class="fw-bold mb-0" style="font-weight:900; font-size:2em;">
-                                                {{ $contrato->paquete->nombre }}
-                                            </span>
-                                        </div>
-                                        <div class="mb-1">
-                                            <small class="d-block text-muted">
-                                                <i class="bi bi-calendar-event me-1"></i>Inicio: <span class="fw-bold">{{ \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->translatedFormat('d \d\e F \d\e Y') }}</span>
-                                            </small>
-                                        </div>
-                                        <div>
-                                            <small class="d-block text-muted">
-                                                <i class="bi bi-calendar-check me-1"></i>Fin: <span class="fw-bold">{{ $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin)->locale('es')->translatedFormat('d \d\e F \d\e Y') : 'Indefinido' }}</span>
-                                            </small>
-                                        </div>
-                                    </div>
-                                    @php
-                                    // Calcular cuotas (solo pagos de tipo "cuota")
-                                    $cuotasPagadas = $pagos_contrato->filter(function($pago) {
-                                        return $pago->estado == 'hecho' && 
-                                                strtolower($pago->tipo_pago ?? '') == 'cuota';
-                                    })->count();
-
-                                    $totalCuotas = $contrato->numero_cuotas ?? 0;
-                                    $porcentajeCuotas = $totalCuotas > 0 ? ($cuotasPagadas / $totalCuotas) * 100 : 0;
-                                    $circumference = 2 * pi() * 45; // radio = 45
-                                    $strokeDasharray = $circumference;
-                                    $strokeDashoffset = $circumference - ($porcentajeCuotas / 100) * $circumference;
-                                    @endphp
-
-                                    <div class="text-end">
-
-                                        <!-- Gráfico circular de progreso -->
-                                        <div class="text-center">
-                                            <div class="position-relative d-inline-block">
-                                                <svg width="80" height="80" class="progress-ring">
-                                                    <!-- Círculo de fondo -->
-                                                    <circle cx="40" cy="40" r="35"
-                                                        fill="none"
-                                                        stroke="#d1d5db"
-                                                        stroke-width="6" />
-                                                    <!-- Círculo de progreso -->
-                                                    <circle cx="40" cy="40" r="35"
-                                                        fill="none"
-                                                        stroke="#198754"
-                                                        stroke-width="6"
-                                                        stroke-linecap="round"
-                                                        stroke-dasharray="{{ 2 * pi() * 35 }}"
-                                                        stroke-dashoffset="{{ 2 * pi() * 35 - ($porcentajeCuotas / 100) * 2 * pi() * 35 }}"
-                                                        transform="rotate(-90 40 40)"
-                                                        style="transition: stroke-dashoffset 0.5s ease-in-out" />
-                                                </svg>
-                                                <!-- Texto en el centro del círculo -->
-                                                <div class="position-absolute top-50 start-50 translate-middle text-center">
-                                                    <div class="fw-bold text-success" style="font-size: 14px; line-height: 1;">
-                                                        {{ $cuotasPagadas }}/{{ $totalCuotas }}
-                                                        <small class="text-muted">cuotas</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <!-- Leyenda debajo del gráfico -->
-                                            <div class="mt-2">
-                                                <small class="text-muted d-block" style="font-size: 10px;">
-                                                    {{ round($porcentajeCuotas) }}% de cuotas pagadas
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @php
-                                $montoInicial = $contrato->monto_inicial ?? 0;
-                                $montoBonificacion = $contrato->monto_bonificacion ?? 0;
-                                $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
-                                $cuotaCalculada = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
-                                @endphp
-
-                                <!-- Resumen de cálculo de cuotas -->
-                                <div class="mt-3 p-2 bg-white bg-opacity-50 rounded border">
-                                    <div class="row text-center">
-                                        <div class="col-12 mb-2">
-                                            <small class="text-muted fw-bold">Desglose del Financiamiento</small>
-                                        </div>
-
-                                        <div class="col-12 mb-2">
-                                            <div class="d-flex justify-content-between align-items-center text-sm">
-                                                <small class="text-muted">Monto Total:</small>
-                                                <small class="fw-bold">${{ number_format($contrato->monto_total, 2) }}</small>
-                                            </div>
-                                            @if($montoInicial > 0)
-                                            <div class="d-flex justify-content-between align-items-center text-sm">
-                                                <small class="text-muted">(-) Inicial:</small>
-                                                <small class="text-warning">-${{ number_format($montoInicial, 2) }}</small>
-                                            </div>
-                                            @endif
-                                            @if($montoBonificacion > 0)
-                                            <div class="d-flex justify-content-between align-items-center text-sm">
-                                                <small class="text-muted">(-) Bonificación:</small>
-                                                <small class="text-info">-${{ number_format($montoBonificacion, 2) }}</small>
-                                            </div>
-                                            @endif
-                                            <hr class="my-1">
-                                            <div class="d-flex justify-content-between align-items-center text-sm">
-                                                <small class="text-muted fw-bold">Monto a Financiar:</small>
-                                                <small class="fw-bold text-success">${{ number_format($montoFinanciado, 2) }}</small>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-12">
-                                            <div class="bg-primary bg-opacity-10 rounded p-2">
-                                                <div class="text-center">
-                                                    <small class="text-muted">{{ $contrato->numero_cuotas }} pagos programados</small>
-                                                </div>
-                                                <div class="row mt-1">
-                                                    <div class="col-6 text-center">
-                                                        <small class="text-muted d-block">Por cuotas de</small>
-                                                        <strong class="text-primary">${{ number_format($cuotaCalculada, 2) }}</strong>
-                                                    </div>
-                                                    <div class="col-6 text-center">
-                                                        <small class="text-muted d-block">Cada</small>
-                                                        <strong class="text-primary">{{ ucfirst($contrato->frecuencia_cuotas ?? 'N/A') }} días</strong>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
             <!-- Columna izquierda -->
+            @if(Auth::check() && (Auth::user()->role === 'admin' ))
             <div class="col-lg-8">
-                @if(Auth::check() && Auth::user()->role === 'admin')
+            @else
+            <div class="col-lg-12">
+            @endif
+                @if(Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'empleado'))
                 <!--  Detalles del contrato -->
                 <div class="card mb-4">
                     <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
@@ -243,7 +100,11 @@
                                         <i class="bi bi-person-circle me-2"></i>Información del Cliente
                                     </h6>
                                     <div class="mb-3 p-0">
-                                        <a href="{{ route('clientes.show', $contrato->cliente->id) }}" class="text-decoration-none">
+                                        @if(Auth::check() && Auth::user()->role === 'admin')
+                                            <a href="{{ route('clientes.show', $contrato->cliente->id) }}" class="text-decoration-none">
+                                        @else
+                                            <a class="text-decoration-none hover-none">
+                                        @endif
                                             <div class="card border-0 shadow-sm h-100 hover-card" style="background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);">
                                                 <div class="card-body p-4">
                                                     <!-- Header del cliente -->
@@ -283,7 +144,7 @@
                                                         @endif
 
                                                         @if($contrato->cliente->telefono)
-                                                        <div class="col-md-6">
+                                                        <div class="col-md-12">
                                                             <div class="d-flex align-items-center gap-2">
                                                                 <i class="bi bi-telephone text-success"></i>
                                                                 <span class="text-muted small">{{ $contrato->cliente->telefono }}</span>
@@ -291,11 +152,11 @@
                                                         </div>
                                                         @endif
 
-                                                        @if($contrato->cliente->domicilio)
-                                                        <div class="col-md-6">
+                                                        @if($contrato->cliente->domicilio_completo)
+                                                        <div class="col-md-12">
                                                             <div class="d-flex align-items-center gap-2">
                                                                 <i class="bi bi-geo-alt text-warning"></i>
-                                                                <span class="text-muted small">{{ Str::limit($contrato->cliente->domicilio, 30) }}</span>
+                                                                <span class="text-muted small">{{ Str($contrato->cliente->domicilio_completo) }}</span>
                                                             </div>
                                                         </div>
                                                         @endif
@@ -359,7 +220,7 @@
                             <div class="col-md-6">
                                 <div class="info-section">
                                     <h6 class="text-muted text-uppercase small fw-bold mb-3">
-                                        <i class="bi bi-currency-dollar me-2"></i>Información Financiera
+                                        <i class="bi bi-currency-dollar me-2"></i>aInformación Financiera
                                     </h6>
 
                                     <div class="row g-3">
@@ -547,8 +408,16 @@
                             $diasRestantes = now()->diffInDays($fechaCuota, false);
                             $esVencida = $diasRestantes < 0;
                             @endphp
-                            @if($esVencida)
-                                <span class="badge bg-danger">Vencida</span>
+                            @php
+                            $esRetrasadoHeader = pagoEstaRetrasado($siguienteCuota->fecha_pago, $siguienteCuota->estado);
+                            $enToleranciaHeader = $siguienteCuota->estado == 'pendiente' && 
+                                                 $fechaCuota->isPast() && 
+                                                 !$esRetrasadoHeader;
+                            @endphp
+                            @if($esRetrasadoHeader)
+                                <span class="badge bg-danger">Retrasada</span>
+                            @elseif($enToleranciaHeader)
+                                <span class="badge bg-warning text-dark">En gracia</span>
                             @elseif($diasRestantes <= 7)
                                 <span class="badge bg-warning text-dark">Próxima a vencer</span>
                             @else
@@ -561,15 +430,26 @@
                             <!-- Columna izquierda: Información de la cuota -->
                             <div class="col-8">
                                 @php
+                                // Usar la misma lógica que en el historial
+                                $esRetrasadoCuota = pagoEstaRetrasado($siguienteCuota->fecha_pago, $siguienteCuota->estado);
+                                $enToleranciaCuota = $siguienteCuota->estado == 'pendiente' && 
+                                                    $fechaCuota->isPast() && 
+                                                    !$esRetrasadoCuota;
+                                $diasGraciaRestantesCuota = diasDeGraciaRestantes($siguienteCuota->fecha_pago, $siguienteCuota->estado);
+                                
                                 // Determinar color del borde según el estado
                                 $colorBordeCuota = 'border-light';
                                 $colorBadgeCuota = 'warning text-dark';
                                 $textoBadge = 'Pendiente';
                                 
-                                if ($esVencida) {
+                                if ($esRetrasadoCuota) {
                                     $colorBordeCuota = 'border-danger';
                                     $colorBadgeCuota = 'danger';
-                                    $textoBadge = 'Vencida';
+                                    $textoBadge = 'Retrasado';
+                                } elseif ($enToleranciaCuota) {
+                                    $colorBordeCuota = 'border-warning';
+                                    $colorBadgeCuota = 'warning text-dark';
+                                    $textoBadge = $diasGraciaRestantesCuota > 0 ? 'En gracia por ' . $diasGraciaRestantesCuota . ' días más' : 'Último día de gracia';
                                 } elseif ($diasRestantes <= 7 && $diasRestantes > 0) {
                                     $colorBordeCuota = 'border-warning';
                                     $colorBadgeCuota = 'warning text-dark';
@@ -596,14 +476,26 @@
                                                 </span>
                                                 <br>
                                                 <span class="badge bg-{{ $colorBadgeCuota }}">
-                                                    {{ ucfirst($siguienteCuota->estado) }}
+                                                    {{ $textoBadge }}
                                                 </span>
                                                 <span class="badge bg-secondary">
                                                     Folio #{{ $siguienteCuota->id }}
                                                 </span>
                                             </div>
                                             <div class="text-end">
-                                                <p class="fw-bold mb-0 mt-1" style="font-size: 1.8em;">${{ number_format($siguienteCuota->monto, 2) }}</p>
+                                                @php
+                                                $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
+                                                $montoRestante = $siguienteCuota->monto_pendiente;
+                                                @endphp
+
+                                                @if($montoParcialidades > 0)
+                                                    <div class="text-end">
+                                                        <small class="text-muted d-block">Restante</small>
+                                                        <p class="fw-bold mb-0 mt-0 text-warning" style="font-size: 1.8em;">${{ number_format($montoRestante, 2) }}</p>
+                                                    </div>
+                                                @else
+                                                    <p class="fw-bold mb-0 mt-1" style="font-size: 1.8em;">${{ number_format($siguienteCuota->monto, 2) }}</p>
+                                                @endif
                                             </div>
                                         </div>
                                         <p class="mb-1 text-muted">
@@ -615,21 +507,35 @@
                                             <div class="mt-2 p-2 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded">
                                                 <small class="text-danger">
                                                     <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                                    Vencida hace {{ abs($diasRestantes) }} día{{ abs($diasRestantes) != 1 ? 's' : '' }}
+                                                    @if(abs(intval($diasRestantes)) > 0)
+                                                        Vencida hace {{ abs(intval($diasRestantes)) }} día{{ abs(intval($diasRestantes)) != 1 ? 's' : '' }}
+                                                    @else
+                                                        Vencida hoy
+                                                    @endif
                                                 </small>
                                             </div>
                                         @elseif($diasRestantes <= 7 && $diasRestantes > 0)
                                             <div class="mt-2 p-2 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded">
                                                 <small class="text-warning">
                                                     <i class="bi bi-clock-fill me-1"></i>
-                                                    Vence en {{ $diasRestantes }} día{{ $diasRestantes != 1 ? 's' : '' }}
+                                                    @if($diasRestantes == 1)
+                                                        Vence mañana
+                                                    @elseif($diasRestantes > 1)
+                                                        Vence en {{ intval($diasRestantes) }} día{{ intval($diasRestantes) != 1 ? 's' : '' }}
+                                                    @else
+                                                        Vence hoy
+                                                    @endif
                                                 </small>
                                             </div>
                                         @elseif($diasRestantes > 7)
                                             <div class="mt-2 p-2 bg-info bg-opacity-10 border border-info border-opacity-25 rounded">
                                                 <small class="text-info">
                                                     <i class="bi bi-calendar-check-fill me-1"></i>
-                                                    Faltan {{ intval($diasRestantes) }} días para el pago
+                                                    @if($diasRestantes == 1)
+                                                        Falta 1 día para el pago
+                                                    @else
+                                                        Faltan {{ intval($diasRestantes) }} días para el pago
+                                                    @endif
                                                 </small>
                                             </div>
                                         @endif
@@ -641,7 +547,7 @@
                             <div class="col-4">
                                 @php
                                 $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
-                                $montoRestante = $siguienteCuota->monto - $montoParcialidades;
+                                $montoRestante = $siguienteCuota->monto_pendiente;
                                 
                                 // Calcular cuota regular del contrato
                                 $montoInicial = $contrato->monto_inicial ?? 0;
@@ -657,78 +563,21 @@
                                 <div class="text-center h-100 d-flex flex-column justify-content-between">
                                     <!-- Gráfico de progreso -->
                                     <div class="mb-3">
+
+
                                         <h6 class="fw-bold mb-2" style="font-size: 0.9em;">Progreso de Pago de Cuota</h6>
                                         
                                         <!-- Información de montos -->
                                         <div class="row text-center mb-2">
                                             <div class="col-6">
                                                 <small class="text-muted d-block">Pagado</small>
-                                                <small class="fw-bold text-success">${{ number_format($montoParcialidades, 2) }}</small>
+                                                <small class="fw-bold text-success" style="font-size: 1.2em;">${{ number_format($montoParcialidades, 2) }}</small>
                                             </div>
                                             <div class="col-6">
                                                 <small class="text-muted d-block">Restante</small>
-                                                <small class="fw-bold text-warning">${{ number_format(max(0, $montoRestante), 2) }}</small>
+                                                <small class="fw-bold text-secondary" style="font-size: 1.2em;">${{ number_format(max(0, $montoRestante), 2) }}</small>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Barra de progreso mejorada -->
-                                        <div class="progress mb-2" style="height: 25px; background-color: #e9ecef; border-radius: 15px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
-                                            @if($montoParcialidades > 0)
-                                            <div class="progress-bar" 
-                                                 role="progressbar" 
-                                                 style="width: {{ min(100, $porcentajePagadoVsCuota) }}%; 
-                                                        background: linear-gradient(45deg, #28a745, #20c997);
-                                                        border-radius: 15px;
-                                                        position: relative;
-                                                        overflow: hidden;
-                                                        animation: progress-animation 1.5s ease-out;" 
-                                                 aria-valuenow="{{ $porcentajePagadoVsCuota }}" 
-                                                 aria-valuemin="0" 
-                                                 aria-valuemax="100">
-                                                <!-- Efecto de brillo -->
-                                                <div style="position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent); border-radius: 15px 15px 0 0;"></div>
-                                                @if($porcentajePagadoVsCuota > 20)
-                                                    <span class="fw-bold text-white d-flex align-items-center justify-content-center h-100" style="font-size: 0.85em; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
-                                                        {{ number_format($porcentajePagadoVsCuota, 1) }}%
-                                                    </span>
-                                                @endif
-                                            </div>
-                                            @else
-                                            <!-- Barra vacía con texto informativo -->
-                                            <div class="d-flex align-items-center justify-content-center h-100 w-100">
-                                                <span class="text-muted" style="font-size: 0.8em;">Sin parcialidades</span>
-                                            </div>
-                                            @endif
-                                        </div>
-                                        
-                                        <!-- Agregar estilos CSS para la animación -->
-                                        <style>
-                                        @keyframes progress-animation {
-                                            0% { width: 0%; }
-                                            100% { width: {{ min(100, $porcentajePagadoVsCuota) }}%; }
-                                        }
-                                        
-                                        .progress {
-                                            transition: all 0.3s ease;
-                                        }
-                                        
-                                        .progress:hover {
-                                            transform: translateY(-1px);
-                                            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.1);
-                                        }
-                                        </style>
-                                        
-                                        <!-- Información adicional -->
-                                        <div class="text-center">
-                                            <small class="text-muted">
-                                                @if($montoParcialidades > 0)
-                                                    {{ number_format($porcentajePagadoVsCuota, 1) }}% de la cuota regular completado
-                                                @else
-                                                    Sin parcialidades registradas
-                                                @endif
-                                            </small>
-                                        </div>
-
                                     </div>
 
                                     <!-- Botones de acción -->
@@ -767,11 +616,6 @@
                             </h2>
                             <div id="collapseHistorialPagos" class="accordion-collapse collapse" aria-labelledby="headingHistorialPagos" data-bs-parent="#accordionHistorialPagos">
                                 <div class="accordion-body">
-                                    <div>
-                                                <strong class="text-white">
-                                                    Suma de los recibos: ${{ number_format($pagos_contrato->sum('monto'), 2) }}
-                                                </strong>
-                                    </div>
                                     <div class="timeline">
                                         @forelse($pagos_contrato->sortBy('fecha_pago') as $pago)
                                         <div class="timeline-item mb-4">
@@ -788,6 +632,9 @@
                                 $enTolerancia = $pago->estado == 'pendiente' && 
                                                $fechaPago->isPast() && 
                                                !$esRetrasado;
+                                
+                                // Calcular días de gracia restantes
+                                $diasGraciaRestantes = diasDeGraciaRestantes($pago->fecha_pago, $pago->estado);
                                 
                                 // Determinar color del borde
                                 $colorBorde = 'border-light';
@@ -847,7 +694,7 @@
                                                             </span>
                                                             <br>
                                                             <span class="badge bg-{{ $colorBadge }}">
-                                                                {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? 'En gracia' : ucfirst($pago->estado)) }}
+                                                                {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? ($diasGraciaRestantes > 0 ? 'En gracia por ' . $diasGraciaRestantes . ' días más' : 'Último día de gracia') : ucfirst($pago->estado)) }}
                                                             </span>
                                                             <span class="badge bg-secondary">
                                                                 Folio #{{ $pago->id }}
@@ -905,7 +752,7 @@
                                                         @endif
                                                         <br>
                                                         <span class="badge bg-{{ $colorBadge }}">
-                                                            {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? 'En gracia' : ucfirst($pago->estado)) }}
+                                                            {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? ($diasGraciaRestantes > 0 ? 'En gracia por ' . $diasGraciaRestantes . ' días más' : 'Último día de gracia') : ucfirst($pago->estado)) }}
                                                         </span>
                                                         <span class="badge bg-secondary">
                                                             Folio #{{ $pago->id }}
@@ -960,20 +807,38 @@
                         <h5 class="card-title mb-0"><i class="bi bi-graph-up me-2" style="color: #79481D;"></i>Resumen Financiero</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <p class="mb-1">Total a pagar</p>
-                            <h4 class="fw-bold">${{ number_format($contrato->monto_total, 2) }}</h4>
+                        <div class="row mb-3">
+                            @php
+                            // Calcular el total adeudado de todo el contrato (pagos vencidos/retrasados)
+                            $totalAdeudadoContrato = $pagos_contrato
+                                ->where('estado', 'pendiente')
+                                ->filter(function($pago) {
+                                    return pagoEstaRetrasado($pago->fecha_pago, $pago->estado);
+                                })
+                                ->sum(function($pago) {
+                                    return $pago->monto_pendiente ?? $pago->monto;
+                                });
+                            @endphp
+                            <div class="col-6">
+                                <h6>Total Adeudado</h6>
+                                <h4 class="fw-bold text-danger">${{ number_format($totalAdeudadoContrato, 2) }}</h4>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="mb-1">Total a pagar</p>
+                                <h4 class="fw-bold">${{ number_format($contrato->monto_total, 2) }}</h4>
+                            </div>
                         </div>
 
-                        <div class="progress mb-3 position-relative" style="height: 10px; background-color: #e9ecef; border-radius: 5px; overflow: hidden;">
+                        <div class="progress mb-3 position-relative" style="height: 12px; background-color: #e9ecef; border-radius: 5px; overflow: hidden;">
                             @php
-                            $pagado = $pagos_contrato->where('estado', 'hecho')->sum('monto');
+                            // Calcular el monto pagado correctamente evitando conteo duplicado
+                            $pagado = calcularMontoPagadoContrato($pagos_contrato);
                             $porcentajePagado = $contrato->monto_total > 0
                                 ? min(100, ($pagado / $contrato->monto_total) * 100)
                                 : 0;
                             @endphp
                             <div class="progress-bar" role="progressbar" style="width: {{ number_format($porcentajePagado, 2) }}%; background: linear-gradient(90deg, #28a745, #218838); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);" aria-valuenow="{{ number_format($porcentajePagado, 2) }}" aria-valuemin="0" aria-valuemax="100"></div>
-                            <span class="position-absolute top-50 start-50 translate-middle text-white fw-bold" style="z-index:2; font-size: 0.85em; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">
+                            <span class="position-absolute top-50 start-50 translate-middle text-black fw-bold" style="z-index:2; font-size: 0.9em; ">
                                 {{ number_format($porcentajePagado, 1) }}%
                             </span>
                         </div>
@@ -1003,7 +868,7 @@
                             <p class="fw-bold mb-0">
                                 ${{ number_format($proximoPago->monto, 2) }}
                                 <span class="text-muted">
-                                    ({{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->format('d') }} de {{ ucfirst(\Carbon\Carbon::parse($proximoPago->fecha_pago)->locale('es')->monthName) }} de {{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->format('Y') }} a las {{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->format('H:i') }})
+                                    ({{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->format('d') }} de {{ ucfirst(\Carbon\Carbon::parse($proximoPago->fecha_pago)->locale('es')->monthName) }} de {{ \Carbon\Carbon::parse($proximoPago->fecha_pago)->format('Y') }} )
                                 </span>
                             </p>
                             @else
@@ -1019,6 +884,15 @@
                         <h5 class="card-title mb-0"><i class="bi bi-lightning me-2" style="color: #79481D;"></i>Acciones Rápidas</h5>
                     </div>
                     <div class="card-body">
+
+                        <!-- <div class="row g-2 mb-3">
+                            <div class="col-12">
+                                <button type="button" class="btn btn-outline-secondary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#estadoCuentaModal">
+                                    <i class="bi bi-file-text me-1"></i>Estado de cuenta
+                                </button>
+                            </div>
+                        </div> -->
+
                         <!-- Primera fila: Comisiones y WhatsApp -->
                         <div class="row g-2 mb-3">
                             <div class="col-6">
@@ -2355,4 +2229,248 @@
         });
     });
 </script>
+
+<!-- Modal para seleccionar período del estado de cuenta -->
+<div class="modal fade" id="estadoCuentaModal" tabindex="-1" aria-labelledby="estadoCuentaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="estadoCuentaModalLabel">
+                    <i class="bi bi-file-text me-2"></i>Seleccionar Período del Estado de Cuenta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @php
+                // Calcular los períodos basados en la frecuencia y número de cuotas
+                $fechaInicio = $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now();
+                $frecuenciaDias = $contrato->frecuencia_cuotas ?? 30;
+                $numeroCuotas = $contrato->numero_cuotas ?? 1;
+                $periodos = [];
+                $periodosCompletos = [];
+                
+                // Validar que tengamos datos válidos
+                if ($numeroCuotas > 0 && $frecuenciaDias > 0 && $contrato->fecha_inicio) {
+                    for ($i = 0; $i < $numeroCuotas; $i++) {
+                        $fechaInicioPeríodo = $fechaInicio->copy()->addDays($frecuenciaDias * $i);
+                        $fechaFinPeríodo = $fechaInicio->copy()->addDays($frecuenciaDias * ($i + 1))->subDay();
+                        
+                        $periodo = [
+                            'numero' => $i + 1,
+                            'fecha_inicio' => $fechaInicioPeríodo,
+                            'fecha_fin' => $fechaFinPeríodo,
+                            'es_actual' => now()->between($fechaInicioPeríodo, $fechaFinPeríodo),
+                            'ya_paso' => now()->greaterThan($fechaFinPeríodo)
+                        ];
+                        
+                        // Agregar a la lista completa
+                        $periodos[] = $periodo;
+                        
+                        // Solo agregar períodos que ya pasaron a la lista de períodos completados
+                        if ($periodo['ya_paso']) {
+                            $periodosCompletos[] = $periodo;
+                        }
+                    }
+                }
+                @endphp
+
+                <div class="mb-3">
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Información del contrato:</strong><br>
+                        Este contrato tiene <strong>{{ $numeroCuotas }} períodos</strong> de 
+                        <strong>{{ $frecuenciaDias }} días</strong> cada uno, iniciando el 
+                        <strong>{{ \Carbon\Carbon::parse($contrato->fecha_inicio)->locale('es')->translatedFormat('d \d\e F \d\e Y') }}</strong>.
+                        <br><small class="text-muted mt-1 d-block">
+                            <i class="bi bi-calendar-check me-1"></i>
+                            Se muestran únicamente los períodos con fechas que ya han transcurrido 
+                            (<strong>{{ count($periodosCompletos) }}</strong> de {{ $numeroCuotas }} períodos).
+                        </small>
+                    </div>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-hand-index me-1"></i>
+                        <strong>Selecciona un período completado</strong> para generar un estado de cuenta específico, 
+                        o usa el botón <strong>"Ver Estado Completo"</strong> para ver todo el historial del contrato.
+                    </p>
+                </div>
+
+                <div class="row g-3">
+                    @foreach($periodosCompletos as $periodo)
+                    @php
+                    $fechaInicioFormateada = $periodo['fecha_inicio']->locale('es')->translatedFormat('d \d\e F \d\e Y');
+                    $fechaFinFormateada = $periodo['fecha_fin']->locale('es')->translatedFormat('d \d\e F \d\e Y');
+                    @endphp
+                    
+                    <div class="col-md-6">
+                        <div class="card h-100 periodo-card border-success" 
+                             style="cursor: pointer;" 
+                             onclick="seleccionarPeriodo({{ $periodo['numero'] }}, '{{ $periodo['fecha_inicio']->format('Y-m-d') }}', '{{ $periodo['fecha_fin']->format('Y-m-d') }}')">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-calendar-range me-1"></i>
+                                        Período {{ $periodo['numero'] }}
+                                    </h6>
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle me-1"></i>Completado
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-calendar-check me-1"></i>
+                                        <strong>Inicio:</strong> {{ $fechaInicioFormateada }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-calendar-x me-1"></i>
+                                        <strong>Fin:</strong> {{ $fechaFinFormateada }}
+                                    </small>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-success d-block">
+                                        <i class="bi bi-hourglass-bottom me-1"></i>
+                                        <strong>Días transcurridos:</strong> {{ now()->diffInDays($periodo['fecha_fin']) }} días atrás
+                                    </small>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock me-1"></i>
+                                        {{ $frecuenciaDias }} días de duración
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent text-center py-2">
+                                <small class="text-success">
+                                    <i class="bi bi-hand-index me-1"></i>
+                                    Clic para generar estado de cuenta
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                @if(empty($periodos))
+                <div class="text-center py-4">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>No se pudieron calcular los períodos.</strong><br>
+                        <small class="text-muted">
+                            Verifica que el contrato tenga:
+                            <ul class="list-unstyled mt-2 mb-0">
+                                <li>• Fecha de inicio válida</li>
+                                <li>• Número de cuotas mayor a 0</li>
+                                <li>• Frecuencia de cuotas configurada</li>
+                            </ul>
+                        </small>
+                    </div>
+                    <p class="text-muted">
+                        Puedes ver el estado completo del contrato usando el botón de abajo.
+                    </p>
+                </div>
+                @elseif(empty($periodosCompletos))
+                <div class="text-center py-4">
+                    <div class="alert alert-info">
+                        <i class="bi bi-calendar-x me-2"></i>
+                        <strong>No hay períodos completados disponibles.</strong><br>
+                        <small class="text-muted">
+                            Este contrato aún no tiene períodos con fechas que hayan transcurrido.
+                            Los períodos estarán disponibles conforme vayan completándose sus fechas.
+                        </small>
+                    </div>
+                    <div class="mt-3">
+                        @php
+                        $proximoPeriodo = collect($periodos)->first(function($periodo) {
+                            return !$periodo['ya_paso'];
+                        });
+                        @endphp
+                        
+                        @if($proximoPeriodo)
+                        <div class="card border-secondary">
+                            <div class="card-body text-center py-3">
+                                <h6 class="card-title mb-2">
+                                    <i class="bi bi-clock me-1"></i>Próximo período disponible
+                                </h6>
+                                <p class="mb-1">
+                                    <strong>Período {{ $proximoPeriodo['numero'] }}</strong>
+                                </p>
+                                <small class="text-muted">
+                                    Estará disponible después del 
+                                    <strong>{{ $proximoPeriodo['fecha_fin']->locale('es')->translatedFormat('d \d\e F \d\e Y') }}</strong>
+                                </small>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                    <p class="text-muted mt-3">
+                        Mientras tanto, puedes ver el estado completo del contrato usando el botón de abajo.
+                    </p>
+                </div>
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                </button>
+                <a href="{{ route('contratos.estado', $contrato->id) }}" class="btn btn-primary">
+                    <i class="bi bi-file-text me-1"></i>Ver Estado Completo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.periodo-card {
+    transition: all 0.3s ease;
+}
+
+.periodo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.periodo-card.border-primary:hover {
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
+}
+
+.periodo-card.border-success:hover {
+    box-shadow: 0 8px 25px rgba(25, 135, 84, 0.3);
+}
+
+.periodo-card.border-secondary:hover {
+    box-shadow: 0 8px 25px rgba(108, 117, 125, 0.3);
+}
+</style>
+
+<script>
+function seleccionarPeriodo(numero, fechaInicio, fechaFin) {
+    // Construir URL con parámetros del período seleccionado
+    const url = "{{ route('contratos.estado', $contrato->id) }}" + 
+                "?periodo=" + numero + 
+                "&fecha_inicio=" + fechaInicio + 
+                "&fecha_fin=" + fechaFin;
+    
+    // Mostrar loading en el modal
+    const modal = document.getElementById('estadoCuentaModal');
+    const originalContent = modal.querySelector('.modal-body').innerHTML;
+    
+    modal.querySelector('.modal-body').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Generando estado de cuenta...</span>
+            </div>
+            <p class="mt-3 mb-0">Generando estado de cuenta para el período ${numero}...</p>
+        </div>
+    `;
+    
+    // Redirigir después de un breve delay para mostrar el loading
+    setTimeout(() => {
+        window.location.href = url;
+    }, 500);
+}
+</script>
+
 @endsection

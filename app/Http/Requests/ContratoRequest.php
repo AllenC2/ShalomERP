@@ -45,15 +45,15 @@ class ContratoRequest extends FormRequest
     private function cleanMoneyField($value)
     {
         if (empty($value)) {
-            return null;
+            return 0;
         }
         
         // Remover símbolo de dólar, comas y espacios
         $cleaned = str_replace(['$', ',', ' '], '', $value);
         
-        // Si queda vacío después de limpiar, retornar null
+        // Si queda vacío después de limpiar, retornar 0
         if (empty($cleaned)) {
-            return null;
+            return 0;
         }
         
         // Verificar que sea un número válido
@@ -61,7 +61,7 @@ class ContratoRequest extends FormRequest
             return $cleaned;
         }
         
-        return $value; // Retornar original si no se puede limpiar
+        return 0; // Retornar 0 si no se puede limpiar
     }
 
     /**
@@ -71,7 +71,7 @@ class ContratoRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
 			'cliente_id' => 'required|exists:clientes,id',
             'paquete_id' => 'required|exists:paquetes,id',
 			'fecha_inicio' => 'required|date',
@@ -85,6 +85,13 @@ class ContratoRequest extends FormRequest
 			'documento' => 'nullable|file|mimes:pdf|max:10240', // Máximo 10MB
 			'estado' => 'nullable|in:activo,cancelado,finalizado,suspendido',
         ];
+        
+        // Solo validar ID para contratos nuevos (cuando no hay route parameter 'contrato')
+        if (!$this->route('contrato')) {
+            $rules['id'] = 'required|integer|min:1|max:999999|unique:contratos,id';
+        }
+        
+        return $rules;
     }
 
     /**
@@ -93,6 +100,11 @@ class ContratoRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'id.required' => 'El ID del contrato es obligatorio.',
+            'id.integer' => 'El ID debe ser un número entero.',
+            'id.min' => 'El ID debe ser mayor a 0.',
+            'id.max' => 'El ID no puede ser mayor a 999999.',
+            'id.unique' => 'Este ID ya está en uso por otro contrato.',
             'cliente_id.required' => 'Debe seleccionar un cliente.',
             'cliente_id.exists' => 'El cliente seleccionado no es válido.',
             'paquete_id.required' => 'Debe seleccionar un paquete.',

@@ -25,15 +25,25 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Empleado extends Model
 {
-    
+
     protected $perPage = 20;
+
+    /**
+     * Indica que la clave primaria no es auto-incremental
+     */
+    public $incrementing = false;
+
+    /**
+     * El tipo de la clave primaria
+     */
+    protected $keyType = 'string';
 
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
-    protected $fillable = ['nombre', 'apellido', 'user_id', 'telefono', 'domicilio', 'estado'];
+    protected $fillable = ['id', 'nombre', 'apellido', 'user_id', 'telefono', 'domicilio', 'estado'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

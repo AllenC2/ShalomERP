@@ -12,15 +12,15 @@
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="nombre" class="form-label">Nombre</label>
-                            <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror" 
+                            <label for="nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror"
                                    value="{{ old('nombre', $cliente?->nombre) }}" id="nombre" placeholder="Nombre">
                             @error('nombre')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
-                        
+
                         <div class="form-group">
-                            <label for="apellido" class="form-label">Apellido</label>
-                            <input type="text" name="apellido" class="form-control @error('apellido') is-invalid @enderror" 
+                            <label for="apellido" class="form-label">Apellido <span class="text-danger">*</span></label>
+                            <input type="text" name="apellido" class="form-control @error('apellido') is-invalid @enderror"
                                    value="{{ old('apellido', $cliente?->apellido) }}" id="apellido" placeholder="Apellido">
                             @error('apellido')<div class="error-text">{{ $message }}</div>@enderror
                         </div>

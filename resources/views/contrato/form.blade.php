@@ -318,16 +318,16 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="monto_inicial" class="form-label">Pago Inicial</label>
-                            <input type="text" name="monto_inicial" class="form-control @error('monto_inicial') is-invalid @enderror" 
-                                   value="{{ old('monto_inicial', isset($contrato) ? '$' . number_format($contrato->monto_inicial, 2, '.', ',') : '') }}" 
+                            <input type="text" name="monto_inicial" class="form-control @error('monto_inicial') is-invalid @enderror"
+                                   value="{{ old('monto_inicial', isset($contrato) && $contrato->monto_inicial > 0 ? '$' . number_format($contrato->monto_inicial, 2, '.', ',') : '') }}"
                                    id="monto_inicial" placeholder="$0.00">
                             @error('monto_inicial')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="monto_bonificacion" class="form-label">Bonificación</label>
-                            <input type="text" name="monto_bonificacion" class="form-control @error('monto_bonificacion') is-invalid @enderror" 
-                                   value="{{ old('monto_bonificacion', isset($contrato) ? '$' . number_format($contrato->monto_bonificacion, 2, '.', ',') : '') }}" 
+                            <input type="text" name="monto_bonificacion" class="form-control @error('monto_bonificacion') is-invalid @enderror"
+                                   value="{{ old('monto_bonificacion', isset($contrato) && $contrato->monto_bonificacion > 0 ? '$' . number_format($contrato->monto_bonificacion, 2, '.', ',') : '') }}"
                                    id="monto_bonificacion" placeholder="$0.00">
                             @error('monto_bonificacion')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
@@ -488,36 +488,68 @@
 
         document.getElementById('numero_cuotas').addEventListener('input', calcularPagos);
         document.getElementById('frecuencia_cuotas').addEventListener('input', calcularPagos);
-        document.getElementById('monto_inicial').addEventListener('input', function() {
+
+        // Aplicar formateo solo al salir del campo (blur) para permitir edición libre
+        document.getElementById('monto_inicial').addEventListener('blur', function() {
             formatearCampoMoneda(this);
-            calcularPagos();
         });
-        document.getElementById('monto_bonificacion').addEventListener('input', function() {
+        document.getElementById('monto_inicial').addEventListener('input', calcularPagos);
+
+        document.getElementById('monto_bonificacion').addEventListener('blur', function() {
             formatearCampoMoneda(this);
-            calcularPagos();
         });
+        document.getElementById('monto_bonificacion').addEventListener('input', calcularPagos);
+
+        // Permitir escribir libremente, formatear al perder foco
+        document.getElementById('monto_inicial').addEventListener('focus', function() {
+            if (this.value) {
+                // Quitar formato para editar libremente
+                const valorLimpio = this.value.replace(/[$,]/g, '');
+                if (!isNaN(parseFloat(valorLimpio))) {
+                    this.value = valorLimpio;
+                }
+            }
+        });
+
+        document.getElementById('monto_bonificacion').addEventListener('focus', function() {
+            if (this.value) {
+                // Quitar formato para editar libremente
+                const valorLimpio = this.value.replace(/[$,]/g, '');
+                if (!isNaN(parseFloat(valorLimpio))) {
+                    this.value = valorLimpio;
+                }
+            }
+        });
+
         document.getElementById('monto_total').addEventListener('input', calcularPagos);
         document.getElementById('fecha_inicio').addEventListener('change', calcularPagos);
 
         // Función para formatear campos de moneda
         function formatearCampoMoneda(input) {
             let value = input.value.replace(/[^0-9.]/g, ''); // Remover todo excepto números y punto
-            
+
+            // Si está vacío, dejarlo vacío (no forzar 0)
+            if (value === '' || value === '.') {
+                input.value = '';
+                return;
+            }
+
             // Asegurar solo un punto decimal
             const parts = value.split('.');
             if (parts.length > 2) {
                 value = parts[0] + '.' + parts.slice(1).join('');
             }
-            
+
             // Limitar a 2 decimales
             if (parts[1] && parts[1].length > 2) {
                 value = parts[0] + '.' + parts[1].substring(0, 2);
             }
-            
+
             // Formatear con símbolo de dólar y miles si hay valor
-            if (value && parseFloat(value) >= 0) {
-                input.value = formatearMoneda(parseFloat(value));
-            } else if (value === '') {
+            const valorNumerico = parseFloat(value);
+            if (!isNaN(valorNumerico) && valorNumerico >= 0) {
+                input.value = formatearMoneda(valorNumerico);
+            } else {
                 input.value = '';
             }
         }
@@ -547,17 +579,23 @@
             return `${dia} de ${mes} de ${año}`;
         }
 
-        // Aplicar formato inicial a los campos de moneda al cargar la página
+        // Aplicar formato inicial a los campos de moneda al cargar la página (solo si tienen valor)
         window.addEventListener('DOMContentLoaded', function() {
             const camposMoneda = ['monto_inicial', 'monto_bonificacion'];
             camposMoneda.forEach(function(campoId) {
                 const campo = document.getElementById(campoId);
-                if (campo && campo.value && !campo.value.startsWith('$')) {
-                    const valor = parseFloat(campo.value.replace(/[^0-9.]/g, ''));
-                    if (!isNaN(valor)) {
-                        campo.value = formatearMoneda(valor);
+                if (campo && campo.value && campo.value.trim() !== '') {
+                    // Solo formatear si ya tiene un valor (edición)
+                    if (!campo.value.startsWith('$')) {
+                        const valor = parseFloat(campo.value.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(valor) && valor > 0) {
+                            campo.value = formatearMoneda(valor);
+                        } else {
+                            campo.value = '';
+                        }
                     }
                 }
+                // Si está vacío, dejarlo vacío (aparecerá el placeholder)
             });
             calcularPagos();
         });

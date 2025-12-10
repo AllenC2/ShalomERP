@@ -51,11 +51,6 @@
                                                                             {{ $contrato->paquete->nombre ?? 'N/A' }}#{{$contrato->id }}
                                                                         </span>
                                                                     </div>
-                                                                    <div class="mb-1">
-                                                                        <small class="d-block text-muted">
-                                                                            Cliente: <span class="fw-bold">{{ $contrato->cliente->nombre ?? 'N/A' }} {{ $contrato->cliente->apellido ?? '' }}</span>
-                                                                        </small>
-                                                                    </div>
                                                                 </div>
 
                                                                 @php
@@ -73,6 +68,11 @@
                                                                         </div>
                                                                     </div>
                                                                 </div>
+                                                            </div>
+                                                            <div class="mb-1">
+                                                                <small class="d-block text-muted">
+                                                                    Cliente: <span class="fw-bold">{{ $contrato->cliente->nombre ?? 'N/A' }} {{ $contrato->cliente->apellido ?? '' }}</span>
+                                                                </small>
                                                             </div>
 
                                                             <!-- Resumen financiero -->
@@ -133,31 +133,23 @@
                                                 $comisionesPendientesCount = $comisionesPendientesPrincipales->count(); // Solo principales
                                                 $comisionesOtrasCount = $todasLasOtras->count();
                                                 
-                                                // Calcular montos para información adicional
-                                                // Solo parcialidades pagadas (excluir comisiones padre pagadas)
-                                                $soloParcialidadesPagadas = $comisiones->where('estado', 'Pagada')->where('comision_padre_id', '!=', null);
-                                                $montoPagadas = $soloParcialidadesPagadas->sum('monto');
-                                                
-                                                // Calcular monto pendiente real: monto de comisiones padre pendientes menos sus parcialidades pagadas
-                                                $montoPendientes = 0;
-                                                foreach($comisionesPendientesPrincipales as $comisionPendiente) {
-                                                    $totalParcialidades = $comisiones->where('comision_padre_id', $comisionPendiente->id)->where('estado', 'Pagada')->sum('monto');
-                                                    $montoRestante = $comisionPendiente->monto - $totalParcialidades;
-                                                    $montoPendientes += $montoRestante;
-                                                }
-                                                
-                                                $montoOtras = $todasLasOtras->sum('monto');
-                                                // Monto total: suma de todas las comisiones principales (sin restar parcialidades y sin incluir PARCIALIDAD)
-                                                $montoTotal = $comisiones->where('comision_padre_id', null)->where('tipo_comision', '!=', 'PARCIALIDAD')->sum('monto');
-                                                
+                                                // Calcular montos para el gráfico (simplificado)
+                                                // Monto total a pagar: suma de todas las comisiones principales
+                                                $montoTotal = $comisionesPrincipales->sum('monto');
+
+                                                // Monto pagado: suma de todas las parcialidades pagadas
+                                                $montoPagadas = $comisiones->where('estado', 'Pagada')->where('comision_padre_id', '!=', null)->sum('monto');
+
+                                                // Monto pendiente: lo que falta por pagar (total - pagado)
+                                                $montoPendientes = $montoTotal - $montoPagadas;
+
                                                 // Total real para mostrar (solo comisiones padre, no parcialidades)
                                                 $totalCantidadReal = $comisiones->where('comision_padre_id', null)->count();
-                                                
-                                                // Calcular porcentajes basados en CANTIDAD del gráfico
-                                                $porcentajePagadas = $totalCantidadGrafico > 0 ? ($comisionesPagadasCount / $totalCantidadGrafico) * 100 : 0;
-                                                $porcentajePendientes = $totalCantidadGrafico > 0 ? ($comisionesPendientesCount / $totalCantidadGrafico) * 100 : 0;
-                                                $porcentajeOtras = $totalCantidadGrafico > 0 ? ($comisionesOtrasCount / $totalCantidadGrafico) * 100 : 0;
-                                                
+
+                                                // Calcular porcentajes basados en MONTOS para el gráfico
+                                                $porcentajePagadas = $montoTotal > 0 ? ($montoPagadas / $montoTotal) * 100 : 0;
+                                                $porcentajePendientes = $montoTotal > 0 ? ($montoPendientes / $montoTotal) * 100 : 0;
+
                                                 $estadosComision = [
                                                     'Pagada' => [
                                                         'cantidad' => $comisionesPagadasCount,
@@ -172,15 +164,6 @@
                                                         'color' => '#ffc107'
                                                     ]
                                                 ];
-                                                
-                                                if ($comisionesOtrasCount > 0) {
-                                                    $estadosComision['Otros'] = [
-                                                        'cantidad' => $comisionesOtrasCount,
-                                                        'monto' => $montoOtras,
-                                                        'porcentaje' => $porcentajeOtras,
-                                                        'color' => '#6c757d'
-                                                    ];
-                                                }
                                             @endphp
                                             <div class="row">
                                                 <!-- Gráfico circular centrado -->
@@ -202,19 +185,12 @@
                                                                         <span class="badge estado-badge-circle me-2" style="background-color: {{ $data['color'] }}; width: 14px; height: 14px; border-radius: 50%;"></span>
                                                                         <div>
                                                                             <small class="fw-semibold text-dark d-block">{{ $estado }}</small>
-                                                                            <small class="text-muted">
-                                                                                {{ $data['cantidad'] }} 
-                                                                                @if($estado == 'Pendiente')
-                                                                                    comisiones
-                                                                                @else
-                                                                                    parcialidades
-                                                                                @endif
-                                                                            </small>
+                                                                            <small class="text-muted">{{ round($data['porcentaje']) }}%</small>
                                                                         </div>
                                                                     </div>
                                                                     <div class="text-end">
+                                                                        <small class="text-muted">-</small>
                                                                         <small class="fw-bold text-dark d-block">${{ number_format($data['monto'], 2) }}</small>
-                                                                        <small class="text-muted">{{ round($data['porcentaje']) }}%</small>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -249,14 +225,13 @@
                             <div class="card bg-white border-0 shadow-sm modern-card">
                                 <div class="card-header border-0 bg-white">
                                     <h6 class="text-muted text-uppercase small fw-bold mt-2 mb-0">
-                                        <i class="bi bi-file-text me-2"></i>Estado de comisiones
+                                        <i class="bi bi-file-text me-2"></i>Pago de comisiones
                                     </h6>
                                 </div>
                                 <div class="card-body">
                                     @if($comisionesPadre->count() > 0)
                                         <form id="formParcialidad">
                                             @csrf
-                                            
                                             <!-- Selector de comisión padre y monto en la misma fila -->
                                             <div class="row mb-3">
                                                 <div class="col-7">
@@ -274,7 +249,7 @@
                                                                 <option value="{{ $comisionPadre->id }}" 
                                                                         data-monto-restante="{{ $montoRestante }}"
                                                                         data-empleado="{{ $comisionPadre->empleado->nombre ?? 'N/A' }} {{ $comisionPadre->empleado->apellido ?? '' }}">
-                                                                    #{{ $comisionPadre->id }} - {{ $comisionPadre->empleado->nombre ?? 'N/A' }} 
+                                                                    {{ strtoupper($comisionPadre->tipo_comision) }} - {{ $comisionPadre->empleado->nombre ?? 'N/A' }}
                                                                     (Restante: ${{ number_format($montoRestante, 2) }})
                                                                 </option>
                                                             @endif
@@ -333,9 +308,9 @@
                         <table class="table table-hover align-middle mb-0 modern-table">
                             <thead class="modern-header">
                                 <tr>
-                                    <th style="width: 80px;">ID</th>
-                                    <th style="width: 200px;">Empleado</th>
-                                    <th style="width: 180px;">Tipo</th>
+                                    <th style="width: 0px;"></th>
+                                    <th style="width: 280px;">Empleado</th>
+                                    <th style="width: 120px;">Tipo</th>
                                     <th style="width: 120px;">Monto</th>
                                     <th style="width: 220px;">Fecha</th>
                                     <th style="width: 100px;">Estado</th>
@@ -344,21 +319,27 @@
                             <tbody>
                                 @forelse($comisiones as $comision)
                                     <tr class="modern-row clickable-row" style="cursor: pointer;" onclick="window.location.href='{{ route('comisiones.show', $comision->id) }}'">
-                                        <td>
-                                            <span class="modern-badge bg-light text-dark">
-                                                {{ $comision->id }}
-                                            </span>
-                                        </td>
-                                        <td>
+                                        <td></td>
+                                        <td onclick="event.stopPropagation();">
                                             <div class="d-flex align-items-center">
                                                 @if($comision->tipo_comision != 'PARCIALIDAD')
                                                     <div class="avatar-circle me-3">
                                                         {{ strtoupper(substr($comision->empleado->nombre ?? 'N', 0, 1)) }}{{ strtoupper(substr($comision->empleado->apellido ?? 'A', 0, 1)) }}
                                                     </div>
-                                                
-                                                    <div>
-                                                        <div class="fw-semibold text-dark">{{ $comision->empleado->nombre ?? 'N/A' }} {{ $comision->empleado->apellido ?? '' }}</div>
-                                                        <small class="text-muted">ID: {{ $comision->empleado->id ?? 'N/A' }}</small>
+
+                                                    <div class="flex-grow-1 empleado-info-wrapper"
+                                                         style="cursor: pointer;"
+                                                         data-comision-id="{{ $comision->id }}"
+                                                         data-empleado-id="{{ $comision->empleado->id ?? '' }}"
+                                                         data-empleado-nombre="{{ $comision->empleado->nombre ?? 'N/A' }} {{ $comision->empleado->apellido ?? '' }}"
+                                                         onclick="openEditEmpleadoModal(this)">
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="fw-semibold text-dark empleado-nombre-text">
+                                                                {{ $comision->empleado->nombre ?? 'N/A' }} {{ $comision->empleado->apellido ?? '' }}
+                                                                <i class="bi bi-pencil-square ms-2 text-muted edit-empleado-icon" style="font-size: 0.9rem;"></i>
+                                                            </span>
+                                                        </div>
+                                                        <small class="text-muted empleado-id-text">ID: {{ $comision->empleado->id ?? 'N/A' }}</small>
                                                     </div>
                                                 @endif
                                             </div>
@@ -395,15 +376,16 @@
                                             <div class="contact-info">
                                                 <div>
                                                     <i class="bi bi-calendar me-2"></i>
-                                                    <span class="{{ $comision->tipo_comision == 'PARCIALIDAD' ? 'text-muted' : 'text-dark' }}">{{ \Carbon\Carbon::parse($comision->fecha_comision)->translatedFormat('D [de] MMMM [de] YYYY [a las] HH:mm:ss') }}</span>
+                                                    <span class="{{ $comision->tipo_comision == 'PARCIALIDAD' ? 'text-muted' : 'text-dark' }}">
+                                                        {{ \Carbon\Carbon::parse($comision->fecha_comision)->locale('es')->isoFormat('D [de] MMMM [de] YYYY') }}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td onclick="event.stopPropagation();">
-                                            <span class="modern-badge estado-badge {{ $comision->estado == 'Pagada' ? 'bg-success text-white' : ($comision->estado == 'Pendiente' ? 'bg-warning text-dark' : 'bg-secondary text-white') }}" 
-                                                  style="cursor: pointer;" 
-                                                  data-id="{{ $comision->id }}" 
-                                                  title="Clic para cambiar estado">
+                                        <td>
+                                            <span class="modern-badge estado-badge {{ $comision->estado == 'Pagada' ? 'bg-success text-white' : ($comision->estado == 'Pendiente' ? 'bg-warning text-dark' : 'bg-secondary text-white') }}"
+                                                  style="cursor: pointer;"
+                                                  data-id="{{ $comision->id }}">
                                                 {{ $comision->estado }}
                                             </span>
                                         </td>
@@ -423,6 +405,51 @@
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar empleado -->
+<div class="modal fade" id="cambiarEmpleadoModal" tabindex="-1" aria-labelledby="cambiarEmpleadoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cambiarEmpleadoModalLabel">
+                    <i class="bi bi-person-badge me-2"></i>Cambiar Empleado de Comisión
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCambiarEmpleado">
+                    @csrf
+                    <input type="hidden" id="comision_id_modal" name="comision_id">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Empleado actual:</label>
+                        <p class="text-muted" id="empleado_actual_texto"></p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nuevo_empleado_id" class="form-label fw-bold">Seleccionar nuevo empleado:</label>
+                        <select class="form-select" id="nuevo_empleado_id" name="empleado_id" required>
+                            <option value="">Seleccione un empleado...</option>
+                            @foreach($empleados as $empleado)
+                                <option value="{{ $empleado->id }}"
+                                        data-nombre="{{ $empleado->nombre }}"
+                                        data-apellido="{{ $empleado->apellido }}">
+                                    {{ $empleado->nombre }} {{ $empleado->apellido }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarCambio">
+                    <i class="bi bi-check-circle me-1"></i>Confirmar Cambio
+                </button>
             </div>
         </div>
     </div>
@@ -879,16 +906,45 @@
         font-size: 0.7rem;
         flex-shrink: 0;
     }
-    
+
     .modern-header th,
     .modern-row td {
         padding: 0.75rem 0.25rem !important;
     }
-    
+
     /* Reducir el padding en los contenedores de empleado */
     .d-flex.align-items-center .me-3 {
         margin-right: 0.5rem !important;
     }
+}
+
+/* Estilos para el área de empleado editable */
+.empleado-info-wrapper {
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin: -2px -6px;
+}
+
+.empleado-info-wrapper:hover {
+    background-color: rgba(102, 126, 234, 0.08);
+}
+
+.edit-empleado-icon {
+    opacity: 1;
+    transition: all 0.2s ease;
+}
+
+.empleado-info-wrapper:hover .edit-empleado-icon {
+    opacity: 1;
+}
+
+.modern-row:hover .edit-empleado-icon {
+    opacity: 0.5;
+}
+
+.modern-row:hover .empleado-info-wrapper:hover .edit-empleado-icon {
+    opacity: 1;
 }
 </style>
 
@@ -912,8 +968,8 @@ class ComisionesRealTime {
     
     init() {
         // this.setupClickHandlers();
-        this.startPolling();
-        this.setupVisibilityChange();
+        // this.startPolling(); // DESACTIVADO: Polling automático cada 2 segundos
+        // this.setupVisibilityChange();
     }
     
     // setupClickHandlers() {
@@ -1183,32 +1239,10 @@ class ComisionesRealTime {
     }
     
     // Nuevo método para actualizar gráficos tras cambios de estado
-    async updateChartsAfterStateChange() {
-        try {
-            // Obtener datos actualizados del servidor
-            const response = await fetch(`/contratos/${this.contratoId}/comisiones/chart-data`);
-            
-            if (!response.ok) {
-                // Si no existe la ruta, calcular datos desde el DOM
-                this.updateChartsFromDOM();
-                return;
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Actualizar gráfico de progreso
-                this.updateProgressChart(data.progreso);
-                
-                // Actualizar gráfico de estados
-                if (estadosChart) {
-                    this.updateEstadosChart(data.estados);
-                }
-            }
-        } catch (error) {
-            console.log('Actualizando gráficos desde DOM...');
-            this.updateChartsFromDOM();
-        }
+    updateChartsAfterStateChange() {
+        // Simplemente usar el DOM para actualizar los gráficos
+        // Esto evita hacer peticiones innecesarias al servidor
+        this.updateChartsFromDOM();
     }
     
     // Actualizar gráficos calculando desde el DOM actual
@@ -1510,6 +1544,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeCharts();
     initializeTooltips();
     initializeParcialidadForm();
+    initializeCambiarEmpleadoModal();
 });
 
 // Función para inicializar tooltips
@@ -1529,12 +1564,12 @@ function initializeCharts() {
 function initEstadosChart() {
     const ctx = document.getElementById('estadosChart');
     if (!ctx) return;
-    
+
     const estadosData = @json($estadosComision);
     const labels = Object.keys(estadosData);
-    const data = labels.map(label => estadosData[label].cantidad); // Cambio: volver a usar cantidad (parcialidades)
+    const data = labels.map(label => estadosData[label].monto); // Usar montos en lugar de cantidad
     const colors = labels.map(label => estadosData[label].color);
-    
+
     // Verificar si hay datos
     if (labels.length === 0) {
         ctx.getContext('2d').font = '14px Arial';
@@ -1542,7 +1577,7 @@ function initEstadosChart() {
         ctx.getContext('2d').fillText('Sin datos', ctx.width/2, ctx.height/2);
         return;
     }
-    
+
     estadosChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -1572,9 +1607,8 @@ function initEstadosChart() {
                             const value = context.parsed;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
                             const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                            // Cambio: mostrar número de parcialidades en lugar de monto
-                            const descripcion = label === 'Pendiente' ? 'comisiones principales' : 'parcialidades';
-                            return `${label}: ${value} ${descripcion} (${percentage}%)`;
+                            // Mostrar el monto formateado
+                            return `${label}: $${value.toLocaleString('es-ES', { minimumFractionDigits: 2 })} (${percentage}%)`;
                         }
                     }
                 }
@@ -1691,6 +1725,138 @@ function showNotification(message, type = 'info') {
             notification.remove();
         }
     }, 5000);
+}
+
+// Función global para abrir el modal de editar empleado
+function openEditEmpleadoModal(element) {
+    const comisionId = element.getAttribute('data-comision-id');
+    const empleadoId = element.getAttribute('data-empleado-id');
+    const empleadoNombre = element.getAttribute('data-empleado-nombre');
+
+    // Configurar el modal
+    document.getElementById('comision_id_modal').value = comisionId;
+    document.getElementById('empleado_actual_texto').textContent = empleadoNombre;
+
+    // Pre-seleccionar el empleado actual en el select
+    const selectEmpleado = document.getElementById('nuevo_empleado_id');
+    selectEmpleado.value = empleadoId;
+
+    // Mostrar el modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('cambiarEmpleadoModal')) ||
+                  new bootstrap.Modal(document.getElementById('cambiarEmpleadoModal'));
+    modal.show();
+}
+
+// Función para inicializar el modal de cambiar empleado
+function initializeCambiarEmpleadoModal() {
+    const btnConfirmar = document.getElementById('btnConfirmarCambio');
+
+    // Manejar el clic en el botón de confirmar
+    btnConfirmar.addEventListener('click', async function() {
+        const comisionId = document.getElementById('comision_id_modal').value;
+        const nuevoEmpleadoId = document.getElementById('nuevo_empleado_id').value;
+
+        if (!nuevoEmpleadoId) {
+            showNotification('Por favor seleccione un empleado', 'error');
+            return;
+        }
+
+        // Deshabilitar botón y mostrar loading
+        const originalText = btnConfirmar.innerHTML;
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Actualizando...';
+
+        try {
+            const response = await fetch(`/comisiones/${comisionId}/update-empleado`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    empleado_id: nuevoEmpleadoId
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showNotification('Empleado actualizado exitosamente. Recargando página...', 'success');
+
+                // Actualizar la fila en la tabla
+                updateEmpleadoEnTabla(comisionId, data.empleado);
+
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('cambiarEmpleadoModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Limpiar formulario
+                document.getElementById('formCambiarEmpleado').reset();
+
+                // Recargar la página después de 2 segundos para mostrar los cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                showNotification(data.message || 'Error al actualizar el empleado', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showNotification('Error al procesar la solicitud', 'error');
+        } finally {
+            // Restaurar botón
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = originalText;
+        }
+    });
+}
+
+// Función para actualizar el empleado en la tabla
+function updateEmpleadoEnTabla(comisionId, empleado) {
+    // Buscar la fila que contiene esta comisión
+    const rows = document.querySelectorAll('.modern-row');
+    rows.forEach(row => {
+        const idCell = row.querySelector('td:first-child .modern-badge');
+        if (idCell && idCell.textContent.trim() == comisionId) {
+            // Actualizar el avatar circle
+            const avatarCircle = row.querySelector('.avatar-circle');
+            if (avatarCircle) {
+                avatarCircle.textContent = empleado.iniciales;
+            }
+
+            // Actualizar el wrapper con los datos del empleado
+            const empleadoWrapper = row.querySelector('.empleado-info-wrapper');
+            if (empleadoWrapper) {
+                empleadoWrapper.setAttribute('data-empleado-id', empleado.id);
+                empleadoWrapper.setAttribute('data-empleado-nombre', empleado.nombre_completo);
+            }
+
+            // Actualizar el nombre del empleado
+            const nombreElement = row.querySelector('.empleado-nombre-text');
+            if (nombreElement) {
+                nombreElement.textContent = empleado.nombre_completo;
+            }
+
+            // Actualizar el ID del empleado
+            const idElement = row.querySelector('.empleado-id-text');
+            if (idElement) {
+                idElement.textContent = `ID: ${empleado.id}`;
+            }
+
+            // Agregar animación de actualización
+            row.style.transform = 'scale(1.02)';
+            row.style.transition = 'transform 0.3s ease';
+            row.style.boxShadow = '0 0 15px rgba(102, 126, 234, 0.5)';
+
+            setTimeout(() => {
+                row.style.transform = 'scale(1)';
+                row.style.boxShadow = '';
+            }, 500);
+        }
+    });
 }
 
 // Limpiar al cerrar la página

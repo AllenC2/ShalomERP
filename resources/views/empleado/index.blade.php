@@ -66,7 +66,6 @@
                                                     </div>
                                                     <div>
                                                         <div class="fw-semibold text-dark">{{ $empleado->nombre }} {{ $empleado->apellido }}</div>
-                                                        <small class="text-muted">Empleado #{{ $empleado->id }}</small>
                                                     </div>
                                                 </div>
                                             </td>

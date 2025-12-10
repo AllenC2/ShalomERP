@@ -314,7 +314,7 @@ class ContratoController extends Controller
             ->orderBy('empleados.apellido', 'asc')
             ->select('comisiones.*')
             ->get();
-        
+
         // Obtener solo comisiones padre para el formulario de parcialidades
         $comisionesPadre = Comisione::where('contrato_id', $id)
             ->whereNull('comision_padre_id')
@@ -330,7 +330,14 @@ class ContratoController extends Controller
             ->where('estado', 'hecho')
             ->sum('monto');
 
-        return view('contrato.comisiones', compact('contrato', 'comisiones', 'comisionesPadre', 'totalPagosHechos'));
+        // Obtener lista de empleados activos para el modal de cambio de empleado
+        $empleados = \App\Models\Empleado::where('estado', 'Activo')
+            ->selectRaw("CONCAT(nombre, ' ', apellido) as nombre_completo, id, nombre, apellido")
+            ->orderBy('nombre', 'asc')
+            ->orderBy('apellido', 'asc')
+            ->get();
+
+        return view('contrato.comisiones', compact('contrato', 'comisiones', 'comisionesPadre', 'totalPagosHechos', 'empleados'));
     }
 
     /**

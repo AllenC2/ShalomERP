@@ -185,7 +185,7 @@ class ComisioneController extends Controller
                 'success' => true,
                 'nuevo_estado' => $comision->estado,
                 'badge_class' => $comision->estado === 'Pagada' ? 'bg-success' : 'bg-warning',
-                'fecha_comision' => $comision->fecha_comision->locale('es')->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm:ss')
+                'fecha_comision' => $comision->fecha_comision->locale('es')->isoFormat('D [de] MMMM [de] YYYY')
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -209,10 +209,10 @@ class ComisioneController extends Controller
             foreach ($comisiones as $comision) {
                 $estados[$comision->id] = [
                     'estado' => $comision->estado,
-                    'badge_class' => $comision->estado === 'Pagada' ? 'bg-success' : 
+                    'badge_class' => $comision->estado === 'Pagada' ? 'bg-success' :
                                    ($comision->estado === 'Pendiente' ? 'bg-warning' : 'bg-secondary'),
-                    'fecha_comision' => $comision->fecha_comision ? 
-                                       \Carbon\Carbon::parse($comision->fecha_comision)->locale('es')->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm:ss') : 
+                    'fecha_comision' => $comision->fecha_comision ?
+                                       \Carbon\Carbon::parse($comision->fecha_comision)->locale('es')->isoFormat('D [de] MMMM [de] YYYY') :
                                        null,
                     'updated_at' => $comision->updated_at->timestamp
                 ];
@@ -357,7 +357,7 @@ class ComisioneController extends Controller
     {
         try {
             $comision = Comisione::findOrFail($id);
-            
+
             // Verificar que sea una parcialidad
             if ($comision->tipo_comision !== 'PARCIALIDAD') {
                 return response()->json([
@@ -365,7 +365,7 @@ class ComisioneController extends Controller
                     'message' => 'Solo se pueden eliminar comisiones de tipo PARCIALIDAD'
                 ], 400);
             }
-            
+
             // Verificar que tenga comisión padre
             if (!$comision->comision_padre_id) {
                 return response()->json([
@@ -373,26 +373,70 @@ class ComisioneController extends Controller
                     'message' => 'Esta comisión no es una parcialidad válida'
                 ], 400);
             }
-            
+
             // Guardar información para la respuesta
             $comisionPadreId = $comision->comision_padre_id;
             $contratoId = $comision->contrato_id;
-            
+
             // Eliminar la parcialidad
             $comision->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Parcialidad eliminada exitosamente',
                 'redirect_url' => route('contratos.comisiones', $contratoId)
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error("Error al eliminar parcialidad: " . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar la parcialidad: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar el empleado asignado a una comisión
+     */
+    public function updateEmpleado(Request $request, $id)
+    {
+        try {
+            $comision = Comisione::findOrFail($id);
+
+            // Validar el empleado
+            $request->validate([
+                'empleado_id' => 'required|exists:empleados,id'
+            ]);
+
+            $empleadoAnterior = $comision->empleado;
+
+            // Actualizar el empleado
+            $comision->empleado_id = $request->empleado_id;
+            $comision->save();
+
+            // Obtener información del nuevo empleado
+            $nuevoEmpleado = $comision->empleado;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Empleado actualizado correctamente',
+                'empleado' => [
+                    'id' => $nuevoEmpleado->id,
+                    'nombre' => $nuevoEmpleado->nombre,
+                    'apellido' => $nuevoEmpleado->apellido,
+                    'nombre_completo' => $nuevoEmpleado->nombre . ' ' . $nuevoEmpleado->apellido,
+                    'iniciales' => strtoupper(substr($nuevoEmpleado->nombre ?? 'N', 0, 1)) . strtoupper(substr($nuevoEmpleado->apellido ?? 'A', 0, 1))
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error("Error al actualizar empleado de comisión: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el empleado: ' . $e->getMessage()
             ], 500);
         }
     }

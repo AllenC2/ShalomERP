@@ -35,6 +35,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::delete('comisiones/{id}/delete-documento', [App\Http\Controllers\ComisioneController::class, 'deleteDocumento'])->name('comisiones.deleteDocumento');
     Route::post('comisiones/{id}/upload-documento', [App\Http\Controllers\ComisioneController::class, 'uploadDocumento'])->name('comisiones.uploadDocumento');
     Route::delete('comisiones/{id}/eliminar-parcialidad', [App\Http\Controllers\ComisioneController::class, 'eliminarParcialidad'])->name('comisiones.eliminarParcialidad');
+    Route::patch('comisiones/{id}/update-empleado', [App\Http\Controllers\ComisioneController::class, 'updateEmpleado'])->name('comisiones.updateEmpleado');
     
     // Rutas de paquetes y porcentajes
     Route::resource('paquetes', App\Http\Controllers\PaqueteController::class);

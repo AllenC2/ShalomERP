@@ -20,8 +20,8 @@ return new class extends Migration
             $empleados = DB::table('empleados')->get();
             $idMapping = []; // Mapeo: id_viejo => id_nuevo
 
-            // PASO 3: Eliminar foreign key de comisiones hacia empleados
-            // Intentar eliminar la foreign key si existe
+            // PASO 3: Eliminar foreign keys de comisiones y contratos hacia empleados
+            // Eliminar FK de comisiones
             try {
                 $foreignKeys = DB::select("
                     SELECT CONSTRAINT_NAME
@@ -41,13 +41,38 @@ return new class extends Migration
                 // Si falla, continuar sin foreign key
             }
 
-            // PASO 4: Cambiar empleado_id en comisiones a string temporalmente
+            // Eliminar FK de contratos
+            try {
+                $foreignKeys = DB::select("
+                    SELECT CONSTRAINT_NAME
+                    FROM information_schema.TABLE_CONSTRAINTS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                    AND TABLE_NAME = 'contratos'
+                    AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                    AND CONSTRAINT_NAME LIKE '%empleado_id%'
+                ");
+
+                if (!empty($foreignKeys)) {
+                    foreach ($foreignKeys as $fk) {
+                        DB::statement("ALTER TABLE contratos DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");
+                    }
+                }
+            } catch (\Exception $e) {
+                // Si falla, continuar sin foreign key
+            }
+
+            // PASO 4: Cambiar empleado_id en comisiones y contratos a string temporalmente
             Schema::table('comisiones', function (Blueprint $table) {
                 $table->string('empleado_id_temp', 50)->nullable()->after('empleado_id');
             });
 
-            // PASO 5: Copiar datos actuales de comisiones al campo temporal
+            Schema::table('contratos', function (Blueprint $table) {
+                $table->string('empleado_id_temp', 50)->nullable()->after('empleado_id');
+            });
+
+            // PASO 5: Copiar datos actuales al campo temporal
             DB::statement('UPDATE comisiones SET empleado_id_temp = empleado_id WHERE empleado_id IS NOT NULL');
+            DB::statement('UPDATE contratos SET empleado_id_temp = empleado_id WHERE empleado_id IS NOT NULL');
 
             // PASO 6: Agregar columna temporal para el nuevo ID
             Schema::table('empleados', function (Blueprint $table) {
@@ -83,26 +108,40 @@ return new class extends Migration
                 $table->primary('id');
             });
 
-            // PASO 12: Actualizar referencias en comisiones usando el mapeo
+            // PASO 12: Actualizar referencias en comisiones y contratos usando el mapeo
             foreach ($idMapping as $oldId => $newId) {
                 DB::table('comisiones')
                     ->where('empleado_id_temp', (string)$oldId)
                     ->update(['empleado_id_temp' => $newId]);
+
+                DB::table('contratos')
+                    ->where('empleado_id_temp', (string)$oldId)
+                    ->update(['empleado_id_temp' => $newId]);
             }
 
-            // PASO 13: Cambiar empleado_id en comisiones a string
+            // PASO 13: Cambiar empleado_id en comisiones y contratos a string
             DB::statement('ALTER TABLE comisiones MODIFY COLUMN empleado_id VARCHAR(50)');
+            DB::statement('ALTER TABLE contratos MODIFY COLUMN empleado_id VARCHAR(50)');
 
             // PASO 14: Copiar datos del campo temporal al campo original
             DB::statement('UPDATE comisiones SET empleado_id = empleado_id_temp WHERE empleado_id_temp IS NOT NULL');
+            DB::statement('UPDATE contratos SET empleado_id = empleado_id_temp WHERE empleado_id_temp IS NOT NULL');
 
-            // PASO 15: Eliminar columna temporal
+            // PASO 15: Eliminar columnas temporales
             Schema::table('comisiones', function (Blueprint $table) {
                 $table->dropColumn('empleado_id_temp');
             });
 
-            // PASO 16: Recrear foreign key con el nuevo tipo
+            Schema::table('contratos', function (Blueprint $table) {
+                $table->dropColumn('empleado_id_temp');
+            });
+
+            // PASO 16: Recrear foreign keys con el nuevo tipo
             Schema::table('comisiones', function (Blueprint $table) {
+                $table->foreign('empleado_id')->references('id')->on('empleados')->onDelete('set null');
+            });
+
+            Schema::table('contratos', function (Blueprint $table) {
                 $table->foreign('empleado_id')->references('id')->on('empleados')->onDelete('set null');
             });
 

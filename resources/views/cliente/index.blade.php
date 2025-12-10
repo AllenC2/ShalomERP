@@ -121,8 +121,8 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="d-flex justify-content-center mt-3">
-                            {!! $clientes->withQueryString()->links() !!}
+                        <div class="d-flex justify-content-center mt-4">
+                            {!! $clientes->withQueryString()->links('vendor.pagination.custom') !!}
                         </div>
                     </div>
                 </div>
@@ -441,6 +441,66 @@
         border-color: white;
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+    }
+
+    /* Paginador Minimalista */
+    .pagination-minimal {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page-item-minimal {
+        display: inline-block;
+    }
+
+    .page-link-minimal {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #64748b;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        cursor: pointer;
+    }
+
+    .page-link-minimal:hover {
+        color: #79481D;
+        background: #f8fafc;
+    }
+
+    .page-item-minimal.active .page-link-minimal {
+        color: white;
+        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+        font-weight: 600;
+    }
+
+    .page-item-minimal.disabled .page-link-minimal {
+        color: #cbd5e0;
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    .page-item-minimal.disabled .page-link-minimal:hover {
+        background: transparent;
+        color: #cbd5e0;
+    }
+
+    /* Iconos de flechas */
+    .page-link-minimal i {
+        font-size: 0.75rem;
     }
 </style>
 

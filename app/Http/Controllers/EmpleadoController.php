@@ -47,8 +47,9 @@ class EmpleadoController extends Controller
             'role' => 'empleado'
         ]);
 
-        // Crear el empleado vinculado al usuario
+        // Crear el empleado vinculado al usuario con ID personalizado
         $empleado = Empleado::create([
+            'id' => $request->id,
             'nombre' => $request->nombre,
             'apellido' => $request->apellido,
             'user_id' => $user->id,
@@ -107,19 +108,52 @@ class EmpleadoController extends Controller
      */
     public function update(EmpleadoRequest $request, Empleado $empleado): RedirectResponse
     {
-        // Actualizar datos del empleado
-        $empleado->update([
-            'nombre' => $request->nombre,
-            'apellido' => $request->apellido,
-            'telefono' => $request->telefono,
-            'domicilio' => $request->domicilio,
-        ]);
+        // Si el ID cambió, necesitamos actualizar manualmente
+        if ($empleado->id !== $request->id) {
+            // Verificar que el nuevo ID no exista
+            if (Empleado::where('id', $request->id)->exists()) {
+                return Redirect::back()
+                    ->withErrors(['id' => 'El ID ya existe.'])
+                    ->withInput();
+            }
 
-        // Actualizar datos del usuario asociado
-        $empleado->user->update([
-            'name' => $request->nombre . ' ' . $request->apellido,
-            'email' => $request->email,
-        ]);
+            // Crear un nuevo registro con el nuevo ID
+            $nuevoEmpleado = new Empleado();
+            $nuevoEmpleado->id = $request->id;
+            $nuevoEmpleado->nombre = $request->nombre;
+            $nuevoEmpleado->apellido = $request->apellido;
+            $nuevoEmpleado->user_id = $empleado->user_id;
+            $nuevoEmpleado->telefono = $request->telefono;
+            $nuevoEmpleado->domicilio = $request->domicilio;
+            $nuevoEmpleado->estado = $empleado->estado;
+            $nuevoEmpleado->save();
+
+            // Actualizar las referencias en comisiones
+            \DB::table('comisiones')->where('empleado_id', $empleado->id)->update(['empleado_id' => $request->id]);
+
+            // Eliminar el registro antiguo
+            $empleado->delete();
+
+            // Actualizar datos del usuario asociado
+            $nuevoEmpleado->user->update([
+                'name' => $request->nombre . ' ' . $request->apellido,
+                'email' => $request->email,
+            ]);
+        } else {
+            // Actualizar datos del empleado normalmente si el ID no cambió
+            $empleado->update([
+                'nombre' => $request->nombre,
+                'apellido' => $request->apellido,
+                'telefono' => $request->telefono,
+                'domicilio' => $request->domicilio,
+            ]);
+
+            // Actualizar datos del usuario asociado
+            $empleado->user->update([
+                'name' => $request->nombre . ' ' . $request->apellido,
+                'email' => $request->email,
+            ]);
+        }
 
         return Redirect::route('empleados.index')
             ->with('success', 'Empleado modificado correctamente.');

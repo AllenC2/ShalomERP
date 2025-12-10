@@ -24,7 +24,7 @@ class ClienteRequest extends FormRequest
         return [
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:clientes,email,' . $this->route('cliente')?->id,
+            'email' => 'nullable|email|max:255|unique:clientes,email,' . $this->route('cliente')?->id,
             'telefono' => 'nullable|string|max:20',
             'calle_y_numero' => 'required|string|max:255',
             'cruces' => 'nullable|string|max:255',

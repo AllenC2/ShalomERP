@@ -28,8 +28,10 @@ class EmpleadoRequest extends FormRequest
             'domicilio' => 'nullable|string|max:500',
         ];
 
-        // Solo requerir contraseña al crear (no al editar)
+        // Reglas para el ID personalizado
         if ($this->isMethod('post')) {
+            // Al crear, el ID debe ser único
+            $rules['id'] = 'required|string|max:50|unique:empleados,id';
             $rules['email'] = 'required|email|unique:users,email';
             $rules['password'] = 'required|string|min:8|confirmed';
         }
@@ -37,6 +39,14 @@ class EmpleadoRequest extends FormRequest
         // Al editar, permitir email duplicado si es el mismo usuario
         if ($this->isMethod('put') || $this->isMethod('patch')) {
             $empleado = $this->route('empleado');
+
+            // El ID puede ser actualizado pero debe ser único excepto para el mismo empleado
+            if ($empleado) {
+                $rules['id'] = 'required|string|max:50|unique:empleados,id,' . $empleado->id . ',id';
+            } else {
+                $rules['id'] = 'required|string|max:50|unique:empleados,id';
+            }
+
             if ($empleado && $empleado->user_id) {
                 $rules['email'] = 'required|email|unique:users,email,' . $empleado->user_id;
             } else {

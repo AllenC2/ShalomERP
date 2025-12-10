@@ -9,18 +9,27 @@
                 <!-- Información Personal -->
                 <div class="form-section">
                     <h6 class="section-title">Información Personal</h6>
-                    
+
+                    <div class="form-group">
+                        <label for="id" class="form-label">ID del Empleado <span class="text-danger">*</span></label>
+                        <input type="text" name="id" class="form-control @error('id') is-invalid @enderror"
+                               value="{{ old('id', $empleado?->id) }}" id="id" placeholder="Ej: EMP-001"
+                               {{ isset($empleado) && $empleado->id ? '' : '' }}>
+                        <small class="form-text text-muted">Ingrese un identificador único para el empleado</small>
+                        @error('id')<div class="error-text">{{ $message }}</div>@enderror
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
-                            <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror" 
+                            <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror"
                                    value="{{ old('nombre', $empleado?->nombre) }}" id="nombre" placeholder="Nombre del empleado">
                             @error('nombre')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="apellido" class="form-label">Apellido <span class="text-danger">*</span></label>
-                            <input type="text" name="apellido" class="form-control @error('apellido') is-invalid @enderror" 
+                            <input type="text" name="apellido" class="form-control @error('apellido') is-invalid @enderror"
                                    value="{{ old('apellido', $empleado?->apellido) }}" id="apellido" placeholder="Apellido del empleado">
                             @error('apellido')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
@@ -251,6 +260,16 @@
 
     .text-danger {
         color: #da3633;
+    }
+
+    .form-text {
+        font-size: 12px;
+        margin-top: 4px;
+        display: block;
+    }
+
+    .text-muted {
+        color: #656d76;
     }
 
     /* Responsive Design */

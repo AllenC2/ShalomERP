@@ -115,10 +115,10 @@
                                     $valorPorDefecto = old('monto', $pago?->monto ?? (isset($montoSugerido) ? number_format($montoSugerido, 2, '.', '') : ''));
                                 }
                             @endphp
-                            <input type="number" name="monto" class="form-control @error('monto') is-invalid @enderror" 
-                                   value="{{ old('monto', $valorPorDefecto) }}" 
-                                   id="monto" step="0.01" min="0" 
-                                   @if($maxMonto) max="{{ number_format($maxMonto, 2, '.', '') }}" @endif
+                            <input type="text" name="monto" class="form-control @error('monto') is-invalid @enderror"
+                                   value="{{ old('monto', $valorPorDefecto) }}"
+                                   id="monto"
+                                   data-max-monto="{{ $maxMonto ?? '' }}"
                                    placeholder="$0.00">
                             @error('monto')<div class="error-text">{{ $message }}</div>@enderror
                             
@@ -384,52 +384,109 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Formatear monto al escribir y validar máximo
-    montoInput.addEventListener('input', function() {
-        let value = this.value.replace(/[^\d.]/g, '');
-        if (value.split('.').length > 2) {
-            value = value.substring(0, value.lastIndexOf('.'));
-        }
-        
-        // Validar monto máximo para nuevos pagos desde contrato
-        if (isNewPaymentFromContract && maxMonto && !isNaN(maxMonto)) {
-            const currentValue = parseFloat(value);
-            if (currentValue > maxMonto) {
-                value = maxMonto.toFixed(2);
-                // Mostrar mensaje temporal
-                showTemporaryMessage('El monto no puede exceder el saldo restante de $' + maxMonto.toFixed(2));
+    // Permitir escribir libremente, quitar formato al hacer focus
+    montoInput.addEventListener('focus', function() {
+        if (this.value) {
+            // Quitar formato para editar libremente
+            const valorLimpio = this.value.replace(/[$,]/g, '');
+            if (!isNaN(parseFloat(valorLimpio))) {
+                this.value = valorLimpio;
             }
         }
-        
-        this.value = value;
     });
+
+    // Formatear solo al salir del campo (blur)
+    montoInput.addEventListener('blur', function() {
+        formatearCampoMonto(this, maxMonto, isNewPaymentFromContract);
+    });
+
+    // Función para formatear campos de monto
+    function formatearCampoMonto(input, maxMonto, isNewPaymentFromContract) {
+        let value = input.value.replace(/[^0-9.]/g, ''); // Remover todo excepto números y punto
+
+        // Si está vacío, dejarlo vacío (no forzar 0)
+        if (value === '' || value === '.') {
+            input.value = '';
+            return;
+        }
+
+        // Asegurar solo un punto decimal
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Limitar a 2 decimales
+        if (parts[1] && parts[1].length > 2) {
+            value = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+
+        const valorNumerico = parseFloat(value);
+
+        // Validar monto máximo para nuevos pagos desde contrato
+        if (isNewPaymentFromContract && maxMonto && !isNaN(maxMonto) && valorNumerico > maxMonto) {
+            input.value = formatearMoneda(maxMonto);
+            showTemporaryMessage('El monto no puede exceder el saldo restante de $' + maxMonto.toFixed(2));
+            return;
+        }
+
+        // Formatear con símbolo de dólar y miles si hay valor
+        if (!isNaN(valorNumerico) && valorNumerico >= 0) {
+            input.value = formatearMoneda(valorNumerico);
+        } else {
+            input.value = '';
+        }
+    }
+
+    // Función helper para formatear moneda con miles
+    function formatearMoneda(valor) {
+        if (valor === null || valor === undefined || isNaN(valor)) {
+            return '$0.00';
+        }
+        return '$' + parseFloat(valor).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
     
     // Validación al enviar
     document.querySelector('form').addEventListener('submit', function(e) {
-        const monto = parseFloat(montoInput.value);
+        // Limpiar formato antes de validar
+        const montoLimpio = montoInput.value.replace(/[$,]/g, '');
+        const monto = parseFloat(montoLimpio);
         const metodo = document.querySelector('input[name="metodo_pago"]:checked')?.value;
-        
-        if (!monto || monto <= 0) {
+
+        // Validar que el monto sea válido y mayor a cero
+        if (!monto || monto <= 0 || isNaN(monto)) {
             e.preventDefault();
             alert('Por favor ingresa un monto válido mayor a cero.');
             montoInput.focus();
             return false;
         }
-        
+
         // Validar monto máximo para nuevos pagos desde contrato
-        if (isNewPaymentFromContract && maxMonto && !isNaN(maxMonto) && monto > maxMonto) {
+        const maxMontoAttr = parseFloat(montoInput.getAttribute('data-max-monto'));
+        if (isNewPaymentFromContract && maxMontoAttr && !isNaN(maxMontoAttr) && monto > maxMontoAttr) {
             e.preventDefault();
-            alert('El monto no puede exceder el saldo restante de $' + maxMonto.toFixed(2));
+            alert('⚠️ El monto ingresado ($' + monto.toFixed(2) + ') excede el saldo restante permitido.\n\nMonto máximo permitido: $' + maxMontoAttr.toFixed(2));
+            montoInput.classList.add('is-invalid');
             montoInput.focus();
             return false;
         }
-        
+
+        // Validar que haya seleccionado un método de pago
         if (!metodo) {
             e.preventDefault();
             alert('Por favor selecciona un método de pago.');
             document.querySelector('input[name="metodo_pago"]').focus();
             return false;
         }
+
+        // Remover clase de error si todo está correcto
+        montoInput.classList.remove('is-invalid');
+
+        // Convertir a número sin formato antes de enviar
+        montoInput.value = monto.toFixed(2);
     });
 });
 
@@ -563,19 +620,21 @@ let verificacionTimeout = null;
 
 function verificarLiquidacionParcialidad() {
     const contratoId = document.getElementById('contrato_id').value;
-    const monto = parseFloat(document.getElementById('monto').value);
+    const montoInput = document.getElementById('monto');
+    const montoLimpio = montoInput.value.replace(/[$,]/g, '');
+    const monto = parseFloat(montoLimpio);
     const messageDiv = document.getElementById('parcialidadMessage');
     const textElement = document.getElementById('parcialidadText');
     const contentSpan = document.getElementById('parcialidadContent');
-    
+
     // Limpiar timeout anterior
     if (verificacionTimeout) {
         clearTimeout(verificacionTimeout);
     }
-    
+
     // Ocultar mensaje si no hay monto o contrato
     if (!contratoId || !monto || monto <= 0) {
-        messageDiv.style.display = 'none';
+        if (messageDiv) messageDiv.style.display = 'none';
         return;
     }
     
@@ -645,14 +704,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const contratoId = document.getElementById('contrato_id').value;
     const montoInput = document.getElementById('monto');
     const isNewPaymentFromContract = contratoId && !document.querySelector('input[name="_method"]');
-    
+
     // Solo activar verificación para nuevos pagos desde contrato (parcialidades)
     if (isNewPaymentFromContract) {
-        montoInput.addEventListener('input', verificarLiquidacionParcialidad);
-        
+        // Verificar en blur después de formatear
+        montoInput.addEventListener('blur', function() {
+            setTimeout(verificarLiquidacionParcialidad, 100);
+        });
+
         // Verificar al cargar la página si ya hay un monto
         if (montoInput.value) {
             verificarLiquidacionParcialidad();
+        }
+    }
+
+    // Formatear valor inicial si existe
+    if (montoInput.value && montoInput.value.trim() !== '') {
+        const valorLimpio = montoInput.value.replace(/[^0-9.]/g, '');
+        const valorNumerico = parseFloat(valorLimpio);
+        if (!isNaN(valorNumerico) && valorNumerico > 0) {
+            montoInput.value = formatearMoneda(valorNumerico);
         }
     }
 });

@@ -24,29 +24,29 @@ class ContratoController extends Controller
     {
         $search = $request->input('search');
         $soloActivos = $request->input('solo_activos', '1'); // Por defecto activado
-        
+
         // Debug: Log de valores recibidos
         \Log::info('Filtros recibidos:', [
             'search' => $search,
             'solo_activos' => $soloActivos,
             'is_ajax' => $request->hasHeader('X-Requested-With')
         ]);
-        
+
         $contratosQuery = Contrato::with(['cliente', 'paquete', 'pagos']);
-        
+
         if ($search) {
-            $contratosQuery = $contratosQuery->whereHas('cliente', function($q) use ($search) {
+            $contratosQuery = $contratosQuery->whereHas('cliente', function ($q) use ($search) {
                 $q->where('nombre', 'like', "%$search%")
-                  ->orWhere('apellido', 'like', "%$search%");
+                    ->orWhere('apellido', 'like', "%$search%");
             });
         }
-        
+
         if ($soloActivos === '1') {
             $contratosQuery = $contratosQuery->where('estado', 'activo');
         }
-        
+
         $contratos = $contratosQuery->paginate();
-        
+
         // Calcular porcentaje pagado y información de cuotas para cada contrato
         foreach ($contratos as $contrato) {
             $pagado = Pago::where('contrato_id', $contrato->id)
@@ -54,7 +54,7 @@ class ContratoController extends Controller
                 ->sum('monto');
             $total = $contrato->monto_total ?? 0;
             $contrato->porcentaje_pagado = $total > 0 ? round(($pagado / $total) * 100, 2) : 0;
-            
+
             // Agregar información de cuotas vencidas y pendientes
             $contrato->estado_pagos = $contrato->estado_pagos;
         }
@@ -88,13 +88,13 @@ class ContratoController extends Controller
     public function store(ContratoRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        
+
         // Extraer el ID personalizado si se proporcionó
         $customId = null;
         if (isset($data['id'])) {
             $customId = $data['id'];
             unset($data['id']); // Removerlo de $data para evitar conflictos
-            
+
             // Verificar que el ID no esté en uso
             $existingContract = Contrato::find($customId);
             if ($existingContract) {
@@ -105,18 +105,18 @@ class ContratoController extends Controller
         // Manejar subida de archivo PDF
         if ($request->hasFile('documento')) {
             $file = $request->file('documento');
-            
+
             // Validar que sea un PDF
             if ($file->getClientMimeType() !== 'application/pdf') {
                 return back()->withErrors(['documento' => 'El archivo debe ser un PDF válido.'])->withInput();
             }
-            
+
             // Generar nombre único para el archivo
             $fileName = 'contrato_' . time() . '_' . uniqid() . '.pdf';
-            
+
             // Guardar el archivo en storage/app/public/contratos
             $filePath = $file->storeAs('contratos', $fileName, 'public');
-            
+
             // Guardar la ruta en la base de datos
             $data['documento'] = $filePath;
         } else {
@@ -137,10 +137,10 @@ class ContratoController extends Controller
         $montoBonificacion = $data['monto_bonificacion'];
 
         // Calcular fecha_fin basada en numero_cuotas y frecuencia_cuotas
-        $numeroCuotas = (int)($data['numero_cuotas'] ?? 0);
-        $frecuenciaCuotas = (int)($data['frecuencia_cuotas'] ?? 7);
+        $numeroCuotas = (int) ($data['numero_cuotas'] ?? 0);
+        $frecuenciaCuotas = (int) ($data['frecuencia_cuotas'] ?? 7);
         $fechaInicio = $data['fecha_inicio'] ? \Carbon\Carbon::parse($data['fecha_inicio']) : now();
-        
+
         if ($numeroCuotas > 0 && $frecuenciaCuotas > 0) {
             $data['fecha_fin'] = $fechaInicio->copy()->addDays($frecuenciaCuotas * $numeroCuotas)->format('Y-m-d');
         } else {
@@ -196,22 +196,22 @@ class ContratoController extends Controller
         $saldoPendiente = max($montoTotal - $montoInicial - $montoBonificacion, 0);
 
         // Crear pagos automáticos según numero_cuotas
-        $numeroCuotas = (int)($contrato->numero_cuotas ?? 0);
-        $frecuenciaCuotas = (int)($contrato->frecuencia_cuotas ?? 7);
+        $numeroCuotas = (int) ($contrato->numero_cuotas ?? 0);
+        $frecuenciaCuotas = (int) ($contrato->frecuencia_cuotas ?? 7);
         $fechaInicio = $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now();
-        
+
         if ($numeroCuotas > 0 && $saldoPendiente > 0) {
             // Calcular distribución exacta de pagos
             $montoPorCuotaBase = floor(($saldoPendiente / $numeroCuotas) * 100) / 100;
             $totalCuotasBase = $montoPorCuotaBase * $numeroCuotas;
             $ajusteUltimaCuota = round($saldoPendiente - $totalCuotasBase, 2);
-            
+
             $saldoActual = $saldoPendiente;
-            
+
             for ($i = 1; $i <= $numeroCuotas; $i++) {
                 // Calcular fecha de pago basada en frecuencia de días
                 $fechaPago = $fechaInicio->copy()->addDays($frecuenciaCuotas * $i);
-                
+
                 // Determinar el monto de esta cuota
                 if ($i == $numeroCuotas) {
                     // La última cuota incluye cualquier ajuste por decimales
@@ -219,20 +219,20 @@ class ContratoController extends Controller
                 } else {
                     $monto = $montoPorCuotaBase;
                 }
-                
+
                 // Asegurar que no hay montos negativos
                 $monto = max($monto, 0);
-                
+
                 // Calcular saldo restante después de este pago
                 $saldoRestanteDespuesPago = max($saldoActual - $monto, 0);
-                
+
                 // Generar observaciones descriptivas
                 $observaciones = 'Cuota ' . $i . ' de ' . $numeroCuotas;
                 if ($i == $numeroCuotas && abs($ajusteUltimaCuota) > 0.01) {
-                    $observaciones .= ($ajusteUltimaCuota > 0 ? ' (Incluye ajuste +$' : ' (Incluye ajuste -$') 
-                                    . number_format(abs($ajusteUltimaCuota), 2) . ' por decimales)';
+                    $observaciones .= ($ajusteUltimaCuota > 0 ? ' (Incluye ajuste +$' : ' (Incluye ajuste -$')
+                        . number_format(abs($ajusteUltimaCuota), 2) . ' por decimales)';
                 }
-                
+
                 \App\Models\Pago::create([
                     'contrato_id' => $contrato->id,
                     'tipo_pago' => 'cuota',
@@ -246,7 +246,7 @@ class ContratoController extends Controller
                     'observaciones' => $observaciones,
                     'estado' => 'pendiente',
                 ]);
-                
+
                 // Actualizar saldo actual para la siguiente iteración
                 $saldoActual = $saldoRestanteDespuesPago;
             }
@@ -259,7 +259,7 @@ class ContratoController extends Controller
                     $porcentaje = \App\Models\Porcentaje::find($porcentaje_id);
                     if ($porcentaje) {
                         $montoComision = ($montoTotal * $porcentaje->cantidad_porcentaje) / 100;
-                        
+
                         \App\Models\Comisione::create([
                             'contrato_id' => $contrato->id,
                             'nombre_paquete' => $contrato->paquete->nombre,
@@ -289,7 +289,7 @@ class ContratoController extends Controller
         $contrato = Contrato::with(['cliente', 'paquete'])->find($id);
 
         $pagos_contrato = Pago::where('contrato_id', $id)->get();
-        
+
         // Obtener información adicional del cliente
         $cliente = $contrato->cliente;
         $contratos_cliente = Contrato::where('cliente_id', $cliente->id)->count();
@@ -346,7 +346,7 @@ class ContratoController extends Controller
     public function edit($id): View
     {
         $contrato = Contrato::find($id);
-        
+
         $clientes = \App\Models\Cliente::selectRaw("CONCAT(nombre, ' ', apellido) as nombre_completo, id")
             ->pluck('nombre_completo', 'id');
         $clienteName = Cliente::find($contrato->cliente_id)?->name;
@@ -362,7 +362,7 @@ class ContratoController extends Controller
             ->get()
             ->keyBy('tipo_comision');
 
-        return view('contrato.edit', compact('contrato','clientes', 'paquetes', 'comisionesExistentes'));
+        return view('contrato.edit', compact('contrato', 'clientes', 'paquetes', 'comisionesExistentes'));
     }
 
     /**
@@ -372,26 +372,64 @@ class ContratoController extends Controller
     {
         $data = $request->validated();
 
+        // Detectar cambio de ID
+        $newId = $data['id'] ?? null;
+        $currentId = $contrato->id;
+
+        if ($newId && $newId != $currentId) {
+            // Cambio de ID solicitado
+            try {
+                \DB::beginTransaction();
+
+                // Desactivar comprobación de claves foráneas
+                \DB::statement('SET foreign_key_checks = 0');
+
+                // Actualizar ID del contrato
+                $contrato->id = $newId;
+                $contrato->save();
+
+                // Actualizar referencias en tablas relacionadas
+                \App\Models\Pago::where('contrato_id', $currentId)->update(['contrato_id' => $newId]);
+                \App\Models\Comisione::where('contrato_id', $currentId)->update(['contrato_id' => $newId]);
+
+                // Reactivar comprobación de claves foráneas
+                \DB::statement('SET foreign_key_checks = 1');
+
+                \DB::commit();
+
+                // Actualizar la instancia para el resto del proceso
+                $contrato = Contrato::find($newId);
+
+            } catch (\Exception $e) {
+                \DB::rollBack();
+                \DB::statement('SET foreign_key_checks = 1'); // Asegurar reactivación
+                return back()->withErrors(['id' => 'Error al actualizar el ID: ' . $e->getMessage()])->withInput();
+            }
+        }
+
+        // Remover ID de data para evitar intentar actualizarlo de nuevo (ya se hizo o no cambió)
+        unset($data['id']);
+
         // Manejar subida de archivo PDF
         if ($request->hasFile('documento')) {
             $file = $request->file('documento');
-            
+
             // Validar que sea un PDF
             if ($file->getClientMimeType() !== 'application/pdf') {
                 return back()->withErrors(['documento' => 'El archivo debe ser un PDF válido.'])->withInput();
             }
-            
+
             // Eliminar archivo anterior si existe
             if ($contrato->documento && $contrato->documento !== 'No' && \Storage::disk('public')->exists($contrato->documento)) {
                 \Storage::disk('public')->delete($contrato->documento);
             }
-            
+
             // Generar nombre único para el archivo
             $fileName = 'contrato_' . $contrato->id . '_' . time() . '_' . uniqid() . '.pdf';
-            
+
             // Guardar el archivo en storage/app/public/contratos
             $filePath = $file->storeAs('contratos', $fileName, 'public');
-            
+
             // Guardar la ruta en los datos
             $data['documento'] = $filePath;
         }
@@ -410,10 +448,10 @@ class ContratoController extends Controller
 
         // Calcular fecha_fin basada en numero_cuotas y frecuencia_cuotas
         if (isset($data['numero_cuotas']) && isset($data['frecuencia_cuotas']) && isset($data['fecha_inicio'])) {
-            $numeroCuotas = (int)($data['numero_cuotas'] ?? 0);
-            $frecuenciaCuotas = (int)($data['frecuencia_cuotas'] ?? 7);
+            $numeroCuotas = (int) ($data['numero_cuotas'] ?? 0);
+            $frecuenciaCuotas = (int) ($data['frecuencia_cuotas'] ?? 7);
             $fechaInicio = $data['fecha_inicio'] ? \Carbon\Carbon::parse($data['fecha_inicio']) : \Carbon\Carbon::parse($contrato->fecha_inicio);
-            
+
             if ($numeroCuotas > 0 && $frecuenciaCuotas > 0) {
                 $data['fecha_fin'] = $fechaInicio->copy()->addDays($frecuenciaCuotas * $numeroCuotas)->format('Y-m-d');
             }
@@ -428,22 +466,22 @@ class ContratoController extends Controller
                 ->where('tipo_pago', 'cuota')
                 ->where('estado', 'pendiente')
                 ->delete();
-            
+
             // Recalcular y crear nuevos pagos
             $montoTotal = $contrato->monto_total;
             $montoInicial = $contrato->monto_inicial ?? 0;
             $montoBonificacion = $contrato->monto_bonificacion ?? 0;
-            
+
             // Verificar si ya existe un pago inicial
             $pagoInicialExiste = \App\Models\Pago::where('contrato_id', $contrato->id)
                 ->where('tipo_pago', 'inicial')
                 ->exists();
-            
+
             // Verificar si ya existe un pago de bonificación
             $pagoBonificacionExiste = \App\Models\Pago::where('contrato_id', $contrato->id)
                 ->where('tipo_pago', 'bonificación')
                 ->exists();
-            
+
             // Crear pago inicial si no existe y hay monto inicial
             if (!$pagoInicialExiste && $montoInicial > 0) {
                 \App\Models\Pago::create([
@@ -459,7 +497,7 @@ class ContratoController extends Controller
                     'estado' => 'hecho',
                 ]);
             }
-            
+
             // Crear pago de bonificación si no existe y hay monto bonificación
             if (!$pagoBonificacionExiste && $montoBonificacion > 0) {
                 $saldoRestanteDespuesInicial = $montoTotal - $montoInicial;
@@ -476,27 +514,27 @@ class ContratoController extends Controller
                     'estado' => 'hecho',
                 ]);
             }
-            
+
             // Calcular saldo pendiente para pagos futuros
             $saldoPendiente = max($montoTotal - $montoInicial - $montoBonificacion, 0);
-            
+
             // Crear pagos automáticos según numero_cuotas
-            $numeroCuotas = (int)($contrato->numero_cuotas ?? 0);
-            $frecuenciaCuotas = (int)($contrato->frecuencia_cuotas ?? 7);
+            $numeroCuotas = (int) ($contrato->numero_cuotas ?? 0);
+            $frecuenciaCuotas = (int) ($contrato->frecuencia_cuotas ?? 7);
             $fechaInicio = $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now();
-            
+
             if ($numeroCuotas > 0 && $saldoPendiente > 0) {
                 // Calcular distribución exacta de pagos
                 $montoPorCuotaBase = floor(($saldoPendiente / $numeroCuotas) * 100) / 100;
                 $totalCuotasBase = $montoPorCuotaBase * $numeroCuotas;
                 $ajusteUltimaCuota = round($saldoPendiente - $totalCuotasBase, 2);
-                
+
                 $saldoActual = $saldoPendiente;
-                
+
                 for ($i = 1; $i <= $numeroCuotas; $i++) {
                     // Calcular fecha de pago basada en frecuencia de días
                     $fechaPago = $fechaInicio->copy()->addDays($frecuenciaCuotas * $i);
-                    
+
                     // Determinar el monto de esta cuota
                     if ($i == $numeroCuotas) {
                         // La última cuota incluye cualquier ajuste por decimales
@@ -504,20 +542,20 @@ class ContratoController extends Controller
                     } else {
                         $monto = $montoPorCuotaBase;
                     }
-                    
+
                     // Asegurar que no hay montos negativos
                     $monto = max($monto, 0);
-                    
+
                     // Calcular saldo restante después de este pago
                     $saldoRestanteDespuesPago = max($saldoActual - $monto, 0);
-                    
+
                     // Generar observaciones descriptivas
                     $observaciones = 'Cuota ' . $i . ' de ' . $numeroCuotas;
                     if ($i == $numeroCuotas && abs($ajusteUltimaCuota) > 0.01) {
-                        $observaciones .= ($ajusteUltimaCuota > 0 ? ' (Incluye ajuste +$' : ' (Incluye ajuste -$') 
-                                        . number_format(abs($ajusteUltimaCuota), 2) . ' por decimales)';
+                        $observaciones .= ($ajusteUltimaCuota > 0 ? ' (Incluye ajuste +$' : ' (Incluye ajuste -$')
+                            . number_format(abs($ajusteUltimaCuota), 2) . ' por decimales)';
                     }
-                    
+
                     \App\Models\Pago::create([
                         'contrato_id' => $contrato->id,
                         'tipo_pago' => 'cuota',
@@ -531,7 +569,7 @@ class ContratoController extends Controller
                         'observaciones' => $observaciones,
                         'estado' => 'pendiente',
                     ]);
-                    
+
                     // Actualizar saldo actual para la siguiente iteración
                     $saldoActual = $saldoRestanteDespuesPago;
                 }
@@ -542,7 +580,7 @@ class ContratoController extends Controller
         if ($request->has('comisiones') && is_array($request->comisiones)) {
             // Eliminar comisiones existentes para este contrato
             \App\Models\Comisione::where('contrato_id', $contrato->id)->delete();
-            
+
             // Crear nuevas comisiones
             $montoTotal = $contrato->monto_total;
             foreach ($request->comisiones as $porcentaje_id => $empleado_id) {
@@ -550,7 +588,7 @@ class ContratoController extends Controller
                     $porcentaje = \App\Models\Porcentaje::find($porcentaje_id);
                     if ($porcentaje) {
                         $montoComision = ($montoTotal * $porcentaje->cantidad_porcentaje) / 100;
-                        
+
                         \App\Models\Comisione::create([
                             'contrato_id' => $contrato->id,
                             'empleado_id' => $empleado_id,
@@ -633,7 +671,7 @@ class ContratoController extends Controller
         $porcentajes = \App\Models\Porcentaje::where('paquete_id', $paquete_id)->get();
         $empleados = \App\Models\Empleado::selectRaw("CONCAT(nombre, ' ', apellido) as nombre_completo, id")
             ->pluck('nombre_completo', 'id');
-        
+
         return response()->json([
             'porcentajes' => $porcentajes,
             'empleados' => $empleados
@@ -697,7 +735,7 @@ class ContratoController extends Controller
                 'documento' => $filePath
             ]);
 
-            $message = $hasExistingDocument 
+            $message = $hasExistingDocument
                 ? 'Documento reemplazado correctamente'
                 : 'Documento subido correctamente';
 
@@ -734,7 +772,7 @@ class ContratoController extends Controller
             ]);
 
             $comisionPadre = Comisione::findOrFail($request->comision_padre_id);
-            
+
             // Verificar que sea una comisión padre (sin comision_padre_id)
             if ($comisionPadre->comision_padre_id !== null) {
                 return response()->json([
@@ -746,7 +784,7 @@ class ContratoController extends Controller
             // Verificar que el monto no exceda el monto restante de la comisión padre
             $totalParcialidadesExistentes = $comisionPadre->parcialidades()->sum('monto');
             $montoRestante = $comisionPadre->monto - $totalParcialidadesExistentes;
-            
+
             // Usar bccomp para comparación precisa de decimales (tolerancia de 0.01)
             if (bccomp($request->monto, $montoRestante, 2) > 0) {
                 return response()->json([
@@ -773,14 +811,14 @@ class ContratoController extends Controller
             // Recalcular el total de parcialidades incluyendo la recién creada
             $totalParcialidadesActualizado = $comisionPadre->parcialidades()->sum('monto');
             $montoRestanteActualizado = $comisionPadre->monto - $totalParcialidadesActualizado;
-            
+
             // Si el monto restante es 0 o muy cercano a 0 (tolerancia de 0.01), marcar como pagada
             if (bccomp($montoRestanteActualizado, 0, 2) <= 0) {
                 $comisionPadre->update([
                     'estado' => 'Pagada',
                     'fecha_comision' => now() // Actualizar fecha cuando se completa el pago
                 ]);
-                
+
                 $message = 'Parcialidad creada exitosamente. La comisión padre se ha marcado como pagada al completarse totalmente.';
             } else {
                 $message = 'Parcialidad creada exitosamente';
@@ -824,12 +862,12 @@ class ContratoController extends Controller
 
             // Buscar si existe otro contrato con el mismo ID
             $query = Contrato::where('id', $contratoId);
-            
+
             // Excluir el contrato actual si se está editando
             if ($excludeId) {
                 $query->where('id', '!=', $excludeId);
             }
-            
+
             $exists = $query->exists();
 
             return response()->json([
@@ -857,10 +895,10 @@ class ContratoController extends Controller
     public function estado(Request $request, $id): View
     {
         $contrato = Contrato::with([
-            'cliente', 
-            'paquete', 
+            'cliente',
+            'paquete',
             'empleado',
-            'pagos' => function($query) {
+            'pagos' => function ($query) {
                 $query->orderBy('fecha_pago', 'asc');
             }
         ])->findOrFail($id);
@@ -871,34 +909,34 @@ class ContratoController extends Controller
         // Verificar si se está filtrando por período
         $filtrarPorPeriodo = $request->has(['periodo', 'fecha_inicio', 'fecha_fin']);
         $periodoSeleccionado = null;
-        
+
         if ($filtrarPorPeriodo) {
             $periodoSeleccionado = [
                 'numero' => $request->get('periodo'),
                 'fecha_inicio' => \Carbon\Carbon::parse($request->get('fecha_inicio')),
                 'fecha_fin' => \Carbon\Carbon::parse($request->get('fecha_fin'))
             ];
-            
+
             // Filtrar pagos por el rango de fechas del período
             $fechaInicioPeriodo = $periodoSeleccionado['fecha_inicio']->startOfDay();
             $fechaFinPeriodo = $periodoSeleccionado['fecha_fin']->endOfDay();
-            
+
             // Obtener todos los pagos hechos del período
             $todosPagosHechos = $contrato->pagos()
                 ->where('estado', 'hecho')
                 ->whereBetween('fecha_pago', [$fechaInicioPeriodo, $fechaFinPeriodo])
                 ->get();
-                
+
             // Separar pagos realizados (no parcialidades) y parcialidades
             $pagosRealizados = $todosPagosHechos->where('tipo_pago', '!=', 'parcialidad');
             $parcialidadesPeriodo = $todosPagosHechos->where('tipo_pago', 'parcialidad');
-                
+
             // Obtener pagos pendientes del período
             $pagosPendientes = $contrato->pagos()
                 ->where('estado', 'pendiente')
                 ->whereBetween('fecha_pago', [$fechaInicioPeriodo, $fechaFinPeriodo])
                 ->get();
-                
+
         } else {
             // Mostrar todos los pagos (comportamiento original)
             $pagosRealizados = $contrato->pagos()->where('estado', 'hecho')->get();
@@ -910,14 +948,14 @@ class ContratoController extends Controller
         if ($filtrarPorPeriodo) {
             // Estadísticas solo para el período seleccionado
             $totalPagado = $pagosRealizados->sum('monto') + $parcialidadesPeriodo->sum('monto');
-            
+
             $montoTotalPeriodo = $pagosRealizados->sum('monto') + $pagosPendientes->sum('monto') + $parcialidadesPeriodo->sum('monto');
-            
+
             // Calcular el monto de cuota esperado para este período
             $montoFinanciado = $contrato->monto_total - ($contrato->monto_inicial ?? 0) - ($contrato->monto_bonificacion ?? 0);
             $numeroCuotas = $contrato->numero_cuotas ?? 1;
             $montoCuotaPeriodo = $numeroCuotas > 0 ? $montoFinanciado / $numeroCuotas : 0;
-            
+
             // Si hay cuotas/pagos pendientes en el período, usar su monto como referencia
             if ($pagosPendientes->count() > 0) {
                 $montoCuotaPeriodo = $pagosPendientes->sum('monto');
@@ -931,7 +969,7 @@ class ContratoController extends Controller
                     $saldoPendiente = 0;
                 }
             }
-            
+
             // Calcular porcentaje basado en el progreso hacia la cuota del período
             if ($montoCuotaPeriodo > 0) {
                 $porcentajePagado = min(100, ($totalPagado / $montoCuotaPeriodo) * 100);
@@ -945,15 +983,15 @@ class ContratoController extends Controller
             $porcentajePagado = $contrato->monto_total > 0 ? ($totalPagado / $contrato->monto_total) * 100 : 0;
             $montoCuotaPeriodo = null; // No aplicable para vista completa
         }
-        
+
         // Información adicional del estado de pagos
         $estadoPagos = $contrato->estado_pagos;
 
         return view('contrato.estado', compact(
-            'contrato', 
+            'contrato',
             'empresa',
-            'totalPagado', 
-            'saldoPendiente', 
+            'totalPagado',
+            'saldoPendiente',
             'porcentajePagado',
             'pagosRealizados',
             'pagosPendientes',

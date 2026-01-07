@@ -53,7 +53,7 @@
                         <input type="text" name="id" class="form-control @error('id') is-invalid @enderror" 
                                value="{{ old('id', isset($contrato) && !$contrato->exists ? '' : $contrato?->id) }}" 
                                id="contrato_id" maxlength="6" pattern="[0-9]{1,6}" 
-                               placeholder="Ingrese ID..." {{ isset($contrato) && $contrato->exists ? 'readonly' : 'required' }}>
+                               placeholder="Ingrese ID..." required>
                         <div id="id_status" class="id-status-message"></div>
                         @error('id')<div class="error-text">{{ $message }}</div>@enderror
                     </div>

@@ -783,6 +783,7 @@
             </form>
         </div>
         @endauth
+        <small class="text-muted">Version 1.4 @imallen.dev</small>
 
     </div>
 </div>

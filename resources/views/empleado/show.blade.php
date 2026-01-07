@@ -236,6 +236,11 @@
                                 </form>
                             @endif
                         </div>
+                        <div class="text-center mt-2">
+                            <a href="#" class="text-muted text-decoration-none small" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                <i class="bi bi-key me-1"></i>Cambiar contraseña
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Gestión de rol de usuario -->
@@ -399,6 +404,53 @@
             </div>
         </div>
     </section>
+
+    <!-- Modal Cambio de Contraseña -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title fw-bold" id="changePasswordModalLabel">
+                        <i class="bi bi-key-fill me-2"></i>Cambiar Contraseña
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('empleados.cambiarContrasena', $empleado->id) }}" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-body">
+                        <div class="alert alert-info border-0 shadow-sm mb-3">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            Esta acción cambiará la contraseña inmediatamente sin requerir la anterior.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label fw-bold">Nueva Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required minlength="8">
+                            </div>
+                            <div class="form-text">Mínimo 8 caracteres.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password_confirmation" class="form-label fw-bold">Confirmar Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                                <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required minlength="8">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning fw-bold">
+                            <i class="bi bi-save me-1"></i>Guardar Cambio
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <style>
         .clickable-row {

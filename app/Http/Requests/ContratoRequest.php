@@ -21,24 +21,24 @@ class ContratoRequest extends FormRequest
     {
         // Limpiar campos de moneda antes de la validación
         $cleanedData = [];
-        
+
         if ($this->has('monto_inicial')) {
             $cleanedData['monto_inicial'] = $this->cleanMoneyField($this->input('monto_inicial'));
         }
-        
+
         if ($this->has('monto_bonificacion')) {
             $cleanedData['monto_bonificacion'] = $this->cleanMoneyField($this->input('monto_bonificacion'));
         }
-        
+
         if ($this->has('monto_cuota')) {
             $cleanedData['monto_cuota'] = $this->cleanMoneyField($this->input('monto_cuota'));
         }
-        
+
         if (!empty($cleanedData)) {
             $this->merge($cleanedData);
         }
     }
-    
+
     /**
      * Clean money field by removing currency symbols and formatting
      */
@@ -47,20 +47,20 @@ class ContratoRequest extends FormRequest
         if (empty($value)) {
             return 0;
         }
-        
+
         // Remover símbolo de dólar, comas y espacios
         $cleaned = str_replace(['$', ',', ' '], '', $value);
-        
+
         // Si queda vacío después de limpiar, retornar 0
         if (empty($cleaned)) {
             return 0;
         }
-        
+
         // Verificar que sea un número válido
         if (is_numeric($cleaned)) {
             return $cleaned;
         }
-        
+
         return 0; // Retornar 0 si no se puede limpiar
     }
 
@@ -72,25 +72,30 @@ class ContratoRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-			'cliente_id' => 'required|exists:clientes,id',
+            'cliente_id' => 'required|exists:clientes,id',
             'paquete_id' => 'required|exists:paquetes,id',
-			'fecha_inicio' => 'required|date',
+            'fecha_inicio' => 'required|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
             'monto_inicial' => 'nullable|numeric|min:0',
             'monto_bonificacion' => 'nullable|numeric|min:0',
             'monto_cuota' => 'nullable|numeric|min:0',
             'numero_cuotas' => 'required|integer|min:1',
             'frecuencia_cuotas' => 'required|integer|min:1',
-			'observaciones' => 'nullable|string',
-			'documento' => 'nullable|file|mimes:pdf|max:10240', // Máximo 10MB
-			'estado' => 'nullable|in:activo,cancelado,finalizado,suspendido',
+            'observaciones' => 'nullable|string',
+            'documento' => 'nullable|file|mimes:pdf|max:10240', // Máximo 10MB
+            'estado' => 'nullable|in:activo,cancelado,finalizado,suspendido',
         ];
-        
-        // Solo validar ID para contratos nuevos (cuando no hay route parameter 'contrato')
-        if (!$this->route('contrato')) {
+
+        // Validar ID tanto para creación como para edición
+        if ($this->route('contrato')) {
+            // Edición: permitir el mismo ID o uno nuevo que no exista
+            $contratoId = $this->route('contrato')->id;
+            $rules['id'] = 'required|integer|min:1|max:999999|unique:contratos,id,' . $contratoId;
+        } else {
+            // Creación: debe ser único
             $rules['id'] = 'required|integer|min:1|max:999999|unique:contratos,id';
         }
-        
+
         return $rules;
     }
 

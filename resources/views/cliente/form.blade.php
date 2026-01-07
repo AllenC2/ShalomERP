@@ -1,43 +1,45 @@
 <!-- Formulario Minimalista en 2 Columnas -->
 <div class="minimal-form">
     <div class="form-container">
-        
+
         <div class="form-layout">
             <!-- Columna Izquierda -->
             <div class="left-column">
-                
+
                 <!-- Información Personal -->
                 <div class="form-section">
                     <h6 class="section-title">Información Personal</h6>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
                             <input type="text" name="nombre" class="form-control @error('nombre') is-invalid @enderror"
-                                   value="{{ old('nombre', $cliente?->nombre) }}" id="nombre" placeholder="Nombre">
+                                value="{{ old('nombre', $cliente?->nombre) }}" id="nombre" placeholder="Nombre">
                             @error('nombre')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="form-group">
                             <label for="apellido" class="form-label">Apellido <span class="text-danger">*</span></label>
-                            <input type="text" name="apellido" class="form-control @error('apellido') is-invalid @enderror"
-                                   value="{{ old('apellido', $cliente?->apellido) }}" id="apellido" placeholder="Apellido">
+                            <input type="text" name="apellido"
+                                class="form-control @error('apellido') is-invalid @enderror"
+                                value="{{ old('apellido', $cliente?->apellido) }}" id="apellido" placeholder="Apellido">
                             @error('apellido')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="email" class="form-label">Correo Electrónico</label>
-                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" 
-                                   value="{{ old('email', $cliente?->email) }}" id="email" placeholder="email@ejemplo.com">
+                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                                value="{{ old('email', $cliente?->email) }}" id="email" placeholder="email@ejemplo.com">
                             @error('email')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="telefono" class="form-label">Teléfono</label>
-                            <input type="tel" name="telefono" class="form-control @error('telefono') is-invalid @enderror" 
-                                   value="{{ old('telefono', $cliente?->telefono) }}" id="telefono" placeholder="Teléfono">
+                            <input type="tel" name="telefono"
+                                class="form-control @error('telefono') is-invalid @enderror"
+                                value="{{ old('telefono', $cliente?->telefono) }}" id="telefono" placeholder="Teléfono">
                             @error('telefono')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
@@ -46,54 +48,63 @@
 
             <!-- Columna Derecha -->
             <div class="right-column">
-                
+
                 <!-- Información de Domicilio -->
                 <div class="form-section">
                     <h6 class="section-title">Información de Domicilio</h6>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="calle_y_numero" class="form-label">Calle y Número <span class="text-danger">*</span></label>
-                            <input type="text" name="calle_y_numero" class="form-control @error('calle_y_numero') is-invalid @enderror" 
-                                   value="{{ old('calle_y_numero', $cliente?->calle_y_numero) }}" id="calle_y_numero" placeholder="Calle y Número">
+                            <label for="calle_y_numero" class="form-label">Calle y Número <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" name="calle_y_numero"
+                                class="form-control @error('calle_y_numero') is-invalid @enderror"
+                                value="{{ old('calle_y_numero', $cliente?->calle_y_numero) }}" id="calle_y_numero"
+                                placeholder="Calle y Número">
                             @error('calle_y_numero')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="codigo_postal" class="form-label">C.P.</label>
-                            <input type="text" name="codigo_postal" class="form-control @error('codigo_postal') is-invalid @enderror" 
-                                   value="{{ old('codigo_postal', $cliente?->codigo_postal) }}" id="codigo_postal" placeholder="C.P.">
+                            <input type="text" name="codigo_postal"
+                                class="form-control @error('codigo_postal') is-invalid @enderror"
+                                value="{{ old('codigo_postal', $cliente?->codigo_postal) }}" id="codigo_postal"
+                                placeholder="C.P.">
                             @error('codigo_postal')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="cruces" class="form-label">Entre Calles / Referencias</label>
-                        <input type="text" name="cruces" class="form-control @error('cruces') is-invalid @enderror" 
-                               value="{{ old('cruces', $cliente?->cruces) }}" id="cruces" placeholder="Referencias">
+                        <input type="text" name="cruces" class="form-control @error('cruces') is-invalid @enderror"
+                            value="{{ old('cruces', $cliente?->cruces) }}" id="cruces" placeholder="Referencias">
                         @error('cruces')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="colonia" class="form-label">Colonia <span class="text-danger">*</span></label>
-                            <input type="text" name="colonia" class="form-control @error('colonia') is-invalid @enderror" 
-                                   value="{{ old('colonia', $cliente?->colonia) }}" id="colonia" placeholder="Colonia">
+                            <input type="text" name="colonia"
+                                class="form-control @error('colonia') is-invalid @enderror"
+                                value="{{ old('colonia', $cliente?->colonia) }}" id="colonia" placeholder="Colonia">
                             @error('colonia')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
-                        
+
                         <div class="form-group">
-                            <label for="municipio" class="form-label">Municipio <span class="text-danger">*</span></label>
-                            <input type="text" name="municipio" class="form-control @error('municipio') is-invalid @enderror" 
-                                   value="{{ old('municipio', $cliente?->municipio) }}" id="municipio" placeholder="Municipio">
+                            <label for="municipio" class="form-label">Municipio <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" name="municipio"
+                                class="form-control @error('municipio') is-invalid @enderror"
+                                value="{{ old('municipio', $cliente?->municipio) }}" id="municipio"
+                                placeholder="Municipio">
                             @error('municipio')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="estado" class="form-label">Estado</label>
-                        <input type="text" name="estado" class="form-control @error('estado') is-invalid @enderror" 
-                               value="{{ old('estado', $cliente?->estado) }}" id="estado" placeholder="Estado">
+                        <input type="text" name="estado" class="form-control @error('estado') is-invalid @enderror"
+                            value="{{ old('estado', $cliente?->estado) }}" id="estado" placeholder="Estado">
                         @error('estado')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -101,7 +112,8 @@
         </div>
 
         <!-- Campo oculto para el domicilio completo -->
-        <input type="hidden" name="domicilio_completo" id="domicilio_completo" value="{{ old('domicilio_completo', $cliente?->domicilio_completo) }}">
+        <input type="hidden" name="domicilio_completo" id="domicilio_completo"
+            value="{{ old('domicilio_completo', $cliente?->domicilio_completo) }}">
 
         <!-- Botones -->
         <div class="form-actions">
@@ -114,46 +126,65 @@
 </div>
 
 <script>
-// Script para actualizar el domicilio completo automáticamente
-document.addEventListener('DOMContentLoaded', function() {
-    const campos = ['calle_y_numero', 'cruces', 'colonia', 'municipio', 'estado', 'codigo_postal'];
-    const domicilioInput = document.getElementById('domicilio_completo');
-    
-    campos.forEach(campo => {
-        const input = document.getElementById(campo);
-        if (input) {
-            input.addEventListener('input', actualizarDomicilio);
+    // Script para actualizar el domicilio completo automáticamente y prevenir doble submit
+    document.addEventListener('DOMContentLoaded', function () {
+        // Prevenir doble submit
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn && !submitBtn.disabled) {
+                    submitBtn.disabled = true;
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+
+                    // Restaurar botón después de 10 segundos por si falla la red (opcional)
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }, 10000);
+                }
+            });
+        });
+
+        const campos = ['calle_y_numero', 'cruces', 'colonia', 'municipio', 'estado', 'codigo_postal'];
+        const domicilioInput = document.getElementById('domicilio_completo');
+
+        campos.forEach(campo => {
+            const input = document.getElementById(campo);
+            if (input) {
+                input.addEventListener('input', actualizarDomicilio);
+            }
+        });
+
+        // Actualizar al cargar la página si hay datos
+        actualizarDomicilio();
+
+        function actualizarDomicilio() {
+            const partes = [];
+
+            const calleNumero = document.getElementById('calle_y_numero').value.trim();
+            if (calleNumero) partes.push(calleNumero);
+
+            const cruces = document.getElementById('cruces').value.trim();
+            if (cruces) partes.push(`Entre: ${cruces}`);
+
+            const colonia = document.getElementById('colonia').value.trim();
+            if (colonia) partes.push(colonia);
+
+            const municipio = document.getElementById('municipio').value.trim();
+            if (municipio) partes.push(municipio);
+
+            const estado = document.getElementById('estado').value.trim();
+            if (estado) partes.push(estado);
+
+            const cp = document.getElementById('codigo_postal').value.trim();
+            if (cp) partes.push(`CP: ${cp}`);
+
+            const domicilioCompleto = partes.join(', ');
+            domicilioInput.value = domicilioCompleto;
         }
     });
-    
-    // Actualizar al cargar la página si hay datos
-    actualizarDomicilio();
-    
-    function actualizarDomicilio() {
-        const partes = [];
-        
-        const calleNumero = document.getElementById('calle_y_numero').value.trim();
-        if (calleNumero) partes.push(calleNumero);
-        
-        const cruces = document.getElementById('cruces').value.trim();
-        if (cruces) partes.push(`Entre: ${cruces}`);
-        
-        const colonia = document.getElementById('colonia').value.trim();
-        if (colonia) partes.push(colonia);
-        
-        const municipio = document.getElementById('municipio').value.trim();
-        if (municipio) partes.push(municipio);
-        
-        const estado = document.getElementById('estado').value.trim();
-        if (estado) partes.push(estado);
-        
-        const cp = document.getElementById('codigo_postal').value.trim();
-        if (cp) partes.push(`CP: ${cp}`);
-        
-        const domicilioCompleto = partes.join(', ');
-        domicilioInput.value = domicilioCompleto;
-    }
-});
 </script>
 
 <style>
@@ -320,12 +351,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .form-layout {
             grid-template-columns: 1fr;
         }
-        
+
         .left-column {
             border-right: none;
             border-bottom: 1px solid #e1e5e9;
         }
-        
+
         .form-section {
             padding: 24px 20px;
         }
@@ -335,16 +366,16 @@ document.addEventListener('DOMContentLoaded', function() {
         .minimal-form {
             padding: 16px;
         }
-        
+
         .form-section {
             padding: 20px 16px;
         }
-        
+
         .form-actions {
             padding: 20px;
             flex-direction: column;
         }
-        
+
         .btn {
             width: 100%;
             text-align: center;

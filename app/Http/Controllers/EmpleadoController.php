@@ -68,7 +68,7 @@ class EmpleadoController extends Controller
     {
         try {
             $empleado = Empleado::with('user')->findOrFail($id);
-            
+
             // Verificar que el empleado tenga un usuario asociado
             if (!$empleado->user) {
                 return view('empleado.show', [
@@ -76,7 +76,7 @@ class EmpleadoController extends Controller
                     'comisiones' => collect([])
                 ]);
             }
-            
+
             $comisiones = $empleado->comisiones()
                 ->with(['contrato.cliente', 'contrato.paquete', 'parcialidades'])
                 ->orderBy('fecha_comision', 'desc')
@@ -85,7 +85,7 @@ class EmpleadoController extends Controller
             return view('empleado.show', compact('empleado', 'comisiones'));
         } catch (\Exception $e) {
             \Log::error('Error en empleado.show: ' . $e->getMessage());
-            
+
             return view('empleado.show', [
                 'empleado' => null,
                 'comisiones' => collect([])
@@ -162,7 +162,7 @@ class EmpleadoController extends Controller
     public function destroy($id): RedirectResponse
     {
         $empleado = Empleado::findOrFail($id);
-        
+
         // Eliminar el usuario asociado (esto eliminará en cascada el empleado)
         $empleado->user->delete();
 
@@ -176,7 +176,7 @@ class EmpleadoController extends Controller
     public function darDeBaja($id): RedirectResponse
     {
         $empleado = Empleado::find($id);
-        
+
         if (!$empleado) {
             return Redirect::route('empleados.index')
                 ->with('error', 'Empleado no encontrado.');
@@ -194,7 +194,7 @@ class EmpleadoController extends Controller
     public function reactivar($id): RedirectResponse
     {
         $empleado = Empleado::find($id);
-        
+
         if (!$empleado) {
             return Redirect::route('empleados.index')
                 ->with('error', 'Empleado no encontrado.');
@@ -212,23 +212,45 @@ class EmpleadoController extends Controller
     public function toggleRol($id): RedirectResponse
     {
         $empleado = Empleado::with('user')->find($id);
-        
+
         if (!$empleado) {
             return Redirect::route('empleados.index')
                 ->with('error', 'Empleado no encontrado.');
         }
 
         $user = $empleado->user;
-        
+
         // Cambiar el rol
         $nuevoRol = $user->role === 'admin' ? 'empleado' : 'admin';
         $user->update(['role' => $nuevoRol]);
 
-        $mensaje = $nuevoRol === 'admin' 
-            ? 'El empleado ahora tiene rol de Administrador.' 
+        $mensaje = $nuevoRol === 'admin'
+            ? 'El empleado ahora tiene rol de Administrador.'
             : 'El empleado ahora tiene rol de Empleado.';
 
         return Redirect::route('empleados.show', $id)
             ->with('success', $mensaje);
+    }
+
+    /**
+     * Cambiar la contraseña del usuario asociado al empleado
+     */
+    public function cambiarContrasena(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $empleado = Empleado::with('user')->findOrFail($id);
+
+        if (!$empleado->user) {
+            return Redirect::back()->with('error', 'El empleado no tiene un usuario asociado.');
+        }
+
+        $empleado->user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return Redirect::back()->with('success', 'Contraseña actualizada correctamente.');
     }
 }

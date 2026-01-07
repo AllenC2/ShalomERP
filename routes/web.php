@@ -21,13 +21,14 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('ajustes/recordatorio-whatsapp', [App\Http\Controllers\AjustesController::class, 'actualizarRecordatorioWhatsApp'])->name('ajustes.recordatorioWhatsApp');
     Route::post('ajustes/tolerancia-pagos', [App\Http\Controllers\AjustesController::class, 'actualizarToleranciaPagos'])->name('ajustes.toleranciaPagos');
     Route::post('ajustes/registro-publico', [App\Http\Controllers\AjustesController::class, 'actualizarRegistroPublico'])->name('ajustes.registroPublico');
-    
+
     // Rutas de empleados
     Route::resource('empleados', App\Http\Controllers\EmpleadoController::class);
     Route::patch('empleados/{id}/dar-de-baja', [App\Http\Controllers\EmpleadoController::class, 'darDeBaja'])->name('empleados.darDeBaja');
     Route::patch('empleados/{id}/reactivar', [App\Http\Controllers\EmpleadoController::class, 'reactivar'])->name('empleados.reactivar');
     Route::patch('empleados/{id}/toggle-rol', [App\Http\Controllers\EmpleadoController::class, 'toggleRol'])->name('empleados.toggleRol');
-    
+    Route::patch('empleados/{id}/cambiar-contrasena', [App\Http\Controllers\EmpleadoController::class, 'cambiarContrasena'])->name('empleados.cambiarContrasena');
+
     // Rutas de comisiones
     Route::resource('comisiones', App\Http\Controllers\ComisioneController::class);
     Route::patch('comisiones/{id}/toggle-estado', [App\Http\Controllers\ComisioneController::class, 'toggleEstado'])->name('comisiones.toggleEstado');
@@ -36,22 +37,25 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('comisiones/{id}/upload-documento', [App\Http\Controllers\ComisioneController::class, 'uploadDocumento'])->name('comisiones.uploadDocumento');
     Route::delete('comisiones/{id}/eliminar-parcialidad', [App\Http\Controllers\ComisioneController::class, 'eliminarParcialidad'])->name('comisiones.eliminarParcialidad');
     Route::patch('comisiones/{id}/update-empleado', [App\Http\Controllers\ComisioneController::class, 'updateEmpleado'])->name('comisiones.updateEmpleado');
-    
+
     // Rutas de paquetes y porcentajes
     Route::resource('paquetes', App\Http\Controllers\PaqueteController::class);
     Route::resource('porcentajes', App\Http\Controllers\PorcentajeController::class)->except([
-        'index', 'show', 'create', 'edit'
+        'index',
+        'show',
+        'create',
+        'edit'
     ]);
 });
 
 // Ruta para servir PDFs de contratos - Accesible para cualquier usuario autenticado
 Route::middleware(['auth'])->get('/storage/contratos/{filename}', function ($filename) {
     $path = storage_path('app/public/contratos/' . $filename);
-    
+
     if (!file_exists($path)) {
         abort(404);
     }
-    
+
     return response()->file($path);
 })->where('filename', '.*\.pdf$');
 
@@ -67,7 +71,7 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     Route::get('clientes', [App\Http\Controllers\ClienteController::class, 'index'])->name('clientes.index');
     Route::get('clientes/create', [App\Http\Controllers\ClienteController::class, 'create'])->name('clientes.create');
     Route::post('clientes', [App\Http\Controllers\ClienteController::class, 'store'])->name('clientes.store');
-    
+
     // Rutas de contratos
     Route::resource('contratos', App\Http\Controllers\ContratoController::class);
     Route::patch('contratos/{id}/cancel', [App\Http\Controllers\ContratoController::class, 'cancel'])->name('contratos.cancel');
@@ -79,7 +83,7 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     Route::get('contratos/{id}/comisiones', [App\Http\Controllers\ContratoController::class, 'comisiones'])->name('contratos.comisiones');
     Route::get('contratos/{id}/estado', [App\Http\Controllers\ContratoController::class, 'estado'])->name('contratos.estado');
     Route::post('contratos/crear-parcialidad', [App\Http\Controllers\ContratoController::class, 'crearParcialidad'])->name('contratos.crearParcialidad');
-    
+
     // Rutas de pagos
     Route::resource('pagos', App\Http\Controllers\PagoController::class);
     Route::patch('pagos/{id}/toggle-estado', [PagoController::class, 'toggleEstado'])->name('pagos.toggleEstado');
@@ -90,7 +94,7 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     Route::delete('pagos/{id}/delete-documento', [PagoController::class, 'deleteDocumento'])->name('pagos.deleteDocumento');
     Route::post('pagos/verificar-liquidacion-parcialidad', [PagoController::class, 'verificarLiquidacionParcialidad'])->name('pagos.verificarLiquidacionParcialidad');
     Route::get('pagos/buscar-contratos', [PagoController::class, 'buscarContratos'])->name('pagos.buscarContratos');
-    
+
     // Ruta alternativa para pagos
     Route::get('pagos_alt', [PagoController::class, 'index'])->name('pagos_alt.index');
 });

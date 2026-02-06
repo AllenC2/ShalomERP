@@ -24,9 +24,13 @@ class AppServiceProvider extends ServiceProvider
         // Configurar Carbon en español
         Carbon::setLocale(config('app.locale'));
 
+
         // Intentar configurar el locale del sistema (no crítico si falla)
         @setlocale(LC_TIME, 'es_ES.UTF-8', 'es_ES', 'es', 'Spanish_Spain', 'spanish');
 
-
+        // Permitir que Log Viewer cargue (la seguridad real es por Basic Auth Middleware)
+        \Opcodes\LogViewer\Facades\LogViewer::auth(function ($request) {
+            return true;
+        });
     }
 }

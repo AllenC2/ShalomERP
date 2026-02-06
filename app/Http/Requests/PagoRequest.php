@@ -38,7 +38,7 @@ class PagoRequest extends FormRequest
             'documento' => 'nullable|file|mimes:pdf,jpeg,jpg,png,webp|max:5120', // máximo 5MB
         ];
     }
-    
+
     /**
      * Get custom messages for validator errors.
      *

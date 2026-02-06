@@ -60,30 +60,14 @@
                     <input type="hidden" name="contrato_id" value="{{ old('contrato_id', $contrato_id ?? $pago?->contrato_id) }}" id="contrato_id">
                     
                     <div class="form-row">
-                        <div class="form-group">
+                        <!-- Tipo de Pago Simplificado (Oculto) -->
+                        <input type="hidden" name="tipo_pago" value="parcialidad">
+                        
+                        <div class="form-group w-100">
                             <label for="fecha_pago" class="form-label">Fecha y Hora del Pago <span class="text-danger">*</span></label>
                             <input type="datetime-local" name="fecha_pago" class="form-control @error('fecha_pago') is-invalid @enderror" 
                                    value="{{ old('fecha_pago', $pago?->fecha_pago?->format('Y-m-d\TH:i') ?? now()->format('Y-m-d\TH:i')) }}" id="fecha_pago">
                             @error('fecha_pago')<div class="error-text">{{ $message }}</div>@enderror
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="tipo_pago" class="form-label">Tipo de Pago <span class="text-danger">*</span></label>
-                            @if(!$pago->exists && isset($contrato) && $contrato)
-                                <!-- Nuevo pago desde contrato: solo parcialidad -->
-                                <select name="tipo_pago" id="tipo_pago" class="form-control @error('tipo_pago') is-invalid @enderror">
-                                    <option value="parcialidad" selected>Parcialidad</option>
-                                </select>
-                            @else
-                                <!-- Edición de pago existente o pago sin contrato: opciones completas -->
-                                <select name="tipo_pago" id="tipo_pago" class="form-control @error('tipo_pago') is-invalid @enderror">
-                                    <option value="cuota" {{ old('tipo_pago', $pago?->tipo_pago ?? 'cuota') == 'cuota' ? 'selected' : '' }}>Cuota Regular</option>
-                                    <option value="parcialidad" {{ old('tipo_pago', $pago?->tipo_pago) == 'parcialidad' ? 'selected' : '' }}>Parcialidad</option>
-                                    <option value="inicial" {{ old('tipo_pago', $pago?->tipo_pago) == 'inicial' ? 'selected' : '' }}>Pago Inicial</option>
-                                    <option value="bonificación" {{ old('tipo_pago', $pago?->tipo_pago) == 'bonificación' ? 'selected' : '' }}>Bonificación</option>
-                                </select>
-                            @endif
-                            @error('tipo_pago')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
                     
@@ -91,34 +75,23 @@
                         <div class="form-group">
                             <label for="monto" class="form-label">Monto del Pago <span class="text-danger">*</span></label>
                             @php
-                                $maxMonto = null;
-                                $valorPorDefecto = '';
+                                $valorPorDefecto = ''; // Siempre iniciar vacío o con un valor sugerido inteligente pero Editable
                                 
                                 if (!$pago->exists && isset($contrato) && $contrato) {
-                                    // Para nuevos pagos desde contrato (parcialidades)
-                                    if (isset($proximoPagoPendiente) && $proximoPagoPendiente) {
-                                        // Usar el monto restante (después de parcialidades) como valor por defecto y máximo
-                                        $montoRestante = $proximoPagoPendiente->monto_restante ?? $proximoPagoPendiente->monto;
-                                        $valorPorDefecto = $montoRestante > 0 ? number_format($montoRestante, 2, '.', '') : '';
-                                        $maxMonto = $montoRestante;
-                                    } else {
-                                        // Si no hay pagos pendientes, usar la cuota sugerida
-                                        $montoInicial = $contrato->monto_inicial ?? 0;
-                                        $montoBonificacion = $contrato->monto_bonificacion ?? 0;
-                                        $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
-                                        $cuotaSugerida = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
-                                        $valorPorDefecto = $cuotaSugerida > 0 ? number_format($cuotaSugerida, 2, '.', '') : '';
-                                        $maxMonto = $cuotaSugerida;
-                                    }
+                                    // Sugerir la cuota regular pero no limitar
+                                    $montoInicial = $contrato->monto_inicial ?? 0;
+                                    $montoBonificacion = $contrato->monto_bonificacion ?? 0;
+                                    $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
+                                    $cuotaSugerida = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
+                                    $valorPorDefecto = $cuotaSugerida > 0 ? number_format($cuotaSugerida, 2, '.', '') : '';
                                 } else {
-                                    // Para edición de pagos existentes o pagos sin contrato
-                                    $valorPorDefecto = old('monto', $pago?->monto ?? (isset($montoSugerido) ? number_format($montoSugerido, 2, '.', '') : ''));
+                                    $valorPorDefecto = old('monto', $pago?->monto ?? '');
                                 }
                             @endphp
                             <input type="text" name="monto" class="form-control @error('monto') is-invalid @enderror"
                                    value="{{ old('monto', $valorPorDefecto) }}"
                                    id="monto"
-                                   data-max-monto="{{ $maxMonto ?? '' }}"
+                                   data-max-monto=""
                                    placeholder="$0.00">
                             @error('monto')<div class="error-text">{{ $message }}</div>@enderror
                             
@@ -135,14 +108,9 @@
                             @endif
                         </div>
                         
-                        <div class="form-group">
+                        <div class="form-group" style="display: none;">
                             <label for="estado" class="form-label">Estado del Pago</label>
-                            <input type="hidden" name="estado" id="estado" value="{{ old('estado', $pago?->estado ?? 'hecho') }}">
-                            <button type="button" id="estadoToggleBtn" class="estado-toggle {{ (old('estado', $pago?->estado ?? 'hecho') == 'hecho') ? 'estado-hecho' : 'estado-pendiente' }}" onclick="toggleEstadoPago()">
-                                <i class="bi bi-check-circle me-2"></i>
-                                <span id="estadoBtnText">{{ old('estado', $pago?->estado ?? 'hecho') == 'hecho' ? 'Hecho' : 'Pendiente' }}</span>
-                            </button>
-                            @error('estado')<div class="error-text">{{ $message }}</div>@enderror
+                            <input type="hidden" name="estado" id="estado" value="hecho">
                         </div>
                     </div>
                     
@@ -341,154 +309,108 @@ function toggleEstadoPago() {
 }
 
 // Scripts de funcionalidad del formulario
-document.addEventListener('DOMContentLoaded', function() {
-    const tipoSelect = document.getElementById('tipo_pago');
-    const montoInput = document.getElementById('monto');
-    const observacionesInput = document.getElementById('observaciones');
-    
-    // Verificar si estamos en modo de nuevo pago desde contrato
-    const contratoId = document.getElementById('contrato_id').value;
-    const isNewPaymentFromContract = contratoId && !document.querySelector('input[name="_method"]'); // No hay _method en create
-    
-    // Obtener el monto máximo permitido si existe
-    const maxMonto = parseFloat(montoInput.getAttribute('max'));
-    
-    // Establecer observación inicial para nuevos pagos desde contrato
-    if (isNewPaymentFromContract && tipoSelect.value === 'parcialidad' && !observacionesInput.value.trim()) {
-        observacionesInput.value = 'Pago parcial del contrato';
-    }
-    
-    // Actualizar observaciones basadas en el tipo de pago (solo si no es nuevo pago desde contrato)
-    if (!isNewPaymentFromContract) {
-        tipoSelect.addEventListener('change', function() {
-            const tipo = this.value;
-            let observacion = observacionesInput.value.trim();
-            
-            // Solo actualizar si no hay observaciones personalizadas
-            if (!observacion || observacion.startsWith('Pago ') || observacion.startsWith('Cuota ')) {
-                switch(tipo) {
-                    case 'cuota':
-                        observacionesInput.value = 'Cuota regular del contrato';
-                        break;
-                    case 'parcialidad':
-                        observacionesInput.value = 'Pago parcial del contrato';
-                        break;
-                    case 'inicial':
-                        observacionesInput.value = 'Pago inicial del contrato';
-                        break;
-                    case 'bonificación':
-                        observacionesInput.value = 'Bonificación aplicada al contrato';
-                        break;
+    // Scripts de funcionalidad del formulario
+    document.addEventListener('DOMContentLoaded', function() {
+        const montoInput = document.getElementById('monto');
+        const observacionesInput = document.getElementById('observaciones');
+        
+        // Verificar si estamos en modo de nuevo pago desde contrato
+        const contratoId = document.getElementById('contrato_id').value;
+        const isNewPaymentFromContract = contratoId && !document.querySelector('input[name="_method"]'); 
+        
+        // Establecer observación inicial si está vacía
+        if (isNewPaymentFromContract && !observacionesInput.value.trim()) {
+            observacionesInput.value = 'Abono al contrato';
+        }
+        
+        // Permitir escribir libremente, quitar formato al hacer focus
+        montoInput.addEventListener('focus', function() {
+            if (this.value) {
+                // Quitar formato para editar libremente
+                const valorLimpio = this.value.replace(/[$,]/g, '');
+                if (!isNaN(parseFloat(valorLimpio))) {
+                    this.value = valorLimpio;
                 }
             }
         });
-    }
-    
-    // Permitir escribir libremente, quitar formato al hacer focus
-    montoInput.addEventListener('focus', function() {
-        if (this.value) {
-            // Quitar formato para editar libremente
-            const valorLimpio = this.value.replace(/[$,]/g, '');
-            if (!isNaN(parseFloat(valorLimpio))) {
-                this.value = valorLimpio;
+
+        // Formatear solo al salir del campo (blur)
+        montoInput.addEventListener('blur', function() {
+            formatearCampoMonto(this);
+        });
+
+        // Función para formatear campos de monto
+        function formatearCampoMonto(input) {
+            let value = input.value.replace(/[^0-9.]/g, ''); // Remover todo excepto números y punto
+
+            // Si está vacío, dejarlo vacío (no forzar 0)
+            if (value === '' || value === '.') {
+                input.value = '';
+                return;
+            }
+
+            // Asegurar solo un punto decimal
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+
+            // Limitar a 2 decimales
+            if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].substring(0, 2);
+            }
+
+            const valorNumerico = parseFloat(value);
+
+            // Formatear con símbolo de dólar y miles si hay valor
+            if (!isNaN(valorNumerico) && valorNumerico >= 0) {
+                input.value = formatearMoneda(valorNumerico);
+            } else {
+                input.value = '';
             }
         }
-    });
 
-    // Formatear solo al salir del campo (blur)
-    montoInput.addEventListener('blur', function() {
-        formatearCampoMonto(this, maxMonto, isNewPaymentFromContract);
-    });
-
-    // Función para formatear campos de monto
-    function formatearCampoMonto(input, maxMonto, isNewPaymentFromContract) {
-        let value = input.value.replace(/[^0-9.]/g, ''); // Remover todo excepto números y punto
-
-        // Si está vacío, dejarlo vacío (no forzar 0)
-        if (value === '' || value === '.') {
-            input.value = '';
-            return;
+        // Función helper para formatear moneda con miles
+        function formatearMoneda(valor) {
+            if (valor === null || valor === undefined || isNaN(valor)) {
+                return '$0.00';
+            }
+            return '$' + parseFloat(valor).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
         }
+        
+        // Validación al enviar
+        document.querySelector('form').addEventListener('submit', function(e) {
+            // Limpiar formato antes de validar
+            const montoLimpio = montoInput.value.replace(/[$,]/g, '');
+            const monto = parseFloat(montoLimpio);
+            const metodo = document.querySelector('input[name="metodo_pago"]:checked')?.value;
 
-        // Asegurar solo un punto decimal
-        const parts = value.split('.');
-        if (parts.length > 2) {
-            value = parts[0] + '.' + parts.slice(1).join('');
-        }
+            // Validar que el monto sea válido y mayor a cero
+            if (!monto || monto <= 0 || isNaN(monto)) {
+                e.preventDefault();
+                alert('Por favor ingresa un monto válido mayor a cero.');
+                montoInput.focus();
+                return false;
+            }
 
-        // Limitar a 2 decimales
-        if (parts[1] && parts[1].length > 2) {
-            value = parts[0] + '.' + parts[1].substring(0, 2);
-        }
+            // Validar que haya seleccionado un método de pago
+            if (!metodo) {
+                e.preventDefault();
+                alert('Por favor selecciona un método de pago.');
+                document.querySelector('input[name="metodo_pago"]').focus();
+                return false;
+            }
 
-        const valorNumerico = parseFloat(value);
+            // Remover clase de error si todo está correcto
+            montoInput.classList.remove('is-invalid');
 
-        // Validar monto máximo para nuevos pagos desde contrato
-        if (isNewPaymentFromContract && maxMonto && !isNaN(maxMonto) && valorNumerico > maxMonto) {
-            input.value = formatearMoneda(maxMonto);
-            showTemporaryMessage('El monto no puede exceder el saldo restante de $' + maxMonto.toFixed(2));
-            return;
-        }
-
-        // Formatear con símbolo de dólar y miles si hay valor
-        if (!isNaN(valorNumerico) && valorNumerico >= 0) {
-            input.value = formatearMoneda(valorNumerico);
-        } else {
-            input.value = '';
-        }
-    }
-
-    // Función helper para formatear moneda con miles
-    function formatearMoneda(valor) {
-        if (valor === null || valor === undefined || isNaN(valor)) {
-            return '$0.00';
-        }
-        return '$' + parseFloat(valor).toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+            // Convertir a número sin formato antes de enviar
+            montoInput.value = monto.toFixed(2);
         });
-    }
-    
-    // Validación al enviar
-    document.querySelector('form').addEventListener('submit', function(e) {
-        // Limpiar formato antes de validar
-        const montoLimpio = montoInput.value.replace(/[$,]/g, '');
-        const monto = parseFloat(montoLimpio);
-        const metodo = document.querySelector('input[name="metodo_pago"]:checked')?.value;
-
-        // Validar que el monto sea válido y mayor a cero
-        if (!monto || monto <= 0 || isNaN(monto)) {
-            e.preventDefault();
-            alert('Por favor ingresa un monto válido mayor a cero.');
-            montoInput.focus();
-            return false;
-        }
-
-        // Validar monto máximo para nuevos pagos desde contrato
-        const maxMontoAttr = parseFloat(montoInput.getAttribute('data-max-monto'));
-        if (isNewPaymentFromContract && maxMontoAttr && !isNaN(maxMontoAttr) && monto > maxMontoAttr) {
-            e.preventDefault();
-            alert('⚠️ El monto ingresado ($' + monto.toFixed(2) + ') excede el saldo restante permitido.\n\nMonto máximo permitido: $' + maxMontoAttr.toFixed(2));
-            montoInput.classList.add('is-invalid');
-            montoInput.focus();
-            return false;
-        }
-
-        // Validar que haya seleccionado un método de pago
-        if (!metodo) {
-            e.preventDefault();
-            alert('Por favor selecciona un método de pago.');
-            document.querySelector('input[name="metodo_pago"]').focus();
-            return false;
-        }
-
-        // Remover clase de error si todo está correcto
-        montoInput.classList.remove('is-invalid');
-
-        // Convertir a número sin formato antes de enviar
-        montoInput.value = monto.toFixed(2);
     });
-});
 
 // Función para mostrar mensajes temporales
 function showTemporaryMessage(message) {

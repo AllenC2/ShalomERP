@@ -395,6 +395,7 @@
                                     <div class="row g-3">
                                         {{-- Pagos pendientes --}}
                                         @foreach($agendaDia['pagos_pendientes'] as $pago)
+                                            @if($pago->contrato)
                                             <div class="col-md-6 col-lg-3">
                                                 <a href="{{ route('contratos.show', $pago->contrato->id) }}" class="text-decoration-none pago-link">
                                                     <div class="pago-item p-3 bg-white rounded border-start border-4 h-100" 
@@ -418,10 +419,12 @@
                                                     </div>
                                                 </a>
                                             </div>
+                                            @endif
                                         @endforeach
                                         
                                         {{-- Pagos hechos --}}
                                         @foreach($agendaDia['pagos_hechos'] as $pago)
+                                            @if($pago->contrato)
                                             <div class="col-md-6 col-lg-3">
                                                 <a href="{{ route('contratos.show', $pago->contrato->id) }}" class="text-decoration-none pago-link">
                                                     <div class="pago-item p-3 bg-white rounded border-start border-4 border-success h-100"
@@ -444,6 +447,7 @@
                                                     </div>
                                                 </a>
                                             </div>
+                                            @endif
                                         @endforeach
                                     </div>
                                 @else
@@ -660,6 +664,7 @@
                                             <div class="row g-2">
                                                 {{-- Pagos pendientes --}}
                                                 @foreach($dia['pagos_pendientes'] as $pago)
+                                                    @if($pago->contrato)
                                                     <div class="col-6 col-md-3">
                                                         <a href="{{ route('contratos.show', $pago->contrato->id) }}" class="text-decoration-none">
                                                             <div class="py-2 px-2 bg-white rounded border-start border-3 mb-2 h-100"
@@ -674,10 +679,12 @@
                                                             </div>
                                                         </a>
                                                     </div>
+                                                    @endif
                                                 @endforeach
 
                                                 {{-- Pagos hechos --}}
                                                 @foreach($dia['pagos_hechos'] as $pago)
+                                                    @if($pago->contrato)
                                                     <div class="col-6 col-md-3">
                                                         <a href="{{ route('contratos.show', $pago->contrato->id) }}" class="text-decoration-none">
                                                             <div class="py-2 px-2 bg-white rounded border-start border-3 border-success mb-2 h-100">
@@ -691,6 +698,7 @@
                                                             </div>
                                                         </a>
                                                     </div>
+                                                    @endif
                                                 @endforeach
                                             </div>
                                         </div>
@@ -754,6 +762,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     @foreach($empleadoPagosVencidos as $pago)
+                        @if($pago->contrato)
                         <div class="col-lg-4 col-md-6">
                             <a href="{{ route('contratos.show', $pago->contrato->id) }}" class="text-decoration-none">
                                 <div class="card border-0 bg-light h-100 pago-item" style="border-left: 4px solid #dc3545 !important;">
@@ -807,6 +816,7 @@
                                 </div>
                             </a>
                         </div>
+                    @endif
                     @endforeach
                 </div>
                 

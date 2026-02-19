@@ -33,7 +33,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Contrato extends Model
 {
-    
+
     protected $perPage = 20;
 
     // Constantes para los estados válidos
@@ -47,7 +47,7 @@ class Contrato extends Model
     {
         return [
             self::ESTADO_ACTIVO => 'Activo',
-            self::ESTADO_CANCELADO => 'Cancelado', 
+            self::ESTADO_CANCELADO => 'Cancelado',
             self::ESTADO_FINALIZADO => 'Finalizado',
             self::ESTADO_SUSPENDIDO => 'Suspendido'
         ];
@@ -68,15 +68,12 @@ class Contrato extends Model
     {
         return $this->belongsTo(\App\Models\Cliente::class, 'cliente_id', 'id');
     }
-    
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function empleado()
-    {
-        return $this->belongsTo(\App\Models\Empleado::class, 'empleado_id', 'id');
-    }
-    
+    // public function empleado() { ... } // Removed in refactor
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
@@ -84,7 +81,7 @@ class Contrato extends Model
     {
         return $this->belongsTo(\App\Models\Paquete::class, 'paquete_id', 'id');
     }
-    
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
@@ -92,7 +89,7 @@ class Contrato extends Model
     {
         return $this->hasMany(\App\Models\Comisione::class, 'contrato_id', 'id');
     }
-    
+
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
@@ -100,7 +97,7 @@ class Contrato extends Model
     {
         return $this->hasMany(\App\Models\Pago::class, 'contrato_id', 'id');
     }
-    
+
     /**
      * Calcula el total pagado del contrato
      * 
@@ -110,7 +107,7 @@ class Contrato extends Model
     {
         return $this->pagos()->where('estado', 'hecho')->sum('monto');
     }
-    
+
     /**
      * Calcula el saldo pendiente del contrato
      * 
@@ -120,254 +117,173 @@ class Contrato extends Model
     {
         return max(0, $this->monto_total - $this->total_pagado);
     }
-    
+
     /**
-     * Calcula el saldo pendiente después de un pago específico (sin incluir ese pago en el cálculo)
+     * Obtiene información resumida del estado de cuenta
+     * Reemplaza a getEstadoPagosAttribute
      * 
-     * @param float $montoPago
-     * @param int|null $excluirPagoId ID del pago a excluir del cálculo
-     * @return float
+     * @return array
      */
-    public function calcularSaldoDespuesDePago($montoPago, $excluirPagoId = null)
+    public function getEstadoCuentaAttribute()
     {
-        $query = $this->pagos()->where('estado', 'hecho');
-        
-        if ($excluirPagoId) {
-            $query->where('id', '!=', $excluirPagoId);
-        }
-        
-        $totalPagado = $query->sum('monto');
-        $nuevoSaldo = $this->monto_total - ($totalPagado + $montoPago);
-        
-        return max(0, $nuevoSaldo);
-    }
-    
-    /**
-     * Recalcula el saldo restante de todos los pagos del contrato
-     * Útil cuando se elimina un pago o se hacen cambios masivos
-     */
-    public function recalcularSaldosPagos()
-    {
-        $pagos = $this->pagos()->where('estado', 'hecho')->orderBy('fecha_pago', 'asc')->get();
-        $saldoAcumulado = 0;
-        
-        foreach ($pagos as $pago) {
-            $saldoAcumulado += $pago->monto;
-            $nuevoSaldo = max(0, $this->monto_total - $saldoAcumulado);
-            $pago->update(['saldo_restante' => $nuevoSaldo]);
-        }
+        return [
+            'total' => $this->monto_total,
+            'pagado' => $this->total_pagado,
+            'pendiente' => $this->saldo_pendiente,
+            'porcentaje' => $this->monto_total > 0 ? round(($this->total_pagado / $this->monto_total) * 100, 2) : 0
+        ];
     }
 
     /**
-     * Obtiene las cuotas pendientes vencidas (considerando tolerancia)
+     * Obtiene el estado detallado de pagos para la vista show
      * 
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return array
      */
-    public function getCuotasVencidasAttribute()
-    {
-        // Obtener la tolerancia de pagos configurada
-        $toleranciaDias = \App\Models\Ajuste::obtenerToleranciaPagos();
-        
-        // Calcular la fecha límite considerando la tolerancia
-        $fechaLimite = \Carbon\Carbon::now()->subDays($toleranciaDias)->endOfDay();
-        
-        return $this->pagos()
-            ->where('estado', 'pendiente')
-            ->where('tipo_pago', 'cuota')
-            ->where('fecha_pago', '<', $fechaLimite)
-            ->orderBy('fecha_pago', 'asc')
-            ->get();
-    }
-
     /**
-     * Obtiene el número de cuotas vencidas
-     * 
-     * @return int
-     */
-    public function getNumCuotasVencidasAttribute()
-    {
-        return $this->cuotas_vencidas->count();
-    }
-
-    /**
-     * Obtiene el monto total de cuotas vencidas (considerando parcialidades)
-     * 
-     * @return float
-     */
-    public function getMontoVencidoAttribute()
-    {
-        return $this->cuotas_vencidas->sum(function($pago) {
-            return $pago->monto_pendiente;
-        });
-    }
-
-    /**
-     * Obtiene los días de retraso de la cuota más antigua vencida (considerando tolerancia)
-     * 
-     * @return int|null
-     */
-    public function getDiasRetrasoAttribute()
-    {
-        $cuotaMasAntigua = $this->cuotas_vencidas->first();
-        
-        if (!$cuotaMasAntigua) {
-            return null;
-        }
-        
-        // Obtener la tolerancia configurada
-        $toleranciaDias = \App\Models\Ajuste::obtenerToleranciaPagos();
-        
-        // Calcular días desde la fecha de pago más la tolerancia
-        $fechaLimite = \Carbon\Carbon::parse($cuotaMasAntigua->fecha_pago)->addDays($toleranciaDias);
-        
-        // Solo contar días de retraso si ya pasó el período de tolerancia
-        return max(0, \Carbon\Carbon::now()->diffInDays($fechaLimite, false));
-    }
-
-    /**
-     * Obtiene las cuotas en período de tolerancia (vencidas pero dentro del margen permitido)
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getCuotasEnToleranciaAttribute()
-    {
-        // Obtener la tolerancia de pagos configurada
-        $toleranciaDias = \App\Models\Ajuste::obtenerToleranciaPagos();
-        
-        // Si no hay tolerancia, no hay cuotas en tolerancia
-        if ($toleranciaDias == 0) {
-            return collect();
-        }
-        
-        // Fecha límite para tolerancia
-        $fechaLimiteTolerancia = \Carbon\Carbon::now()->subDays($toleranciaDias)->endOfDay();
-        
-        return $this->pagos()
-            ->where('estado', 'pendiente')
-            ->where('tipo_pago', 'cuota')
-            ->where('fecha_pago', '<', \Carbon\Carbon::now()->endOfDay()) // Vencidas
-            ->where('fecha_pago', '>=', $fechaLimiteTolerancia) // Pero dentro de tolerancia
-            ->orderBy('fecha_pago', 'asc')
-            ->get();
-    }
-
-    /**
-     * Obtiene el número de cuotas en período de tolerancia
-     * 
-     * @return int
-     */
-    public function getNumCuotasEnToleranciaAttribute()
-    {
-        return $this->cuotas_en_tolerancia->count();
-    }
-
-    /**
-     * Obtiene el monto total de cuotas en período de tolerancia (considerando parcialidades)
-     * 
-     * @return float
-     */
-    public function getMontoEnToleranciaAttribute()
-    {
-        return $this->cuotas_en_tolerancia->sum(function($pago) {
-            return $pago->monto_pendiente;
-        });
-    }
-
-    /**
-     * Obtiene todas las cuotas pendientes (vencidas y por vencer)
-     * 
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getCuotasPendientesAttribute()
-    {
-        return $this->pagos()
-            ->where('estado', 'pendiente')
-            ->where('tipo_pago', 'cuota')
-            ->orderBy('fecha_pago', 'asc')
-            ->get();
-    }
-
-    /**
-     * Obtiene el monto total pendiente de todas las cuotas (considerando parcialidades)
-     * 
-     * @return float
-     */
-    public function getMontoPendienteTotalAttribute()
-    {
-        return $this->cuotas_pendientes->sum(function($pago) {
-            return $pago->monto_pendiente;
-        });
-    }
-
-    /**
-     * Verifica si el contrato tiene cuotas vencidas
-     * 
-     * @return bool
-     */
-    public function getTieneCuotasVencidasAttribute()
-    {
-        return $this->num_cuotas_vencidas > 0;
-    }
-
-    /**
-     * Obtiene la próxima cuota a vencer
-     * 
-     * @return \App\Models\Pago|null
-     */
-    public function getProximaCuotaAttribute()
-    {
-        return $this->pagos()
-            ->where('estado', 'pendiente')
-            ->where('tipo_pago', 'cuota')
-            ->where('fecha_pago', '>=', now())
-            ->orderBy('fecha_pago', 'asc')
-            ->first();
-    }
-
-    /**
-     * Obtiene el número de cuotas pagadas del contrato
-     * 
-     * @return int
-     */
-    public function getCuotasPagadasAttribute()
-    {
-        return $this->pagos()
-            ->where('estado', 'hecho')
-            ->where('tipo_pago', 'cuota')
-            ->count();
-    }
-
-    /**
-     * Obtiene información resumida del estado de pagos
+     * Obtiene el estado detallado de pagos para la vista show
      * 
      * @return array
      */
     public function getEstadoPagosAttribute()
     {
-        $cuotasVencidas = $this->num_cuotas_vencidas;
-        $montoVencido = $this->monto_vencido;
-        $cuotasEnTolerancia = $this->num_cuotas_en_tolerancia;
-        $montoEnTolerancia = $this->monto_en_tolerancia;
-        $diasRetraso = $this->dias_retraso;
-        $proximaCuota = $this->proxima_cuota;
-        $tolerancia = \App\Models\Ajuste::obtenerToleranciaPagos();
-        
+        $pagosPendientes = $this->pagos()->where('estado', 'pendiente')->where('tipo_pago', 'cuota')->get();
+
+        $cuotasVencidas = 0;
+        $montoVencido = 0;
+        $maxDiasRetraso = 0;
+
+        $cuotasEnTolerancia = 0;
+
+        foreach ($pagosPendientes as $pago) {
+            if (pagoEstaRetrasado($pago->fecha_pago, $pago->estado)) {
+                $cuotasVencidas++;
+                // Usar monto_pendiente si existe, si no usar monto total
+                $monto = $pago->monto_pendiente ?? $pago->monto;
+                $montoVencido += $monto;
+
+                $dias = diasDeRetraso($pago->fecha_pago, $pago->estado);
+                if ($dias > $maxDiasRetraso) {
+                    $maxDiasRetraso = $dias;
+                }
+            } else {
+                // Verificar si está en tolerancia
+                $fechaPago = \Carbon\Carbon::parse($pago->fecha_pago);
+                $enTolerancia = $fechaPago->isPast(); // Si ya pasó la fecha pero no está "retrasado" (según función helper), está en tolerancia
+
+                if ($enTolerancia) {
+                    $cuotasEnTolerancia++;
+                }
+            }
+        }
+
         return [
+            'tiene_vencidas' => $cuotasVencidas > 0,
             'cuotas_vencidas' => $cuotasVencidas,
             'monto_vencido' => $montoVencido,
-            'cuotas_en_tolerancia' => $cuotasEnTolerancia,
-            'monto_en_tolerancia' => $montoEnTolerancia,
-            'dias_retraso' => $diasRetraso,
-            'tiene_vencidas' => $cuotasVencidas > 0,
+            'dias_retraso' => $maxDiasRetraso,
             'tiene_en_tolerancia' => $cuotasEnTolerancia > 0,
-            'tolerancia_dias' => $tolerancia,
-            'proxima_cuota' => $proximaCuota ? [
-                'monto' => $proximaCuota->monto,
-                'fecha' => $proximaCuota->fecha_pago,
-                'dias_restantes' => \Carbon\Carbon::parse($proximaCuota->fecha_pago)->diffInDays(now(), false)
-            ] : null,
-            'monto_pendiente_total' => $this->monto_pendiente_total
+            'cuotas_en_tolerancia' => $cuotasEnTolerancia,
+            'tolerancia_dias' => toleranciaPagos()
         ];
     }
-    
+
+    /**
+     * Calcula la siguiente cuota a pagar basada en el progreso del contrato
+     * 
+     * @return object|null Retorna un objeto similar a Pago con los datos calculados o null si el contrato está finalizado
+     */
+    /**
+     * Calcula el monto real de la cuota (usando config o promedio)
+     */
+    public function getMontoCuotaRealAttribute()
+    {
+        if ($this->monto_cuota > 0) {
+            return $this->monto_cuota;
+        }
+
+        $montoInicial = $this->monto_inicial ?? 0;
+        $montoBonificacion = $this->monto_bonificacion ?? 0;
+        $montoFinanciado = max(0, $this->monto_total - $montoInicial - $montoBonificacion);
+
+        return $this->numero_cuotas > 0 ? $montoFinanciado / $this->numero_cuotas : 0;
+    }
+
+    /**
+     * Calcula cuántas cuotas se han pagado en total (con decimales)
+     */
+    public function getCuotasPagadasDecimalAttribute()
+    {
+        $montoCuota = $this->monto_cuota_real;
+
+        if ($montoCuota <= 0)
+            return 0;
+
+        $totalPagado = $this->pagos()->where('estado', 'hecho')->sum('monto');
+
+        return $totalPagado / $montoCuota;
+    }
+
+    /**
+     * Calcula la siguiente cuota a pagar basada en el progreso del contrato
+     * 
+     * @return object|null Retorna un objeto similar a Pago con los datos calculados o null si el contrato está finalizado
+     */
+    public function getSiguientePagoCalculadoAttribute()
+    {
+        // 1. Obtener datos base
+        $montoCuota = $this->monto_cuota_real;
+
+        if ($montoCuota <= 0) {
+            return null; // Evitar división por cero
+        }
+
+        // 2. Calcular cuotas pagadas (incluyendo fracciones)
+        $cuotasPagadasDecimal = $this->cuotas_pagadas_decimal;
+        $totalPagado = $this->pagos()->where('estado', 'hecho')->sum('monto');
+
+        $montoInicial = $this->monto_inicial ?? 0;
+        $montoBonificacion = $this->monto_bonificacion ?? 0;
+        $montoFinanciado = max(0, $this->monto_total - $montoInicial - $montoBonificacion);
+
+        // 3. Calcular la fecha del próximo pago
+        // Fórmula: Fecha Inicio + (Cuotas Pagadas * Frecuencia)
+        $fechaInicio = \Carbon\Carbon::parse($this->fecha_inicio);
+        $diasPagados = $cuotasPagadasDecimal * $this->frecuencia_cuotas;
+        $fechaProgramada = $fechaInicio->copy()->addDays($diasPagados); // Aquí sumamos los días exactos calculados
+
+        // Determinar el número de la siguiente cuota (entero)
+        $siguienteNumeroCuota = floor($cuotasPagadasDecimal) + 1;
+
+        // Si ya se cubrió todo el monto financiado, no hay siguiente
+        if ($totalPagado >= $montoFinanciado || $siguienteNumeroCuota > $this->numero_cuotas + 1) { // +1 por margen de error en decimales
+            // Validar si realmente saldo pendiente es 0 o muy bajo
+            if ($this->saldo_pendiente < 1) {
+                return null;
+            }
+        }
+
+        // Ajustar el número de cuota para visualización (tope en total de cuotas)
+        $numeroCuotaVisual = min($siguienteNumeroCuota, $this->numero_cuotas);
+
+        // 4. Calcular el monto pendiente para COMPLETAR la siguiente cuota entera
+        // Cuanto falta para llegar al siguiente entero: (Siguiente entero - Actual decimal) * Monto Cuota
+        $fraccionPendiente = $siguienteNumeroCuota - $cuotasPagadasDecimal;
+        $montoPendienteParaSiguiente = $fraccionPendiente * $montoCuota;
+
+        // Asegurar que no exceda el saldo total pendiente real del contrato
+        $montoPendienteParaSiguiente = min($montoPendienteParaSiguiente, $this->saldo_pendiente);
+
+        // 5. Crear objeto simulado
+        $pagoSimulado = new \App\Models\Pago();
+        $pagoSimulado->id = null; // Sin ID
+        $pagoSimulado->contrato_id = $this->id;
+        $pagoSimulado->tipo_pago = 'cuota';
+        $pagoSimulado->numero_cuota = $numeroCuotaVisual;
+        $pagoSimulado->monto = $montoCuota; // El monto "ideal" de la cuota
+        $pagoSimulado->monto_pendiente = $montoPendienteParaSiguiente; // Lo que falta para estar "al día" con esa cuota
+        $pagoSimulado->fecha_pago = $fechaProgramada;
+        $pagoSimulado->estado = 'pendiente';
+
+        return $pagoSimulado;
+    }
 }

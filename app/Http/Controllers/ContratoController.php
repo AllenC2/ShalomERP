@@ -47,16 +47,13 @@ class ContratoController extends Controller
 
         $contratos = $contratosQuery->paginate();
 
-        // Calcular porcentaje pagado y información de cuotas para cada contrato
+        // Calcular porcentaje pagado para cada contrato
         foreach ($contratos as $contrato) {
             $pagado = Pago::where('contrato_id', $contrato->id)
                 ->where('estado', 'hecho')
                 ->sum('monto');
             $total = $contrato->monto_total ?? 0;
             $contrato->porcentaje_pagado = $total > 0 ? round(($pagado / $total) * 100, 2) : 0;
-
-            // Agregar información de cuotas vencidas y pendientes
-            $contrato->estado_pagos = $contrato->estado_pagos;
         }
 
         // Si es una petición AJAX, devolver solo la vista parcial
@@ -147,6 +144,12 @@ class ContratoController extends Controller
             $data['fecha_fin'] = $fechaInicio->copy()->addYear()->format('Y-m-d'); // Por defecto 1 año
         }
 
+        // Calcular monto_cuota referencial
+        $saldoAFinanciar = max($montoTotal - $montoInicial - $montoBonificacion, 0);
+        if ($numeroCuotas > 0) {
+            $data['monto_cuota'] = round($saldoAFinanciar / $numeroCuotas, 2);
+        }
+
         // Crear el contrato
         if ($customId) {
             // Crear con ID personalizado usando DB::statement para saltarse auto-increment
@@ -163,12 +166,10 @@ class ContratoController extends Controller
         if ($montoInicial > 0) {
             \App\Models\Pago::create([
                 'contrato_id' => $contrato->id,
-                'tipo_pago' => 'inicial',
                 'metodo_pago' => 'otro',
                 'monto' => $montoInicial,
                 'fecha_pago' => $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now(),
                 'referencia' => null,
-                'saldo_restante' => $montoTotal - $montoInicial,
                 'documento' => null,
                 'observaciones' => 'Pago inicial',
                 'estado' => 'hecho',
@@ -177,82 +178,21 @@ class ContratoController extends Controller
 
         // Crear pago de bonificación si existe monto_bonificacion
         if ($montoBonificacion > 0) {
-            $saldoRestanteDespuesInicial = $montoTotal - $montoInicial;
             \App\Models\Pago::create([
                 'contrato_id' => $contrato->id,
-                'tipo_pago' => 'bonificación',
                 'metodo_pago' => 'otro',
                 'monto' => $montoBonificacion,
                 'fecha_pago' => $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now(),
                 'referencia' => null,
-                'saldo_restante' => $saldoRestanteDespuesInicial - $montoBonificacion,
                 'documento' => null,
                 'observaciones' => 'Bonificación aplicada',
                 'estado' => 'hecho',
             ]);
         }
 
-        // Calcular saldo pendiente para pagos futuros
-        $saldoPendiente = max($montoTotal - $montoInicial - $montoBonificacion, 0);
+        // NOTA: Ya no se generan cuotas automáticas ("pagos pendientes")
 
-        // Crear pagos automáticos según numero_cuotas
-        $numeroCuotas = (int) ($contrato->numero_cuotas ?? 0);
-        $frecuenciaCuotas = (int) ($contrato->frecuencia_cuotas ?? 7);
-        $fechaInicio = $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now();
-
-        if ($numeroCuotas > 0 && $saldoPendiente > 0) {
-            // Calcular distribución exacta de pagos
-            $montoPorCuotaBase = floor(($saldoPendiente / $numeroCuotas) * 100) / 100;
-            $totalCuotasBase = $montoPorCuotaBase * $numeroCuotas;
-            $ajusteUltimaCuota = round($saldoPendiente - $totalCuotasBase, 2);
-
-            $saldoActual = $saldoPendiente;
-
-            for ($i = 1; $i <= $numeroCuotas; $i++) {
-                // Calcular fecha de pago basada en frecuencia de días
-                $fechaPago = $fechaInicio->copy()->addDays($frecuenciaCuotas * $i);
-
-                // Determinar el monto de esta cuota
-                if ($i == $numeroCuotas) {
-                    // La última cuota incluye cualquier ajuste por decimales
-                    $monto = $montoPorCuotaBase + $ajusteUltimaCuota;
-                } else {
-                    $monto = $montoPorCuotaBase;
-                }
-
-                // Asegurar que no hay montos negativos
-                $monto = max($monto, 0);
-
-                // Calcular saldo restante después de este pago
-                $saldoRestanteDespuesPago = max($saldoActual - $monto, 0);
-
-                // Generar observaciones descriptivas
-                $observaciones = 'Cuota ' . $i . ' de ' . $numeroCuotas;
-                if ($i == $numeroCuotas && abs($ajusteUltimaCuota) > 0.01) {
-                    $observaciones .= ($ajusteUltimaCuota > 0 ? ' (Incluye ajuste +$' : ' (Incluye ajuste -$')
-                        . number_format(abs($ajusteUltimaCuota), 2) . ' por decimales)';
-                }
-
-                \App\Models\Pago::create([
-                    'contrato_id' => $contrato->id,
-                    'tipo_pago' => 'cuota',
-                    'metodo_pago' => 'otro',
-                    'monto' => round($monto, 2),
-                    'fecha_pago' => $fechaPago,
-                    'numero_cuota' => $i, // Asignar el número de cuota que coincide con las observaciones
-                    'referencia' => null,
-                    'saldo_restante' => round($saldoRestanteDespuesPago, 2),
-                    'documento' => null,
-                    'observaciones' => $observaciones,
-                    'estado' => 'pendiente',
-                ]);
-
-                // Actualizar saldo actual para la siguiente iteración
-                $saldoActual = $saldoRestanteDespuesPago;
-            }
-        }
-
-        // Crear comisiones si se proporcionaron
+        // Crear comisiones si se proporcionaron (simplificado)
         if ($request->has('comisiones') && is_array($request->comisiones)) {
             foreach ($request->comisiones as $porcentaje_id => $empleado_id) {
                 if (!empty($empleado_id)) {
@@ -262,7 +202,7 @@ class ContratoController extends Controller
 
                         \App\Models\Comisione::create([
                             'contrato_id' => $contrato->id,
-                            'nombre_paquete' => $contrato->paquete->nombre,
+                            'nombre_paquete' => $contrato->paquete->nombre ?? '',
                             'empleado_id' => $empleado_id,
                             'fecha_comision' => $contrato->fecha_inicio ?? now(),
                             'porcentaje' => $porcentaje->cantidad_porcentaje,
@@ -278,7 +218,7 @@ class ContratoController extends Controller
         }
 
         return Redirect::route('contratos.show', $contrato->id)
-            ->with('success', 'Contrato creado correctamente..');
+            ->with('success', 'Contrato creado correctamente.');
     }
 
     /**
@@ -457,126 +397,22 @@ class ContratoController extends Controller
             }
         }
 
-        $contrato->update($data);
+        // Recalcular monto_cuota referencial si cambian los valores
+        if (isset($data['monto_total']) || isset($data['monto_inicial']) || isset($data['monto_bonificacion']) || isset($data['numero_cuotas'])) {
+            $total = $data['monto_total'] ?? $contrato->monto_total;
+            $inicial = $data['monto_inicial'] ?? $contrato->monto_inicial;
+            $bono = $data['monto_bonificacion'] ?? $contrato->monto_bonificacion;
+            $cuotas = $data['numero_cuotas'] ?? $contrato->numero_cuotas;
 
-        // Regenerar pagos automáticos si se modificaron los parámetros del contrato
-        if (isset($data['numero_cuotas']) || isset($data['frecuencia_cuotas']) || isset($data['monto_inicial']) || isset($data['monto_bonificacion']) || isset($data['fecha_inicio'])) {
-            // Eliminar solo cuotas pendientes, conservar pagos Inicial, Bonificacion y Abono que ya estén "Hecho"
-            \App\Models\Pago::where('contrato_id', $contrato->id)
-                ->where('tipo_pago', 'cuota')
-                ->where('estado', 'pendiente')
-                ->delete();
-
-            // Recalcular y crear nuevos pagos
-            $montoTotal = $contrato->monto_total;
-            $montoInicial = $contrato->monto_inicial ?? 0;
-            $montoBonificacion = $contrato->monto_bonificacion ?? 0;
-
-            // Verificar si ya existe un pago inicial
-            $pagoInicialExiste = \App\Models\Pago::where('contrato_id', $contrato->id)
-                ->where('tipo_pago', 'inicial')
-                ->exists();
-
-            // Verificar si ya existe un pago de bonificación
-            $pagoBonificacionExiste = \App\Models\Pago::where('contrato_id', $contrato->id)
-                ->where('tipo_pago', 'bonificación')
-                ->exists();
-
-            // Crear pago inicial si no existe y hay monto inicial
-            if (!$pagoInicialExiste && $montoInicial > 0) {
-                \App\Models\Pago::create([
-                    'contrato_id' => $contrato->id,
-                    'tipo_pago' => 'inicial',
-                    'metodo_pago' => 'otro',
-                    'monto' => $montoInicial,
-                    'fecha_pago' => $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now(),
-                    'referencia' => null,
-                    'saldo_restante' => $montoTotal - $montoInicial,
-                    'documento' => null,
-                    'observaciones' => 'Pago inicial',
-                    'estado' => 'hecho',
-                ]);
-            }
-
-            // Crear pago de bonificación si no existe y hay monto bonificación
-            if (!$pagoBonificacionExiste && $montoBonificacion > 0) {
-                $saldoRestanteDespuesInicial = $montoTotal - $montoInicial;
-                \App\Models\Pago::create([
-                    'contrato_id' => $contrato->id,
-                    'tipo_pago' => 'bonificación',
-                    'metodo_pago' => 'otro',
-                    'monto' => $montoBonificacion,
-                    'fecha_pago' => $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now(),
-                    'referencia' => null,
-                    'saldo_restante' => $saldoRestanteDespuesInicial - $montoBonificacion,
-                    'documento' => null,
-                    'observaciones' => 'Bonificación aplicada',
-                    'estado' => 'hecho',
-                ]);
-            }
-
-            // Calcular saldo pendiente para pagos futuros
-            $saldoPendiente = max($montoTotal - $montoInicial - $montoBonificacion, 0);
-
-            // Crear pagos automáticos según numero_cuotas
-            $numeroCuotas = (int) ($contrato->numero_cuotas ?? 0);
-            $frecuenciaCuotas = (int) ($contrato->frecuencia_cuotas ?? 7);
-            $fechaInicio = $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now();
-
-            if ($numeroCuotas > 0 && $saldoPendiente > 0) {
-                // Calcular distribución exacta de pagos
-                $montoPorCuotaBase = floor(($saldoPendiente / $numeroCuotas) * 100) / 100;
-                $totalCuotasBase = $montoPorCuotaBase * $numeroCuotas;
-                $ajusteUltimaCuota = round($saldoPendiente - $totalCuotasBase, 2);
-
-                $saldoActual = $saldoPendiente;
-
-                for ($i = 1; $i <= $numeroCuotas; $i++) {
-                    // Calcular fecha de pago basada en frecuencia de días
-                    $fechaPago = $fechaInicio->copy()->addDays($frecuenciaCuotas * $i);
-
-                    // Determinar el monto de esta cuota
-                    if ($i == $numeroCuotas) {
-                        // La última cuota incluye cualquier ajuste por decimales
-                        $monto = $montoPorCuotaBase + $ajusteUltimaCuota;
-                    } else {
-                        $monto = $montoPorCuotaBase;
-                    }
-
-                    // Asegurar que no hay montos negativos
-                    $monto = max($monto, 0);
-
-                    // Calcular saldo restante después de este pago
-                    $saldoRestanteDespuesPago = max($saldoActual - $monto, 0);
-
-                    // Generar observaciones descriptivas
-                    $observaciones = 'Cuota ' . $i . ' de ' . $numeroCuotas;
-                    if ($i == $numeroCuotas && abs($ajusteUltimaCuota) > 0.01) {
-                        $observaciones .= ($ajusteUltimaCuota > 0 ? ' (Incluye ajuste +$' : ' (Incluye ajuste -$')
-                            . number_format(abs($ajusteUltimaCuota), 2) . ' por decimales)';
-                    }
-
-                    \App\Models\Pago::create([
-                        'contrato_id' => $contrato->id,
-                        'tipo_pago' => 'cuota',
-                        'metodo_pago' => 'otro',
-                        'monto' => round($monto, 2),
-                        'fecha_pago' => $fechaPago,
-                        'numero_cuota' => $i, // Asignar el número de cuota que coincide con las observaciones
-                        'referencia' => null,
-                        'saldo_restante' => round($saldoRestanteDespuesPago, 2),
-                        'documento' => null,
-                        'observaciones' => $observaciones,
-                        'estado' => 'pendiente',
-                    ]);
-
-                    // Actualizar saldo actual para la siguiente iteración
-                    $saldoActual = $saldoRestanteDespuesPago;
-                }
+            $saldoAFinanciar = max($total - $inicial - $bono, 0);
+            if ($cuotas > 0) {
+                $data['monto_cuota'] = round($saldoAFinanciar / $cuotas, 2);
             }
         }
 
-        // Actualizar comisiones si se proporcionaron
+        $contrato->update($data);
+
+        // Actualizar comisiones si se proporcionaron (simplificado)
         if ($request->has('comisiones') && is_array($request->comisiones)) {
             // Eliminar comisiones existentes para este contrato
             \App\Models\Comisione::where('contrato_id', $contrato->id)->delete();
@@ -897,7 +733,6 @@ class ContratoController extends Controller
         $contrato = Contrato::with([
             'cliente',
             'paquete',
-            'empleado',
             'pagos' => function ($query) {
                 $query->orderBy('fecha_pago', 'asc');
             }
@@ -907,12 +742,13 @@ class ContratoController extends Controller
         $empresa = \App\Models\Ajuste::obtenerDatosEmpresa();
 
         // Verificar si se está filtrando por período
-        $filtrarPorPeriodo = $request->has(['periodo', 'fecha_inicio', 'fecha_fin']);
+        // Verificar si se está filtrando por período (ahora solo requieren fechas)
+        $filtrarPorPeriodo = $request->has(['fecha_inicio', 'fecha_fin']);
         $periodoSeleccionado = null;
 
         if ($filtrarPorPeriodo) {
             $periodoSeleccionado = [
-                'numero' => $request->get('periodo'),
+                'numero' => $request->get('periodo', 'Personalizado'),
                 'fecha_inicio' => \Carbon\Carbon::parse($request->get('fecha_inicio')),
                 'fecha_fin' => \Carbon\Carbon::parse($request->get('fecha_fin'))
             ];

@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -14,7 +13,7 @@ return new class extends Migration
         Schema::create('contratos', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('cliente_id');
-            $table->unsignedBigInteger('empleado_id')->nullable();
+            // $table->unsignedBigInteger('empleado_id')->nullable(); // Removed in refactor
             $table->unsignedBigInteger('paquete_id')->nullable(); // Paquete asociado al contrato
 
             $table->date('fecha_inicio');
@@ -33,7 +32,6 @@ return new class extends Migration
             $table->enum('estado', ['activo', 'cancelado', 'finalizado', 'suspendido'])->default('activo');
 
             $table->foreign('cliente_id')->references('id')->on('clientes')->onDelete('cascade');
-            $table->foreign('empleado_id')->references('id')->on('empleados')->onDelete('set null');
             $table->foreign('paquete_id')->references('id')->on('paquetes')->onDelete('set null');
             $table->timestamps();
         });

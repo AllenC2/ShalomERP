@@ -250,7 +250,7 @@
                                         <div class="col-md-6">
                                             <div class="info-section">
                                                 <h6 class="text-muted text-uppercase small fw-bold mb-3">
-                                                    <i class="bi bi-currency-dollar me-2"></i>aInformación Financiera
+                                                    <i class="bi bi-currency-dollar me-2"></i>Información Financiera
                                                 </h6>
 
                                                 <div class="row g-3">
@@ -280,14 +280,13 @@
                                                                     </div>
                                                                 </div>
                                                                 @php
-                                                                    // Calcular cuotas (solo pagos de tipo "cuota")
-                                                                    $cuotasPagadas = $pagos_contrato->filter(function ($pago) {
-                                                                        return $pago->estado == 'hecho' &&
-                                                                            strtolower($pago->tipo_pago ?? '') == 'cuota';
-                                                                    })->count();
-
+                                                                    // Usar el cálculo decimal de cuotas pagadas basado en monto
+                                                                    $cuotasPagadas = $contrato->cuotas_pagadas_decimal;
                                                                     $totalCuotas = $contrato->numero_cuotas ?? 0;
-                                                                    $porcentajeCuotas = $totalCuotas > 0 ? ($cuotasPagadas / $totalCuotas) * 100 : 0;
+
+                                                                    // Asegurar que no exceda el 100% por decimales o pagos extra
+                                                                    $porcentajeCuotas = $totalCuotas > 0 ? min(100, ($cuotasPagadas / $totalCuotas) * 100) : 0;
+
                                                                     $circumference = 2 * pi() * 45; // radio = 45
                                                                     $strokeDasharray = $circumference;
                                                                     $strokeDashoffset = $circumference - ($porcentajeCuotas / 100) * $circumference;
@@ -316,7 +315,7 @@
                                                                                 class="position-absolute top-50 start-50 translate-middle text-center">
                                                                                 <div class="fw-bold text-success"
                                                                                     style="font-size: 14px; line-height: 1;">
-                                                                                    {{ $cuotasPagadas }}/{{ $totalCuotas }}
+                                                                                    {{ intval($cuotasPagadas) }}/{{ $totalCuotas }}
                                                                                     <small class="text-muted">cuotas</small>
                                                                                 </div>
                                                                             </div>
@@ -421,39 +420,35 @@
 
                         <!-- Siguiente Cuota Pendiente -->
                         @php
-                            // Buscar la siguiente cuota pendiente de tipo "cuota"
-                            $siguienteCuota = $pagos_contrato
-                                ->where('estado', 'pendiente')
-                                ->where('tipo_pago', 'cuota')
-                                ->sortBy('fecha_pago')
-                                ->first();
+                            // Usar el nuevo atributo calculado que no depende de registros previos en BD para cuotas futuras
+                            $siguienteCuota = $contrato->siguiente_pago_calculado;
 
                             // Si hay una siguiente cuota, buscar parcialidades relacionadas
                             $parcialidadesRelacionadas = collect();
                             if ($siguienteCuota) {
-                                // Buscar parcialidades que mencionen el folio de la cuota en observaciones
-                                $parcialidadesRelacionadas = $pagos_contrato
-                                    ->where('tipo_pago', 'parcialidad')
-                                    ->where('estado', 'hecho')
-                                    ->filter(function ($pago) use ($siguienteCuota) {
-                                        $observaciones = strtolower($pago->observaciones ?? '');
-                                        $folioCuota = $siguienteCuota->id;
-                                        return strpos($observaciones, "cuota $folioCuota") !== false ||
-                                            strpos($observaciones, "folio $folioCuota") !== false ||
-                                            strpos($observaciones, "#$folioCuota") !== false;
-                                    });
+                                // Si es un objeto simulado (id null), no tiene parcialidades aun
+                                if ($siguienteCuota->id) {
+                                    // Buscar parcialidades que mencionen el folio de la cuota en observaciones
+                                    $parcialidadesRelacionadas = $pagos_contrato
+                                        ->where('tipo_pago', 'parcialidad')
+                                        ->where('estado', 'hecho')
+                                        ->filter(function ($pago) use ($siguienteCuota) {
+                                            $observaciones = strtolower($pago->observaciones ?? '');
+                                            $folioCuota = $siguienteCuota->id;
+                                            return strpos($observaciones, "cuota $folioCuota") !== false ||
+                                                strpos($observaciones, "folio $folioCuota") !== false ||
+                                                strpos($observaciones, "#$folioCuota") !== false;
+                                        });
+                                }
                             }
                         @endphp
 
                         @if($siguienteCuota)
-                            <h6 class="text-muted text-uppercase small fw-bold mb-3">
-                                <i class="bi bi-cash-coin me-2"></i>Registrar un nuevo pago
-                            </h6>
                             <div class="card mb-4">
                                 <div class="card-header bg-white">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h5 class="card-title mb-0">
-                                            <i class="bi bi-calendar-event me-2" style="color: #79481D;"></i>Siguiente cuota
+                                            <i class="bi bi-calendar-event me-2" style="color: #79481D;"></i>Registro de pagos
                                         </h5>
                                         @php
                                             $fechaCuota = \Carbon\Carbon::parse($siguienteCuota->fecha_pago);
@@ -480,7 +475,7 @@
                                 <div class="card-body">
                                     <div class="row">
                                         <!-- Columna izquierda: Información de la cuota -->
-                                        <div class="col-8">
+                                        <div class="col-12">
                                             @php
                                                 // Usar la misma lógica que en el historial
                                                 $esRetrasadoCuota = pagoEstaRetrasado($siguienteCuota->fecha_pago, $siguienteCuota->estado);
@@ -519,7 +514,7 @@
                                             @endphp
 
                                             <!-- Tarjeta de información de cuota con el mismo estilo del historial -->
-                                            <div class="card payment-card border-start border-3 {{ $colorBordeCuota }}">
+                                            <div class="mb-3 card payment-card border-start border-3 {{ $colorBordeCuota }}">
                                                 <div class="card-body">
                                                     <div class="d-flex justify-content-between">
                                                         <div>
@@ -533,14 +528,18 @@
                                                             <span class="badge bg-{{ $colorBadgeCuota }}">
                                                                 {{ $textoBadge }}
                                                             </span>
-                                                            <span class="badge bg-secondary">
-                                                                Folio #{{ $siguienteCuota->id }}
-                                                            </span>
+                                                            @if($siguienteCuota->id)
+
+                                                            @else
+                                                                <span class="badge bg-light text-dark border">
+                                                                    Calculada
+                                                                </span>
+                                                            @endif
                                                         </div>
                                                         <div class="text-end">
                                                             @php
                                                                 $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
-                                                                $montoRestante = $siguienteCuota->monto_pendiente;
+                                                                $montoRestante = $siguienteCuota->monto_pendiente ?? $siguienteCuota->monto;
                                                             @endphp
 
                                                             @if($montoParcialidades > 0)
@@ -604,54 +603,27 @@
                                                     @endif
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <!-- Columna derecha: Progreso y acciones -->
-                                        <div class="col-4">
                                             @php
                                                 $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
-                                                $montoRestante = $siguienteCuota->monto_pendiente;
+                                                $montoRestante = $siguienteCuota->monto_pendiente ?? $siguienteCuota->monto;
 
                                                 // Calcular cuota regular del contrato
                                                 $montoInicial = $contrato->monto_inicial ?? 0;
                                                 $montoBonificacion = $contrato->monto_bonificacion ?? 0;
                                                 $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
                                                 $cuotaRegular = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
-
-                                                // Calcular porcentaje que representa el saldo restante respecto a la cuota regular
-                                                $porcentajeSaldoVsCuota = $cuotaRegular > 0 ? ($montoRestante / $cuotaRegular) * 100 : 0;
-                                                $porcentajePagadoVsCuota = $cuotaRegular > 0 ? ($montoParcialidades / $cuotaRegular) * 100 : 0;
                                             @endphp
 
                                             <div class="text-center h-100 d-flex flex-column justify-content-between">
-                                                <!-- Gráfico de progreso -->
-                                                <div class="mb-3">
-
-
-                                                    <h6 class="fw-bold mb-2" style="font-size: 0.9em;">Progreso de Pago de Cuota
-                                                    </h6>
-
-                                                    <!-- Información de montos -->
-                                                    <div class="row text-center mb-2">
-                                                        <div class="col-6">
-                                                            <small class="text-muted d-block">Pagado</small>
-                                                            <small class="fw-bold text-success"
-                                                                style="font-size: 1.2em;">${{ number_format($montoParcialidades, 2) }}</small>
-                                                        </div>
-                                                        <div class="col-6">
-                                                            <small class="text-muted d-block">Restante</small>
-                                                            <small class="fw-bold text-secondary"
-                                                                style="font-size: 1.2em;">${{ number_format(max(0, $montoRestante), 2) }}</small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
                                                 <!-- Botones de acción -->
                                                 <div class="d-grid gap-2">
-                                                    <a href="{{ route('pagos.show', $siguienteCuota->id) }}"
-                                                        class="btn btn-outline-primary btn-sm">
-                                                        <i class="bi bi-eye me-1"></i>Ver detalles
-                                                    </a>
+                                                    @if($siguienteCuota->id)
+                                                        <a href="{{ route('pagos.show', $siguienteCuota->id) }}"
+                                                            class="btn btn-outline-primary btn-sm">
+                                                            <i class="bi bi-eye me-1"></i>Ver detalles
+                                                        </a>
+                                                    @endif
                                                     <a href="{{ route('pagos.create', ['contrato_id' => $contrato->id]) }}"
                                                         class="btn btn-success btn-sm">
                                                         <i class="bi bi-cash-coin me-1"></i>Registrar pago
@@ -667,224 +639,119 @@
                         @if(Auth::check() && Auth::user()->role === 'admin')
                             <!-- Historial de pagos -->
                             <div class="card">
-                                <div class="accordion accordion-flush" id="accordionHistorialPagos">
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header" id="headingHistorialPagos">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                                data-bs-target="#collapseHistorialPagos" aria-expanded="false"
-                                                aria-controls="collapseHistorialPagos">
-                                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
-                                                    <div>
-                                                        <h5 class="card-title mb-0"><i class="bi bi-credit-card me-2"
-                                                                style="color: #79481D;"></i>Historial de Pagos</h5>
-                                                    </div>
-                                                    <div class="d-flex gap-2">
-                                                        <span
-                                                            class="badge bg-success">{{ $pagos_contrato->where('estado', 'hecho')->count() }}
-                                                            pagos</span>
-                                                        <span
-                                                            class="badge bg-warning text-dark">{{ $pagos_contrato->where('estado', 'pendiente')->count() }}
-                                                            cuotas pendientes</span>
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        </h2>
-                                        <div id="collapseHistorialPagos" class="accordion-collapse collapse"
-                                            aria-labelledby="headingHistorialPagos" data-bs-parent="#accordionHistorialPagos">
-                                            <div class="accordion-body">
-                                                <div class="timeline">
-                                                    @forelse($pagos_contrato->sortBy('fecha_pago') as $pago)
-                                                        <div class="timeline-item mb-4">
-                                                            @php
-                                                                $fechaPago = \Carbon\Carbon::parse($pago->fecha_pago);
-                                                                $diaSemana = ucfirst($fechaPago->dayName);
-                                                                $mesNombre = ucfirst($fechaPago->monthName);
-                                                                $fechaFormateada = $fechaPago->format('d') . ' de ' . $mesNombre . ' de ' . $fechaPago->format('Y');
-                                                                $esRetrasado = pagoEstaRetrasado($pago->fecha_pago, $pago->estado);
-                                                                $esPagoEspecial = in_array(strtolower($pago->tipo_pago ?? ''), ['inicial', 'bonificación']);
-                                                                $esParcialidad = strtolower($pago->tipo_pago ?? '') == 'parcialidad';
+                                <div class="card-header bg-white">
+                                    <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                        <div>
+                                            <h5 class="card-title mb-0"><i class="bi bi-credit-card me-2"
+                                                    style="color: #79481D;"></i>Historial de Pagos</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="timeline">
+                                        @forelse($pagos_contrato->sortBy('fecha_pago') as $pago)
+                                            <div class="timeline-item mb-4">
+                                                @php
+                                                    $fechaPago = \Carbon\Carbon::parse($pago->fecha_pago);
+                                                    $diaSemana = ucfirst($fechaPago->dayName);
+                                                    $mesNombre = ucfirst($fechaPago->monthName);
+                                                    $fechaFormateada = $fechaPago->format('d') . ' de ' . $mesNombre . ' de ' . $fechaPago->format('Y');
+                                                    $esRetrasado = pagoEstaRetrasado($pago->fecha_pago, $pago->estado);
+                                                    $esPagoEspecial = in_array(strtolower($pago->tipo_pago ?? ''), ['inicial', 'bonificación']);
+                                                    $esParcialidad = strtolower($pago->tipo_pago ?? '') == 'parcialidad';
 
-                                                                // Determinar si está en período de tolerancia (vencido pero dentro del margen)
-                                                                $enTolerancia = $pago->estado == 'pendiente' &&
-                                                                    $fechaPago->isPast() &&
-                                                                    !$esRetrasado;
+                                                    // Determinar si está en período de tolerancia (vencido pero dentro del margen)
+                                                    $enTolerancia = $pago->estado == 'pendiente' &&
+                                                        $fechaPago->isPast() &&
+                                                        !$esRetrasado;
 
-                                                                // Calcular días de gracia restantes
-                                                                $diasGraciaRestantes = diasDeGraciaRestantes($pago->fecha_pago, $pago->estado);
+                                                    // Calcular días de gracia restantes
+                                                    $diasGraciaRestantes = diasDeGraciaRestantes($pago->fecha_pago, $pago->estado);
 
-                                                                // Determinar color del borde
-                                                                $colorBorde = 'border-light';
-                                                                if ($esPagoEspecial && $pago->estado == 'hecho') {
-                                                                    $colorBorde = 'border-info';
-                                                                } elseif ($esParcialidad && $pago->estado == 'hecho') {
-                                                                    $colorBorde = 'border-success-light';
-                                                                } elseif ($pago->estado == 'hecho') {
-                                                                    $colorBorde = 'border-success';
-                                                                } elseif ($esRetrasado) {
-                                                                    $colorBorde = 'border-danger';
-                                                                } elseif ($enTolerancia) {
-                                                                    $colorBorde = 'border-warning';
-                                                                } elseif ($pago->estado == 'pendiente') {
-                                                                    $colorBorde = 'border-secondary';
-                                                                }
+                                                    // Determinar color del borde
+                                                    $colorBorde = 'border-light';
+                                                    if ($esPagoEspecial && $pago->estado == 'hecho') {
+                                                        $colorBorde = 'border-info';
+                                                    } elseif ($esParcialidad && $pago->estado == 'hecho') {
+                                                        $colorBorde = 'border-success-light';
+                                                    } elseif ($pago->estado == 'hecho') {
+                                                        $colorBorde = 'border-success';
+                                                    } elseif ($esRetrasado) {
+                                                        $colorBorde = 'border-danger';
+                                                    } elseif ($enTolerancia) {
+                                                        $colorBorde = 'border-warning';
+                                                    } elseif ($pago->estado == 'pendiente') {
+                                                        $colorBorde = 'border-secondary';
+                                                    }
 
-                                                                // Determinar color del badge
-                                                                $colorBadge = 'secondary';
-                                                                if ($esPagoEspecial && $pago->estado == 'hecho') {
-                                                                    $colorBadge = 'info';
-                                                                } elseif ($esParcialidad && $pago->estado == 'hecho') {
-                                                                    $colorBadge = 'success-light';
-                                                                } elseif ($pago->estado == 'hecho') {
-                                                                    $colorBadge = 'success';
-                                                                } elseif ($esRetrasado) {
-                                                                    $colorBadge = 'danger';
-                                                                } elseif ($enTolerancia) {
-                                                                    $colorBadge = 'warning text-dark';
-                                                                } elseif ($pago->estado == 'pendiente') {
-                                                                    $colorBadge = 'secondary';
-                                                                }
-                                                            @endphp
+                                                    // Determinar color del badge
+                                                    $colorBadge = 'secondary';
+                                                    if ($esPagoEspecial && $pago->estado == 'hecho') {
+                                                        $colorBadge = 'info';
+                                                    } elseif ($esParcialidad && $pago->estado == 'hecho') {
+                                                        $colorBadge = 'success-light';
+                                                    } elseif ($pago->estado == 'hecho') {
+                                                        $colorBadge = 'success';
+                                                    } elseif ($esRetrasado) {
+                                                        $colorBadge = 'danger';
+                                                    } elseif ($enTolerancia) {
+                                                        $colorBadge = 'warning text-dark';
+                                                    } elseif ($pago->estado == 'pendiente') {
+                                                        $colorBadge = 'secondary';
+                                                    }
+                                                @endphp
 
-                                                            @if($esParcialidad)
-                                                                <!-- Acordeón para pagos de tipo parcialidad -->
-                                                                <div class="accordion accordion-flush"
-                                                                    id="accordion-pago-{{ $pago->id }}">
-                                                                    <div class="accordion-item">
-                                                                        <h2 class="accordion-header" id="heading-pago-{{ $pago->id }}">
-                                                                            <button
-                                                                                class="accordion-button collapsed payment-card border-start border-3 {{ $colorBorde }}"
-                                                                                type="button" data-bs-toggle="collapse"
-                                                                                data-bs-target="#collapse-pago-{{ $pago->id }}"
-                                                                                aria-expanded="false"
-                                                                                aria-controls="collapse-pago-{{ $pago->id }}">
-                                                                                <div class="d-flex justify-content-between w-100 me-3">
-                                                                                    <div>
-                                                                                        @php
-                                                                                            // Obtener número de cuota directamente del pago padre
-                                                                                            $numeroCuotaPadre = null;
-                                                                                            if ($pago->pago_padre_id) {
-                                                                                                $pagoPadre = $pagos_contrato->where('id', $pago->pago_padre_id)->first();
-                                                                                                $numeroCuotaPadre = $pagoPadre ? $pagoPadre->numero_cuota : null;
-                                                                                            }
+                                                @if($esParcialidad)
+                                                    <!-- Acordeón para pagos de tipo parcialidad -->
+                                                    <div class="accordion accordion-flush" id="accordion-pago-{{ $pago->id }}">
+                                                        <div class="accordion-item">
+                                                            <h2 class="accordion-header" id="heading-pago-{{ $pago->id }}">
+                                                                <button
+                                                                    class="accordion-button collapsed payment-card border-start border-3 {{ $colorBorde }}"
+                                                                    type="button" data-bs-toggle="collapse"
+                                                                    data-bs-target="#collapse-pago-{{ $pago->id }}"
+                                                                    aria-expanded="false" aria-controls="collapse-pago-{{ $pago->id }}">
+                                                                    <div class="d-flex justify-content-between w-100 me-3">
+                                                                        <div>
+                                                                            @php
+                                                                                // Obtener número de cuota directamente del pago padre
+                                                                                $numeroCuotaPadre = null;
+                                                                                if ($pago->pago_padre_id) {
+                                                                                    $pagoPadre = $pagos_contrato->where('id', $pago->pago_padre_id)->first();
+                                                                                    $numeroCuotaPadre = $pagoPadre ? $pagoPadre->numero_cuota : null;
+                                                                                }
 
-                                                                                            $tituloParcialidad = $numeroCuotaPadre
-                                                                                                ? "Parcialidad de la Cuota $numeroCuotaPadre"
-                                                                                                : 'Parcialidad';
-                                                                                        @endphp
-                                                                                        <span
-                                                                                            class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadge) }}"
-                                                                                            style="font-size: 1.8em;">
-                                                                                            {{ $tituloParcialidad }}
-                                                                                        </span>
-                                                                                        <br>
-                                                                                        <span class="badge bg-{{ $colorBadge }}">
-                                                                                            {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? ($diasGraciaRestantes > 0 ? 'En gracia por ' . $diasGraciaRestantes . ' días más' : 'Último día de gracia') : ucfirst($pago->estado)) }}
-                                                                                        </span>
-                                                                                        <span class="badge bg-secondary">
-                                                                                            Folio #{{ $pago->id }}
-                                                                                        </span>
-                                                                                        <div class="mt-2" style="font-size: 0.85rem;">
-                                                                                            <div
-                                                                                                class="d-flex align-items-center gap-2">
-                                                                                                <i
-                                                                                                    class="bi bi-calendar-event text-muted"></i>
-                                                                                                <span
-                                                                                                    class="text-muted">Programado:</span>
-                                                                                                <span
-                                                                                                    class="fw-medium text-muted fst-italic">No
-                                                                                                    aplica (Parcialidad)</span>
-                                                                                            </div>
-                                                                                            <div
-                                                                                                class="d-flex align-items-center gap-2">
-                                                                                                <i
-                                                                                                    class="bi bi-check2-circle text-success"></i>
-                                                                                                <span class="text-muted">Pagado
-                                                                                                    el:</span>
-                                                                                                <span
-                                                                                                    class="fw-bold text-dark">{{ $fechaFormateada }}</span>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <div class="text-end">
-                                                                                        <p class="fw-bold mb-0 mt-1"
-                                                                                            style="font-size: 1.8em;">
-                                                                                            ${{ number_format($pago->monto, 2) }}</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </button>
-                                                                        </h2>
-                                                                        <div id="collapse-pago-{{ $pago->id }}"
-                                                                            class="accordion-collapse collapse"
-                                                                            aria-labelledby="heading-pago-{{ $pago->id }}"
-                                                                            data-bs-parent="#accordion-pago-{{ $pago->id }}">
-                                                                            <div class="accordion-body">
-                                                                                <div
-                                                                                    class="d-flex justify-content-between align-items-center">
-                                                                                    <div>
-                                                                                        <p class="mb-0 mt-2">
-                                                                                        <div class="d-flex align-items-center gap-1">
-                                                                                            <i
-                                                                                                class="bi bi-credit-card text-primary"></i>
-                                                                                            <span class="text-muted small">Método:
-                                                                                                {{ $pago->metodo_pago ?? 'N/A' }}</span>
-                                                                                        </div>
-                                                                                        <div
-                                                                                            class="d-flex align-items-center gap-1 mt-1">
-                                                                                            <i class="bi bi-tag text-success"></i>
-                                                                                            <span class="text-muted small">Tipo:
-                                                                                                {{ ucfirst($pago->tipo_pago ?? 'N/A') }}</span>
-                                                                                        </div>
-                                                                                        </p>
-                                                                                    </div>
-                                                                                    <div>
-                                                                                        <a href="{{ route('pagos.show', $pago->id) }}"
-                                                                                            class="btn btn-outline-secondary btn-sm">
-                                                                                            <i class="bi bi-receipt me-1"></i>Recibo de
-                                                                                            parcialidad
-                                                                                        </a>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
+                                                                                $tituloParcialidad = $numeroCuotaPadre
+                                                                                    ? "Parcialidad de la Cuota $numeroCuotaPadre"
+                                                                                    : 'Parcialidad';
+                                                                            @endphp
+                                                                            <span
+                                                                                class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadge) }}"
+                                                                                style="font-size: 1.8em;">
+                                                                                {{ $tituloParcialidad }}
+                                                                            </span>
+                                                                            <br>
+                                                                            <span class="badge bg-{{ $colorBadge }}">
+                                                                                {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? ($diasGraciaRestantes > 0 ? 'En gracia por ' . $diasGraciaRestantes . ' días más' : 'Último día de gracia') : ucfirst($pago->estado)) }}
+                                                                            </span>
+
+                                                                            <p class="mb-1 text-muted">
+                                                                                {{ $diaSemana }}, {{ $fechaFormateada }}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div class="text-end">
+                                                                            <p class="fw-bold mb-0 mt-1" style="font-size: 1.8em;">
+                                                                                ${{ number_format($pago->monto, 2) }}</p>
                                                                         </div>
                                                                     </div>
-                                                                </div>
-                                                            @else
-                                                                <!-- Tarjeta normal para otros tipos de pago -->
-                                                                <a href="{{ route('pagos.show', $pago->id) }}"
-                                                                    class="text-decoration-none">
-                                                                    <div
-                                                                        class="card payment-card border-start border-3 {{ $colorBorde }}">
-                                                                        <div class="card-body">
-                                                                            <div class="d-flex justify-content-between">
-                                                                                <div>
-                                                                                    @if(in_array(strtolower($pago->tipo_pago ?? ''), ['inicial', 'bonificación']))
-                                                                                        <span
-                                                                                            class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadge) }}"
-                                                                                            style="font-size: 1.8em;">
-                                                                                            {{ ucfirst($pago->tipo_pago) }}
-                                                                                        </span>
-                                                                                    @else
-                                                                                        <span
-                                                                                            class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadge) }}"
-                                                                                            style="font-size: 1.8em;">
-                                                                                            Cuota {{ $pago->numero_cuota }} de
-                                                                                            {{ $contrato->numero_cuotas }}
-                                                                                        </span>
-                                                                                    @endif
-                                                                                    <br>
-                                                                                    <span class="badge bg-{{ $colorBadge }}">
-                                                                                        {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? ($diasGraciaRestantes > 0 ? 'En gracia por ' . $diasGraciaRestantes . ' días más' : 'Último día de gracia') : ucfirst($pago->estado)) }}
-                                                                                    </span>
-                                                                                    <span class="badge bg-secondary">
-                                                                                        Folio #{{ $pago->id }}
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div class="text-end">
-                                                                                    <p class="fw-bold mb-0 mt-1"
-                                                                                        style="font-size: 1.8em;">
-                                                                                        ${{ number_format($pago->monto, 2) }}</p>
-                                                                                </div>
-                                                                            </div>
+                                                                </button>
+                                                            </h2>
+                                                            <div id="collapse-pago-{{ $pago->id }}" class="accordion-collapse collapse"
+                                                                aria-labelledby="heading-pago-{{ $pago->id }}"
+                                                                data-bs-parent="#accordion-pago-{{ $pago->id }}">
+                                                                <div class="accordion-body">
+                                                                    <div class="d-flex justify-content-between align-items-center">
+                                                                        <div>
                                                                             <p class="mb-0 mt-2">
                                                                             <div class="d-flex align-items-center gap-1">
                                                                                 <i class="bi bi-credit-card text-primary"></i>
@@ -897,73 +764,83 @@
                                                                                     {{ ucfirst($pago->tipo_pago ?? 'N/A') }}</span>
                                                                             </div>
                                                                             </p>
-                                                                            <p class="mb-1 text-muted">
-                                                                                @php
-                                                                                    $fechaProgramada = \Carbon\Carbon::parse($pago->fecha_pago);
-                                                                                    $fechaProgramadaTexto = $fechaProgramada->format('d') . ' de ' . ucfirst($fechaProgramada->monthName) . ' de ' . $fechaProgramada->format('Y');
-
-                                                                                    // Para cuotas, usamos updated_at como fecha de pago real si está hecho
-                                                                                    // Para otros pagos (inicial, bonificación), la fecha de pago es la registrada
-                                                                                    $fechaPagado = null;
-                                                                                    if ($pago->estado == 'hecho') {
-                                                                                        if (strtolower($pago->tipo_pago) == 'cuota') {
-                                                                                            $fechaPagado = $pago->updated_at;
-                                                                                        } else {
-                                                                                            $fechaPagado = $pago->fecha_pago;
-                                                                                        }
-                                                                                    }
-                                                                                @endphp
-                                                                            <div class="mt-2 ps-2 border-start border-2 border-secondary border-opacity-25"
-                                                                                style="font-size: 0.85rem;">
-                                                                                <!-- Fecha Programada -->
-                                                                                <div class="d-flex align-items-center gap-2 mb-1">
-                                                                                    <i class="bi bi-calendar-event text-muted"></i>
-                                                                                    <span class="text-muted">Programado:</span>
-                                                                                    @if(strtolower($pago->tipo_pago) == 'cuota')
-                                                                                        <span
-                                                                                            class="fw-medium text-dark">{{ $fechaProgramadaTexto }}</span>
-                                                                                    @else
-                                                                                        <span class="fw-medium text-muted fst-italic">No
-                                                                                            programado
-                                                                                            ({{ ucfirst($pago->tipo_pago) }})</span>
-                                                                                    @endif
-                                                                                </div>
-
-                                                                                <!-- Fecha de Pago Real -->
-                                                                                <div class="d-flex align-items-center gap-2">
-                                                                                    @if($pago->estado == 'hecho')
-                                                                                        <i class="bi bi-check2-circle text-success"></i>
-                                                                                        <span class="text-muted">Pagado el:</span>
-                                                                                        <span class="fw-bold text-success">
-                                                                                            {{ \Carbon\Carbon::parse($fechaPagado)->translatedFormat('d \d\e F \d\e Y') }}
-                                                                                        </span>
-                                                                                    @else
-                                                                                        <i class="bi bi-circle text-muted"></i>
-                                                                                        <span class="text-muted">Pagado el:</span>
-                                                                                        <span
-                                                                                            class="badge bg-light text-muted border">Pendiente</span>
-                                                                                    @endif
-                                                                                </div>
-                                                                            </div>
-                                                                            </p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <a href="{{ route('pagos.show', $pago->id) }}"
+                                                                                class="btn btn-outline-secondary btn-sm">
+                                                                                <i class="bi bi-receipt me-1"></i>Recibo de
+                                                                                parcialidad
+                                                                            </a>
                                                                         </div>
                                                                     </div>
-                                                                </a>
-                                                            @endif
-                                                        </div>
-                                                    @empty
-                                                        <div class="timeline-item">
-                                                            <div class="card payment-card border-start border-3 border-light">
-                                                                <div class="card-body">
-                                                                    <p class="mb-0 text-muted">No hay pagos registrados para este
-                                                                        contrato.</p>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    @endforelse
+                                                    </div>
+                                                @else
+                                                    <!-- Tarjeta normal para otros tipos de pago -->
+                                                    <a href="{{ route('pagos.show', $pago->id) }}" class="text-decoration-none">
+                                                        <div class="card payment-card border-start border-3 {{ $colorBorde }}">
+                                                            <div class="card-body">
+                                                                <div class="d-flex justify-content-between">
+                                                                    <div>
+                                                                        @if(in_array(strtolower($pago->tipo_pago ?? ''), ['inicial', 'bonificación']))
+                                                                            <span
+                                                                                class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadge) }}"
+                                                                                style="font-size: 1.8em;">
+                                                                                {{ ucfirst($pago->tipo_pago) }}
+                                                                            </span>
+                                                                        @else
+                                                                            <span
+                                                                                class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadge) }}"
+                                                                                style="font-size: 1.8em;">
+                                                                                Recibo de Pago
+                                                                            </span>
+                                                                        @endif
+                                                                        <br>
+                                                                        <span class="badge bg-secondary">
+                                                                            Folio #{{ $pago->id }}
+                                                                        </span>
+                                                                        <span class="badge bg-{{ $colorBadge }}">
+                                                                            {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? ($diasGraciaRestantes > 0 ? 'En gracia por ' . $diasGraciaRestantes . ' días más' : 'Último día de gracia') : ucfirst($pago->estado)) }}
+                                                                        </span>
+
+                                                                    </div>
+                                                                    <div class="text-end">
+                                                                        <p class="fw-bold mb-0 mt-1" style="font-size: 1.8em;">
+                                                                            ${{ number_format($pago->monto, 2) }}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <p class="mb-0 mt-2">
+                                                                <div class="d-flex align-items-center gap-1">
+                                                                    <i class="bi bi-credit-card text-primary"></i>
+                                                                    <span class="text-muted small">Método:
+                                                                        {{ $pago->metodo_pago ?? 'N/A' }}</span>
+                                                                </div>
+                                                                <div class="d-flex align-items-center gap-1 mt-1">
+                                                                    <i class="bi bi-tag text-success"></i>
+                                                                    <span class="text-muted small">Tipo:
+                                                                        {{ ucfirst($pago->tipo_pago ?? 'N/A') }}</span>
+                                                                </div>
+                                                                </p>
+                                                                <p class="mb-1 text-muted">
+                                                                    {{ $diaSemana }}, {{ $fechaFormateada }}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        @empty
+                                            <div class="timeline-item">
+                                                <div class="card payment-card border-start border-3 border-light">
+                                                    <div class="card-body">
+                                                        <p class="mb-0 text-muted">No hay pagos registrados para este
+                                                            contrato.</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        @endforelse
                                     </div>
                                 </div>
                             </div>
@@ -1065,13 +942,14 @@
                                 </div>
                                 <div class="card-body">
 
-                                    <!-- <div class="row g-2 mb-3">
-                                    <div class="col-12">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#estadoCuentaModal">
-                                            <i class="bi bi-file-text me-1"></i>Estado de cuenta
-                                        </button>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-12">
+                                            <a href="{{ route('contratos.estado', $contrato->id) }}"
+                                                class="btn btn-outline-secondary btn-sm w-100">
+                                                <i class="bi bi-file-text me-1"></i>Estado de cuenta
+                                            </a>
+                                        </div>
                                     </div>
-                                </div> -->
 
                                     <!-- Primera fila: Comisiones y WhatsApp -->
                                     <div class="row g-2 mb-3">
@@ -1864,9 +1742,9 @@
                 alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-2`;
                 const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
                 alertDiv.innerHTML = `
-                        <i class="bi ${icon} me-2"></i>${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
+                                                                                                                                                                                        <i class="bi ${icon} me-2"></i>${message}
+                                                                                                                                                                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                                                                                                                                                    `;
                 form.appendChild(alertDiv);
 
                 // Remover alerta después de unos segundos
@@ -2081,10 +1959,10 @@
                 const instructionsDiv = document.createElement('div');
                 instructionsDiv.className = 'alert alert-info alert-dismissible fade show mt-2 print-instructions';
                 instructionsDiv.innerHTML = `
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>Ventana de impresión abierta:</strong> Si la impresión no inicia automáticamente, presiona <kbd>Ctrl+P</kbd> en la nueva ventana.
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
+                                                                                                                                                                                    <i class="bi bi-info-circle me-2"></i>
+                                                                                                                                                                                    <strong>Ventana de impresión abierta:</strong> Si la impresión no inicia automáticamente, presiona <kbd>Ctrl+P</kbd> en la nueva ventana.
+                                                                                                                                                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                                                                                                                                                `;
 
                 pdfContainer.appendChild(instructionsDiv);
 
@@ -2226,13 +2104,13 @@
             loadingDiv.className = 'position-absolute top-50 start-50 translate-middle bg-white p-3 rounded shadow-sm';
             loadingDiv.style.zIndex = '1000';
             loadingDiv.innerHTML = `
-                    <div class="text-center">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Subiendo...</span>
-                        </div>
-                        <div class="mt-2 text-muted small">Subiendo documento...</div>
-                    </div>
-                `;
+                                                                                                                                                                                    <div class="text-center">
+                                                                                                                                                                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                                                                                                                                                            <span class="visually-hidden">Subiendo...</span>
+                                                                                                                                                                                        </div>
+                                                                                                                                                                                        <div class="mt-2 text-muted small">Subiendo documento...</div>
+                                                                                                                                                                                    </div>
+                                                                                                                                                                                `;
 
             // Asegurar que el contenedor tenga posición relativa
             const currentPosition = window.getComputedStyle(container).position;
@@ -2295,9 +2173,9 @@
             alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-2 document-alert`;
             const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
             alertDiv.innerHTML = `
-                    <i class="bi ${icon} me-2"></i>${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
+                                                                                                                                                                                    <i class="bi ${icon} me-2"></i>${message}
+                                                                                                                                                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                                                                                                                                                `;
 
             cardBody.appendChild(alertDiv);
 
@@ -2324,14 +2202,14 @@
             const originalContent = modalBody.innerHTML;
 
             modalBody.innerHTML = `
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary mb-3" role="status">
-                        <span class="visually-hidden">Procesando...</span>
-                    </div>
-                    <h6>Procesando ${action.toLowerCase()}...</h6>
-                    <p class="text-muted">Por favor espera un momento.</p>
-                </div>
-            `;
+                                                                                                                                                                                <div class="text-center py-4">
+                                                                                                                                                                                    <div class="spinner-border text-primary mb-3" role="status">
+                                                                                                                                                                                        <span class="visually-hidden">Procesando...</span>
+                                                                                                                                                                                    </div>
+                                                                                                                                                                                    <h6>Procesando ${action.toLowerCase()}...</h6>
+                                                                                                                                                                                    <p class="text-muted">Por favor espera un momento.</p>
+                                                                                                                                                                                </div>
+                                                                                                                                                                            `;
 
             // Deshabilitar botones del modal
             const modalButtons = modal.querySelectorAll('.modal-footer .btn');
@@ -2452,248 +2330,6 @@
         });
     </script>
 
-    <!-- Modal para seleccionar período del estado de cuenta -->
-    <div class="modal fade" id="estadoCuentaModal" tabindex="-1" aria-labelledby="estadoCuentaModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="estadoCuentaModalLabel">
-                        <i class="bi bi-file-text me-2"></i>Seleccionar Período del Estado de Cuenta
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    @php
-                        // Calcular los períodos basados en la frecuencia y número de cuotas
-                        $fechaInicio = $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now();
-                        $frecuenciaDias = $contrato->frecuencia_cuotas ?? 30;
-                        $numeroCuotas = $contrato->numero_cuotas ?? 1;
-                        $periodos = [];
-                        $periodosCompletos = [];
 
-                        // Validar que tengamos datos válidos
-                        if ($numeroCuotas > 0 && $frecuenciaDias > 0 && $contrato->fecha_inicio) {
-                            for ($i = 0; $i < $numeroCuotas; $i++) {
-                                $fechaInicioPeríodo = $fechaInicio->copy()->addDays($frecuenciaDias * $i);
-                                $fechaFinPeríodo = $fechaInicio->copy()->addDays($frecuenciaDias * ($i + 1))->subDay();
-
-                                $periodo = [
-                                    'numero' => $i + 1,
-                                    'fecha_inicio' => $fechaInicioPeríodo,
-                                    'fecha_fin' => $fechaFinPeríodo,
-                                    'es_actual' => now()->between($fechaInicioPeríodo, $fechaFinPeríodo),
-                                    'ya_paso' => now()->greaterThan($fechaFinPeríodo)
-                                ];
-
-                                // Agregar a la lista completa
-                                $periodos[] = $periodo;
-
-                                // Solo agregar períodos que ya pasaron a la lista de períodos completados
-                                if ($periodo['ya_paso']) {
-                                    $periodosCompletos[] = $periodo;
-                                }
-                            }
-                        }
-                    @endphp
-
-                    <div class="mb-3">
-                        <div class="alert alert-info" role="alert">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Información del contrato:</strong><br>
-                            Este contrato tiene <strong>{{ $numeroCuotas }} períodos</strong> de
-                            <strong>{{ $frecuenciaDias }} días</strong> cada uno, iniciando el
-                            <strong>{{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d \d\e F \d\e Y') }}</strong>.
-                            <br><small class="text-muted mt-1 d-block">
-                                <i class="bi bi-calendar-check me-1"></i>
-                                Se muestran únicamente los períodos con fechas que ya han transcurrido
-                                (<strong>{{ count($periodosCompletos) }}</strong> de {{ $numeroCuotas }} períodos).
-                            </small>
-                        </div>
-                        <p class="text-muted mb-0">
-                            <i class="bi bi-hand-index me-1"></i>
-                            <strong>Selecciona un período completado</strong> para generar un estado de cuenta específico,
-                            o usa el botón <strong>"Ver Estado Completo"</strong> para ver todo el historial del contrato.
-                        </p>
-                    </div>
-
-                    <div class="row g-3">
-                        @foreach($periodosCompletos as $periodo)
-                            @php
-                                $fechaInicioFormateada = $periodo['fecha_inicio']->translatedFormat('d \d\e F \d\e Y');
-                                $fechaFinFormateada = $periodo['fecha_fin']->translatedFormat('d \d\e F \d\e Y');
-                            @endphp
-
-                            <div class="col-md-6">
-                                <div class="card h-100 periodo-card border-success" style="cursor: pointer;"
-                                    onclick="seleccionarPeriodo({{ $periodo['numero'] }}, '{{ $periodo['fecha_inicio']->format('Y-m-d') }}', '{{ $periodo['fecha_fin']->format('Y-m-d') }}')">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <h6 class="card-title mb-0">
-                                                <i class="bi bi-calendar-range me-1"></i>
-                                                Período {{ $periodo['numero'] }}
-                                            </h6>
-                                            <span class="badge bg-success">
-                                                <i class="bi bi-check-circle me-1"></i>Completado
-                                            </span>
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <small class="text-muted d-block">
-                                                <i class="bi bi-calendar-check me-1"></i>
-                                                <strong>Inicio:</strong> {{ $fechaInicioFormateada }}
-                                            </small>
-                                            <small class="text-muted d-block">
-                                                <i class="bi bi-calendar-x me-1"></i>
-                                                <strong>Fin:</strong> {{ $fechaFinFormateada }}
-                                            </small>
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <small class="text-success d-block">
-                                                <i class="bi bi-hourglass-bottom me-1"></i>
-                                                <strong>Días transcurridos:</strong>
-                                                {{ now()->diffInDays($periodo['fecha_fin']) }} días atrás
-                                            </small>
-                                        </div>
-
-                                        <div class="text-center">
-                                            <small class="text-muted">
-                                                <i class="bi bi-clock me-1"></i>
-                                                {{ $frecuenciaDias }} días de duración
-                                            </small>
-                                        </div>
-                                    </div>
-                                    <div class="card-footer bg-transparent text-center py-2">
-                                        <small class="text-success">
-                                            <i class="bi bi-hand-index me-1"></i>
-                                            Clic para generar estado de cuenta
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    @if(empty($periodos))
-                        <div class="text-center py-4">
-                            <div class="alert alert-warning">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>No se pudieron calcular los períodos.</strong><br>
-                                <small class="text-muted">
-                                    Verifica que el contrato tenga:
-                                    <ul class="list-unstyled mt-2 mb-0">
-                                        <li>• Fecha de inicio válida</li>
-                                        <li>• Número de cuotas mayor a 0</li>
-                                        <li>• Frecuencia de cuotas configurada</li>
-                                    </ul>
-                                </small>
-                            </div>
-                            <p class="text-muted">
-                                Puedes ver el estado completo del contrato usando el botón de abajo.
-                            </p>
-                        </div>
-                    @elseif(empty($periodosCompletos))
-                        <div class="text-center py-4">
-                            <div class="alert alert-info">
-                                <i class="bi bi-calendar-x me-2"></i>
-                                <strong>No hay períodos completados disponibles.</strong><br>
-                                <small class="text-muted">
-                                    Este contrato aún no tiene períodos con fechas que hayan transcurrido.
-                                    Los períodos estarán disponibles conforme vayan completándose sus fechas.
-                                </small>
-                            </div>
-                            <div class="mt-3">
-                                @php
-                                    $proximoPeriodo = collect($periodos)->first(function ($periodo) {
-                                        return !$periodo['ya_paso'];
-                                    });
-                                @endphp
-
-                                @if($proximoPeriodo)
-                                    <div class="card border-secondary">
-                                        <div class="card-body text-center py-3">
-                                            <h6 class="card-title mb-2">
-                                                <i class="bi bi-clock me-1"></i>Próximo período disponible
-                                            </h6>
-                                            <p class="mb-1">
-                                                <strong>Período {{ $proximoPeriodo['numero'] }}</strong>
-                                            </p>
-                                            <small class="text-muted">
-                                                Estará disponible después del
-                                                <strong>{{ $proximoPeriodo['fecha_fin']->translatedFormat('d \d\e F \d\e Y') }}</strong>
-                                            </small>
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-                            <p class="text-muted mt-3">
-                                Mientras tanto, puedes ver el estado completo del contrato usando el botón de abajo.
-                            </p>
-                        </div>
-                    @endif
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle me-1"></i>Cancelar
-                    </button>
-                    <a href="{{ route('contratos.estado', $contrato->id) }}" class="btn btn-primary">
-                        <i class="bi bi-file-text me-1"></i>Ver Estado Completo
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        .periodo-card {
-            transition: all 0.3s ease;
-        }
-
-        .periodo-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .periodo-card.border-primary:hover {
-            box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
-        }
-
-        .periodo-card.border-success:hover {
-            box-shadow: 0 8px 25px rgba(25, 135, 84, 0.3);
-        }
-
-        .periodo-card.border-secondary:hover {
-            box-shadow: 0 8px 25px rgba(108, 117, 125, 0.3);
-        }
-    </style>
-
-    <script>
-        function seleccionarPeriodo(numero, fechaInicio, fechaFin) {
-            // Construir URL con parámetros del período seleccionado
-            const url = "{{ route('contratos.estado', $contrato->id) }}" +
-                "?periodo=" + numero +
-                "&fecha_inicio=" + fechaInicio +
-                "&fecha_fin=" + fechaFin;
-
-            // Mostrar loading en el modal
-            const modal = document.getElementById('estadoCuentaModal');
-            const originalContent = modal.querySelector('.modal-body').innerHTML;
-
-            modal.querySelector('.modal-body').innerHTML = `
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Generando estado de cuenta...</span>
-                </div>
-                <p class="mt-3 mb-0">Generando estado de cuenta para el período ${numero}...</p>
-            </div>
-        `;
-
-            // Redirigir después de un breve delay para mostrar el loading
-            setTimeout(() => {
-                window.location.href = url;
-            }, 500);
-        }
-    </script>
 
 @endsection

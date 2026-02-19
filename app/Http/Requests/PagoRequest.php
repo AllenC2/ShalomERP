@@ -22,20 +22,17 @@ class PagoRequest extends FormRequest
      */
     public function rules(): array
     {
-        $tiposPagoKeys = implode(',', array_keys(Pago::TIPOS_PAGO));
         $metodosPagoKeys = implode(',', array_keys(Pago::METODOS_PAGO));
         $estadosKeys = implode(',', array_keys(Pago::ESTADOS));
 
         return [
             'contrato_id' => 'nullable|exists:contratos,id',
-            'pago_padre_id' => 'nullable|exists:pagos,id',
-            'tipo_pago' => 'required|string|in:' . $tiposPagoKeys,
             'monto' => 'required|numeric|min:0.01',
             'observaciones' => 'nullable|string|max:500',
             'fecha_pago' => 'required|date_format:Y-m-d\TH:i',
             'metodo_pago' => 'required|string|in:' . $metodosPagoKeys,
             'estado' => 'required|string|in:' . $estadosKeys,
-            'documento' => 'nullable|file|mimes:pdf,jpeg,jpg,png,webp|max:5120', // máximo 5MB
+            'documento' => 'nullable|file|mimes:pdf,jpeg,jpg,png,webp,doc,docx,xls,xlsx|max:10240', // máximo 10MB
         ];
     }
 
@@ -48,9 +45,6 @@ class PagoRequest extends FormRequest
     {
         return [
             'contrato_id.exists' => 'El contrato seleccionado no existe.',
-            'pago_padre_id.exists' => 'El pago padre seleccionado no existe.',
-            'tipo_pago.required' => 'El tipo de pago es obligatorio.',
-            'tipo_pago.in' => 'El tipo de pago debe ser: ' . implode(', ', array_values(Pago::TIPOS_PAGO)),
             'monto.required' => 'El monto es obligatorio.',
             'monto.numeric' => 'El monto debe ser un número válido.',
             'monto.min' => 'El monto debe ser mayor a cero.',
@@ -62,8 +56,8 @@ class PagoRequest extends FormRequest
             'estado.required' => 'El estado del pago es obligatorio.',
             'estado.in' => 'El estado debe ser: ' . implode(', ', array_values(Pago::ESTADOS)),
             'documento.file' => 'El documento debe ser un archivo válido.',
-            'documento.mimes' => 'El documento debe ser un archivo PDF, JPEG, JPG, PNG o WEBP.',
-            'documento.max' => 'El documento no puede ser mayor a 5MB.',
+            'documento.mimes' => 'El documento debe ser un archivo PDF, Imagen, Word o Excel.',
+            'documento.max' => 'El documento no puede ser mayor a 10MB.',
         ];
     }
 }

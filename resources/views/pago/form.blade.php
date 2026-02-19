@@ -1,7 +1,12 @@
 <!-- Formulario Minimalista en 2 Columnas -->
 <div class="minimal-form">
-    <div class="form-container">
-        
+    <form method="POST" action="{{ $pago->exists ? route('pagos.update', $pago->id) : route('pagos.store') }}"
+        enctype="multipart/form-data" class="form-container">
+        @csrf
+        @if($pago->exists)
+            @method('PATCH')
+        @endif
+
         <!-- Información del contrato (si existe) -->
         @if($pago->exists && $pago->contrato)
             <div class="contract-info-section">
@@ -11,8 +16,11 @@
                             <i class="bi bi-file-earmark-text"></i>
                         </div>
                         <div class="contract-details">
-                            <h6 class="contract-title">Editando pago del contrato {{$pago->contrato->paquete->nombre}} #{{$pago->contrato->id}}</h6>
-                            <p class="contract-client">Cliente: {{$pago->contrato->cliente->nombre}} {{$pago->contrato->cliente->apellido}}</p>
+                            <h6 class="contract-title">Editando pago del contrato {{$pago->contrato->paquete->nombre}}
+                                #{{$pago->contrato->id}}</h6>
+                            <p class="contract-client">Cliente: {{$pago->contrato->cliente->nombre}}
+                                {{$pago->contrato->cliente->apellido}}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -29,7 +37,8 @@
                             <p class="contract-client">{{$contrato->cliente->nombre}} {{$contrato->cliente->apellido}}</p>
                             <small class="contract-date">
                                 <i class="bi bi-calendar-event me-1"></i>
-                                Contrato desde {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d \d\e F \d\e Y') }}
+                                Contrato desde
+                                {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d \d\e F \d\e Y') }}
                             </small>
                         </div>
                         <div class="contract-amount">
@@ -51,107 +60,133 @@
         <div class="form-layout">
             <!-- Columna Izquierda -->
             <div class="left-column">
-                
+
                 <!-- Información Básica del Pago -->
                 <div class="form-section">
                     <h6 class="section-title">Información del Pago</h6>
-                    
+
                     <!-- Campos ocultos -->
-                    <input type="hidden" name="contrato_id" value="{{ old('contrato_id', $contrato_id ?? $pago?->contrato_id) }}" id="contrato_id">
-                    
-                    <div class="form-row">
-                        <!-- Tipo de Pago Simplificado (Oculto) -->
-                        <input type="hidden" name="tipo_pago" value="parcialidad">
-                        
-                        <div class="form-group w-100">
-                            <label for="fecha_pago" class="form-label">Fecha y Hora del Pago <span class="text-danger">*</span></label>
-                            <input type="datetime-local" name="fecha_pago" class="form-control @error('fecha_pago') is-invalid @enderror" 
-                                   value="{{ old('fecha_pago', $pago?->fecha_pago?->format('Y-m-d\TH:i') ?? now()->format('Y-m-d\TH:i')) }}" id="fecha_pago">
-                            @error('fecha_pago')<div class="error-text">{{ $message }}</div>@enderror
-                        </div>
-                    </div>
-                    
+                    <input type="hidden" name="contrato_id"
+                        value="{{ old('contrato_id', $contrato_id ?? $pago?->contrato_id) }}" id="contrato_id">
+                    <input type="hidden" name="estado" value="hecho">
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="monto" class="form-label">Monto del Pago <span class="text-danger">*</span></label>
+                            <label for="fecha_pago" class="form-label">Fecha y Hora del Pago <span
+                                    class="text-danger">*</span></label>
+                            <input type="datetime-local" name="fecha_pago"
+                                class="form-control @error('fecha_pago') is-invalid @enderror"
+                                value="{{ old('fecha_pago', $pago?->fecha_pago?->format('Y-m-d\TH:i') ?? now()->format('Y-m-d\TH:i')) }}"
+                                id="fecha_pago">
+                            @error('fecha_pago')<div class="error-text">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="monto" class="form-label">Monto del Pago <span
+                                    class="text-danger">*</span></label>
                             @php
-                                $valorPorDefecto = ''; // Siempre iniciar vacío o con un valor sugerido inteligente pero Editable
-                                
+                                $maxMonto = null;
+                                $valorPorDefecto = '';
+
                                 if (!$pago->exists && isset($contrato) && $contrato) {
-                                    // Sugerir la cuota regular pero no limitar
-                                    $montoInicial = $contrato->monto_inicial ?? 0;
-                                    $montoBonificacion = $contrato->monto_bonificacion ?? 0;
-                                    $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
-                                    $cuotaSugerida = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
-                                    $valorPorDefecto = $cuotaSugerida > 0 ? number_format($cuotaSugerida, 2, '.', '') : '';
+                                    // Para nuevos pagos desde contrato (parcialidades)
+                                    if (isset($proximoPagoPendiente) && $proximoPagoPendiente) {
+                                        // Usar el monto restante (después de parcialidades) como valor por defecto y máximo
+                                        $montoRestante = $proximoPagoPendiente->monto_restante ?? $proximoPagoPendiente->monto;
+                                        $valorPorDefecto = $montoRestante > 0 ? number_format($montoRestante, 2, '.', '') : '';
+                                        $maxMonto = $montoRestante;
+                                    } else {
+                                        // Si no hay pagos pendientes, usar la cuota sugerida
+                                        $montoInicial = $contrato->monto_inicial ?? 0;
+                                        $montoBonificacion = $contrato->monto_bonificacion ?? 0;
+                                        $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
+                                        $cuotaSugerida = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
+                                        $valorPorDefecto = $cuotaSugerida > 0 ? number_format($cuotaSugerida, 2, '.', '') : '';
+                                        $maxMonto = $cuotaSugerida;
+                                    }
                                 } else {
-                                    $valorPorDefecto = old('monto', $pago?->monto ?? '');
+                                    // Para edición de pagos existentes o pagos sin contrato
+                                    $valorPorDefecto = old('monto', $pago?->monto ?? (isset($montoSugerido) ? number_format($montoSugerido, 2, '.', '') : ''));
                                 }
                             @endphp
                             <input type="text" name="monto" class="form-control @error('monto') is-invalid @enderror"
-                                   value="{{ old('monto', $valorPorDefecto) }}"
-                                   id="monto"
-                                   data-max-monto=""
-                                   placeholder="$0.00">
+                                value="{{ old('monto', $valorPorDefecto) }}" id="monto" placeholder="$0.00">
                             @error('monto')<div class="error-text">{{ $message }}</div>@enderror
-                            
+
                             <!-- Información de parcialidades aplicadas -->
                             @if(!$pago->exists && isset($proximoPagoPendiente) && $proximoPagoPendiente && isset($proximoPagoPendiente->parcialidades_aplicadas) && $proximoPagoPendiente->parcialidades_aplicadas > 0)
                                 <div class="mt-2 p-2 bg-info bg-opacity-10 border border-info border-opacity-25 rounded">
                                     <small class="text-info">
                                         <i class="bi bi-info-circle me-1"></i>
-                                        Esta cuota ya tiene ${{ number_format($proximoPagoPendiente->parcialidades_aplicadas, 2) }} pagados en parcialidades.
+                                        Esta cuota ya tiene
+                                        ${{ number_format($proximoPagoPendiente->parcialidades_aplicadas, 2) }} pagados en
+                                        parcialidades.
                                         <br>
-                                        <strong>Monto restante: ${{ number_format($proximoPagoPendiente->monto_restante ?? 0, 2) }}</strong>
+                                        <strong>Monto restante:
+                                            ${{ number_format($proximoPagoPendiente->monto_restante ?? 0, 2) }}</strong>
                                     </small>
                                 </div>
                             @endif
                         </div>
-                        
-                        <div class="form-group" style="display: none;">
-                            <label for="estado" class="form-label">Estado del Pago</label>
-                            <input type="hidden" name="estado" id="estado" value="hecho">
-                        </div>
                     </div>
-                    
+
+                    <div class="form-group">
+                        @if(!$pago->exists && isset($contrato) && $contrato)
+                            <!-- Nuevo pago desde contrato: solo parcialidad -->
+                            <select hidden name="tipo_pago" id="tipo_pago"
+                                class="form-control @error('tipo_pago') is-invalid @enderror">
+                                <option value="parcialidad" selected>Parcialidad</option>
+                            </select>
+                        @else
+                            <!-- Edición de pago existente o pago sin contrato: opciones completas -->
+                            <label for="tipo_pago" class="form-label">Tipo de Pago <span
+                                    class="text-danger">*</span></label>
+                            <select name="tipo_pago" id="tipo_pago"
+                                class="form-control @error('tipo_pago') is-invalid @enderror">
+                                <option value="cuota" {{ old('tipo_pago', $pago?->tipo_pago ?? 'cuota') == 'cuota' ? 'selected' : '' }}>Cuota Regular</option>
+                                <option value="parcialidad" {{ old('tipo_pago', $pago?->tipo_pago) == 'parcialidad' ? 'selected' : '' }}>Parcialidad</option>
+                                <option value="inicial" {{ old('tipo_pago', $pago?->tipo_pago) == 'inicial' ? 'selected' : '' }}>Pago Inicial</option>
+                                <option value="bonificación" {{ old('tipo_pago', $pago?->tipo_pago) == 'bonificación' ? 'selected' : '' }}>Bonificación</option>
+                            </select>
+                        @endif
+                        @error('tipo_pago')<div class="error-text">{{ $message }}</div>@enderror
+                    </div>
+
                     <div class="form-group">
                         <label class="form-label">Método de Pago <span class="text-danger">*</span></label>
                         <div class="radio-group @error('metodo_pago') is-invalid @enderror">
                             <div class="radio-option">
-                                <input type="radio" name="metodo_pago" id="metodo_efectivo" value="efectivo" 
-                                       {{ old('metodo_pago', $pago?->metodo_pago) == 'efectivo' ? 'checked' : '' }}>
+                                <input type="radio" name="metodo_pago" id="metodo_efectivo" value="efectivo" {{ old('metodo_pago', $pago?->metodo_pago) == 'efectivo' ? 'checked' : '' }}>
                                 <label for="metodo_efectivo" class="radio-label">
                                     <i class="bi bi-cash-coin"></i>
                                     <span>Efectivo</span>
                                 </label>
                             </div>
                             <div class="radio-option">
-                                <input type="radio" name="metodo_pago" id="metodo_transferencia" value="transferencia bancaria" 
-                                       {{ old('metodo_pago', $pago?->metodo_pago) == 'transferencia bancaria' ? 'checked' : '' }}>
+                                <input type="radio" name="metodo_pago" id="metodo_transferencia"
+                                    value="transferencia bancaria" {{ old('metodo_pago', $pago?->metodo_pago) == 'transferencia bancaria' ? 'checked' : '' }}>
                                 <label for="metodo_transferencia" class="radio-label">
                                     <i class="bi bi-bank"></i>
                                     <span>Transferencia Bancaria</span>
                                 </label>
                             </div>
                             <div class="radio-option">
-                                <input type="radio" name="metodo_pago" id="metodo_tarjeta" value="tarjeta credito/debito" 
-                                       {{ old('metodo_pago', $pago?->metodo_pago) == 'tarjeta credito/debito' ? 'checked' : '' }}>
+                                <input type="radio" name="metodo_pago" id="metodo_tarjeta"
+                                    value="tarjeta credito/debito" {{ old('metodo_pago', $pago?->metodo_pago) == 'tarjeta credito/debito' ? 'checked' : '' }}>
                                 <label for="metodo_tarjeta" class="radio-label">
                                     <i class="bi bi-credit-card"></i>
                                     <span>Tarjeta Crédito/Débito</span>
                                 </label>
                             </div>
                             <div class="radio-option">
-                                <input type="radio" name="metodo_pago" id="metodo_cheque" value="cheque" 
-                                       {{ old('metodo_pago', $pago?->metodo_pago) == 'cheque' ? 'checked' : '' }}>
+                                <input type="radio" name="metodo_pago" id="metodo_cheque" value="cheque" {{ old('metodo_pago', $pago?->metodo_pago) == 'cheque' ? 'checked' : '' }}>
                                 <label for="metodo_cheque" class="radio-label">
                                     <i class="bi bi-journal-check"></i>
                                     <span>Cheque</span>
                                 </label>
                             </div>
                             <div class="radio-option">
-                                <input type="radio" name="metodo_pago" id="metodo_otro" value="otro" 
-                                       {{ old('metodo_pago', $pago?->metodo_pago) == 'otro' ? 'checked' : '' }}>
+                                <input type="radio" name="metodo_pago" id="metodo_otro" value="otro" {{ old('metodo_pago', $pago?->metodo_pago) == 'otro' ? 'checked' : '' }}>
                                 <label for="metodo_otro" class="radio-label">
                                     <i class="bi bi-three-dots"></i>
                                     <span>Otro</span>
@@ -165,15 +200,16 @@
 
             <!-- Columna Derecha -->
             <div class="right-column">
-                
+
                 <!-- Observaciones -->
                 <div class="form-section">
                     <h6 class="section-title">Observaciones</h6>
-                    
+
                     <div class="form-group">
                         <label for="observaciones" class="form-label">Detalles adicionales</label>
-                        <textarea name="observaciones" class="form-control @error('observaciones') is-invalid @enderror" 
-                               id="observaciones" rows="4" placeholder="Observaciones del pago...">{{ old('observaciones', $pago?->observaciones) }}</textarea>
+                        <textarea name="observaciones" class="form-control @error('observaciones') is-invalid @enderror"
+                            id="observaciones" rows="4"
+                            placeholder="Observaciones del pago...">{{ old('observaciones', $pago?->observaciones) }}</textarea>
                         @error('observaciones')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -184,52 +220,56 @@
                     <div class="upload-container">
                         <label for="documento" class="upload-area">
                             <div class="upload-content">
-                                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="7,10 12,15 17,10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7,10 12,15 17,10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
                                 </svg>
                                 <span class="upload-text">Subir comprobante</span>
                                 <span class="upload-hint">PDF, JPG, PNG, WEBP (máx. 5MB)</span>
                             </div>
                         </label>
-                        <input type="file" name="documento" class="upload-input @error('documento') is-invalid @enderror" 
-                               id="documento" accept=".pdf,.jpg,.jpeg,.png,.webp" onchange="previewDocument(this)">
+                        <input type="file" name="documento"
+                            class="upload-input @error('documento') is-invalid @enderror" id="documento"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp" onchange="previewDocument(this)">
                         @error('documento')<div class="error-text">{{ $message }}</div>@enderror
-                        
+
                         <!-- Preview del documento actual si existe -->
                         @if($pago->exists && $pago->documento && $pago->documento !== 'No')
-                        <div id="currentDocument" class="file-preview">
-                            <div class="preview-header">
-                                <span>Documento actual</span>
-                                <div class="preview-actions">
-                                    <a href="{{ asset('storage/' . $pago->documento) }}" target="_blank" class="preview-btn">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="{{ asset('storage/' . $pago->documento) }}" download class="preview-btn">
-                                        <i class="bi bi-download"></i>
-                                    </a>
+                            <div id="currentDocument" class="file-preview">
+                                <div class="preview-header">
+                                    <span>Documento actual</span>
+                                    <div class="preview-actions">
+                                        <a href="{{ asset('storage/' . $pago->documento) }}" target="_blank"
+                                            class="preview-btn">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ asset('storage/' . $pago->documento) }}" download class="preview-btn">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="preview-content">
+                                    @php
+                                        $extension = pathinfo($pago->documento, PATHINFO_EXTENSION);
+                                        $isPdf = strtolower($extension) === 'pdf';
+                                    @endphp
+                                    @if($isPdf)
+                                        <div class="pdf-icon">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                        </div>
+                                    @else
+                                        <img src="{{ asset('storage/' . $pago->documento) }}" alt="Documento"
+                                            class="preview-image">
+                                    @endif
+                                </div>
+                                <div class="preview-info">
+                                    <small>{{ basename($pago->documento) }}</small>
                                 </div>
                             </div>
-                            <div class="preview-content">
-                                @php
-                                    $extension = pathinfo($pago->documento, PATHINFO_EXTENSION);
-                                    $isPdf = strtolower($extension) === 'pdf';
-                                @endphp
-                                @if($isPdf)
-                                    <div class="pdf-icon">
-                                        <i class="bi bi-file-earmark-pdf"></i>
-                                    </div>
-                                @else
-                                    <img src="{{ asset('storage/' . $pago->documento) }}" alt="Documento" class="preview-image">
-                                @endif
-                            </div>
-                            <div class="preview-info">
-                                <small>{{ basename($pago->documento) }}</small>
-                            </div>
-                        </div>
                         @endif
-                        
+
                         <!-- Preview del nuevo documento -->
                         <div id="documentPreview" class="file-preview" style="display: none;">
                             <div class="preview-header">
@@ -245,7 +285,8 @@
                             </div>
                             <div class="preview-content">
                                 <i id="previewIcon" class="bi bi-file-earmark"></i>
-                                <img id="previewThumbnail" src="" alt="Vista previa" class="preview-image" style="display: none;">
+                                <img id="previewThumbnail" src="" alt="Vista previa" class="preview-image"
+                                    style="display: none;">
                                 <div id="previewPdfThumbnail" class="pdf-icon" style="display: none;">
                                     <i class="bi bi-file-earmark-pdf"></i>
                                 </div>
@@ -286,369 +327,190 @@
                 </button>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 <script>
-// Script para toggle de estado del pago
-function toggleEstadoPago() {
-    const estadoInput = document.getElementById('estado');
-    const btn = document.getElementById('estadoToggleBtn');
-    const text = document.getElementById('estadoBtnText');
-    
-    if (estadoInput.value === 'hecho') {
-        estadoInput.value = 'pendiente';
-        btn.classList.remove('estado-hecho');
-        btn.classList.add('estado-pendiente');
-        text.textContent = 'Pendiente';
-    } else {
-        estadoInput.value = 'hecho';
-        btn.classList.remove('estado-pendiente');
-        btn.classList.add('estado-hecho');
-        text.textContent = 'Hecho';
-    }
-}
 
-// Scripts de funcionalidad del formulario
+
     // Scripts de funcionalidad del formulario
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
+        const tipoSelect = document.getElementById('tipo_pago');
         const montoInput = document.getElementById('monto');
         const observacionesInput = document.getElementById('observaciones');
-        
-        // Verificar si estamos en modo de nuevo pago desde contrato
-        const contratoId = document.getElementById('contrato_id').value;
-        const isNewPaymentFromContract = contratoId && !document.querySelector('input[name="_method"]'); 
-        
-        // Establecer observación inicial si está vacía
-        if (isNewPaymentFromContract && !observacionesInput.value.trim()) {
-            observacionesInput.value = 'Abono al contrato';
-        }
-        
-        // Permitir escribir libremente, quitar formato al hacer focus
-        montoInput.addEventListener('focus', function() {
-            if (this.value) {
-                // Quitar formato para editar libremente
-                const valorLimpio = this.value.replace(/[$,]/g, '');
-                if (!isNaN(parseFloat(valorLimpio))) {
-                    this.value = valorLimpio;
-                }
-            }
-        });
 
-        // Formatear solo al salir del campo (blur)
-        montoInput.addEventListener('blur', function() {
-            formatearCampoMonto(this);
-        });
-
-        // Función para formatear campos de monto
-        function formatearCampoMonto(input) {
-            let value = input.value.replace(/[^0-9.]/g, ''); // Remover todo excepto números y punto
-
-            // Si está vacío, dejarlo vacío (no forzar 0)
-            if (value === '' || value === '.') {
-                input.value = '';
-                return;
-            }
-
-            // Asegurar solo un punto decimal
-            const parts = value.split('.');
-            if (parts.length > 2) {
-                value = parts[0] + '.' + parts.slice(1).join('');
-            }
-
-            // Limitar a 2 decimales
-            if (parts[1] && parts[1].length > 2) {
-                value = parts[0] + '.' + parts[1].substring(0, 2);
-            }
-
-            const valorNumerico = parseFloat(value);
-
-            // Formatear con símbolo de dólar y miles si hay valor
-            if (!isNaN(valorNumerico) && valorNumerico >= 0) {
-                input.value = formatearMoneda(valorNumerico);
-            } else {
-                input.value = '';
-            }
-        }
-
-        // Función helper para formatear moneda con miles
+        // Helper para formatear moneda
         function formatearMoneda(valor) {
-            if (valor === null || valor === undefined || isNaN(valor)) {
-                return '$0.00';
-            }
+            if (valor === null || valor === undefined || isNaN(valor)) return '';
             return '$' + parseFloat(valor).toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
         }
-        
-        // Validación al enviar
-        document.querySelector('form').addEventListener('submit', function(e) {
-            // Limpiar formato antes de validar
-            const montoLimpio = montoInput.value.replace(/[$,]/g, '');
-            const monto = parseFloat(montoLimpio);
-            const metodo = document.querySelector('input[name="metodo_pago"]:checked')?.value;
 
-            // Validar que el monto sea válido y mayor a cero
-            if (!monto || monto <= 0 || isNaN(monto)) {
-                e.preventDefault();
-                alert('Por favor ingresa un monto válido mayor a cero.');
-                montoInput.focus();
-                return false;
+        // Actualizar observaciones basadas en el tipo de pago
+        if (tipoSelect && observacionesInput) {
+            tipoSelect.addEventListener('change', function () {
+                const tipo = this.value;
+                let observacion = observacionesInput.value.trim();
+
+                // Solo actualizar si no hay observaciones personalizadas o son las por defecto
+                const defaultObs = [
+                    '',
+                    'Cuota regular del contrato',
+                    'Pago parcial del contrato',
+                    'Pago inicial del contrato',
+                    'Bonificación aplicada al contrato'
+                ];
+
+                if (defaultObs.includes(observacion)) {
+                    switch (tipo) {
+                        case 'cuota': observacionesInput.value = 'Cuota regular del contrato'; break;
+                        case 'parcialidad': observacionesInput.value = 'Pago parcial del contrato'; break;
+                        case 'inicial': observacionesInput.value = 'Pago inicial del contrato'; break;
+                        case 'bonificación': observacionesInput.value = 'Bonificación aplicada al contrato'; break;
+                    }
+                }
+            });
+        }
+
+        // Formateo de monto
+        if (montoInput) {
+            montoInput.addEventListener('focus', function () {
+                if (this.value) {
+                    this.value = this.value.replace(/[$,]/g, '');
+                }
+            });
+
+            montoInput.addEventListener('blur', function () {
+                const val = this.value.replace(/[^0-9.]/g, '');
+                if (val) {
+                    this.value = formatearMoneda(val);
+                }
+            });
+
+            // Formatear valor inicial si existe
+            if (montoInput.value) {
+                const val = montoInput.value.replace(/[^0-9.]/g, '');
+                if (val) montoInput.value = formatearMoneda(val);
             }
+        }
 
-            // Validar que haya seleccionado un método de pago
-            if (!metodo) {
-                e.preventDefault();
-                alert('Por favor selecciona un método de pago.');
-                document.querySelector('input[name="metodo_pago"]').focus();
-                return false;
-            }
+        // Validación de envío básico
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (montoInput) {
+                    const monto = parseFloat(montoInput.value.replace(/[$,]/g, ''));
+                    if (!monto || monto <= 0 || isNaN(monto)) {
+                        e.preventDefault();
+                        alert('Por favor ingresa un monto válido.');
+                        montoInput.focus();
+                        return;
+                    }
+                    montoInput.value = monto.toFixed(2); // Enviar limpio
+                }
 
-            // Remover clase de error si todo está correcto
-            montoInput.classList.remove('is-invalid');
-
-            // Convertir a número sin formato antes de enviar
-            montoInput.value = monto.toFixed(2);
-        });
+                const metodo = document.querySelector('input[name="metodo_pago"]:checked');
+                if (!metodo) {
+                    e.preventDefault();
+                    alert('Selecciona un método de pago.');
+                    return;
+                }
+            });
+        }
     });
 
-// Función para mostrar mensajes temporales
-function showTemporaryMessage(message) {
-    // Crear elemento de mensaje si no existe
-    let messageEl = document.getElementById('temporary-message');
-    if (!messageEl) {
-        messageEl = document.createElement('div');
-        messageEl.id = 'temporary-message';
-        messageEl.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px 16px;
-            border: 1px solid #f5c6cb;
-            border-radius: 6px;
-            font-size: 14px;
-            z-index: 1000;
-            max-width: 300px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        `;
-        document.body.appendChild(messageEl);
-    }
-    
-    messageEl.textContent = message;
-    messageEl.style.display = 'block';
-    
-    // Ocultar después de 3 segundos
-    setTimeout(() => {
-        if (messageEl) {
-            messageEl.style.display = 'none';
-        }
-    }, 3000);
-}
+    // Función para previsualizar documento
+    function previewDocument(input) {
+        const file = input.files[0];
+        const preview = document.getElementById('documentPreview');
+        const previewIcon = document.getElementById('previewIcon');
+        const previewThumbnail = document.getElementById('previewThumbnail');
+        const previewPdfThumbnail = document.getElementById('previewPdfThumbnail');
+        const previewName = document.getElementById('previewName');
+        const previewSize = document.getElementById('previewSize');
 
-// Función para previsualizar documento
-function previewDocument(input) {
-    const file = input.files[0];
-    const preview = document.getElementById('documentPreview');
-    const previewIcon = document.getElementById('previewIcon');
-    const previewThumbnail = document.getElementById('previewThumbnail');
-    const previewPdfThumbnail = document.getElementById('previewPdfThumbnail');
-    const previewName = document.getElementById('previewName');
-    const previewSize = document.getElementById('previewSize');
-    
-    if (!file) {
-        preview.style.display = 'none';
-        return;
+        if (!file) {
+            preview.style.display = 'none';
+            return;
+        }
+
+        // Validar tamaño (máximo 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+        if (file.size > maxSize) {
+            alert('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
+            input.value = '';
+            preview.style.display = 'none';
+            return;
+        }
+
+        // Validar tipo de archivo
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Tipo de archivo no permitido. Solo se permiten archivos PDF, JPG, JPEG, PNG y WEBP.');
+            input.value = '';
+            preview.style.display = 'none';
+            return;
+        }
+
+        // Mostrar información del archivo
+        const fileName = file.name;
+        const fileSize = formatFileSize(file.size);
+        const extension = fileName.split('.').pop().toLowerCase();
+
+        // Ocultar todos los elementos de vista previa primero
+        previewIcon.style.display = 'none';
+        previewThumbnail.style.display = 'none';
+        previewPdfThumbnail.style.display = 'none';
+
+        // Generar miniatura según el tipo de archivo
+        if (extension === 'pdf') {
+            previewPdfThumbnail.style.display = 'block';
+        } else if (['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                previewThumbnail.src = e.target.result;
+                previewThumbnail.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewIcon.style.display = 'block';
+        }
+
+        previewName.textContent = fileName;
+        previewSize.textContent = fileSize;
+        preview.style.display = 'block';
     }
-    
-    // Validar tamaño (máximo 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB en bytes
-    if (file.size > maxSize) {
-        alert('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
+
+    // Función para cambiar documento
+    function changeDocument() {
+        const documentInput = document.getElementById('documento');
+        documentInput.click();
+    }
+
+    // Función para limpiar la previsualización
+    function clearDocumentPreview() {
+        const input = document.getElementById('documento');
+        const preview = document.getElementById('documentPreview');
+        const previewThumbnail = document.getElementById('previewThumbnail');
+
         input.value = '';
         preview.style.display = 'none';
-        return;
-    }
-    
-    // Validar tipo de archivo
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-        alert('Tipo de archivo no permitido. Solo se permiten archivos PDF, JPG, JPEG, PNG y WEBP.');
-        input.value = '';
-        preview.style.display = 'none';
-        return;
-    }
-    
-    // Mostrar información del archivo
-    const fileName = file.name;
-    const fileSize = formatFileSize(file.size);
-    const extension = fileName.split('.').pop().toLowerCase();
-    
-    // Ocultar todos los elementos de vista previa primero
-    previewIcon.style.display = 'none';
-    previewThumbnail.style.display = 'none';
-    previewPdfThumbnail.style.display = 'none';
-    
-    // Generar miniatura según el tipo de archivo
-    if (extension === 'pdf') {
-        previewPdfThumbnail.style.display = 'block';
-    } else if (['jpg', 'jpeg', 'png', 'webp'].includes(extension)) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            previewThumbnail.src = e.target.result;
-            previewThumbnail.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    } else {
-        previewIcon.style.display = 'block';
-    }
-    
-    previewName.textContent = fileName;
-    previewSize.textContent = fileSize;
-    preview.style.display = 'block';
-}
-
-// Función para cambiar documento
-function changeDocument() {
-    const documentInput = document.getElementById('documento');
-    documentInput.click();
-}
-
-// Función para limpiar la previsualización
-function clearDocumentPreview() {
-    const input = document.getElementById('documento');
-    const preview = document.getElementById('documentPreview');
-    const previewThumbnail = document.getElementById('previewThumbnail');
-    
-    input.value = '';
-    preview.style.display = 'none';
-    previewThumbnail.src = '';
-}
-
-// Función para formatear el tamaño del archivo
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Función para verificar liquidación de parcialidad
-let verificacionTimeout = null;
-
-function verificarLiquidacionParcialidad() {
-    const contratoId = document.getElementById('contrato_id').value;
-    const montoInput = document.getElementById('monto');
-    const montoLimpio = montoInput.value.replace(/[$,]/g, '');
-    const monto = parseFloat(montoLimpio);
-    const messageDiv = document.getElementById('parcialidadMessage');
-    const textElement = document.getElementById('parcialidadText');
-    const contentSpan = document.getElementById('parcialidadContent');
-
-    // Limpiar timeout anterior
-    if (verificacionTimeout) {
-        clearTimeout(verificacionTimeout);
+        previewThumbnail.src = '';
     }
 
-    // Ocultar mensaje si no hay monto o contrato
-    if (!contratoId || !monto || monto <= 0) {
-        if (messageDiv) messageDiv.style.display = 'none';
-        return;
-    }
-    
-    // Realizar verificación después de 500ms para evitar demasiadas llamadas
-    verificacionTimeout = setTimeout(() => {
-        fetch('{{ route("pagos.verificarLiquidacionParcialidad") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                contrato_id: contratoId,
-                monto: monto
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                messageDiv.style.display = 'none';
-                return;
-            }
-            
-            // Caso especial: pago igual a cuota exacta
-            if (data.es_cuota_exacta) {
-                contentSpan.textContent = data.mensaje;
-                textElement.className = 'text-primary';
-                textElement.querySelector('i').className = 'bi bi-check-circle-fill me-1';
-                messageDiv.style.display = 'block';
-                return;
-            }
-            
-            if (!data.es_parcialidad) {
-                messageDiv.style.display = 'none';
-                return;
-            }
+    // Función para formatear el tamaño del archivo
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
 
-            if (!data.hay_pendientes) {
-                contentSpan.textContent = data.mensaje;
-                textElement.className = 'text-warning';
-                textElement.querySelector('i').className = 'bi bi-exclamation-triangle me-1';
-                messageDiv.style.display = 'block';
-                return;
-            }
-            
-            if (data.liquida_completamente) {
-                contentSpan.textContent = data.mensaje;
-                textElement.className = 'text-success';
-                textElement.querySelector('i').className = 'bi bi-check-circle me-1';
-                messageDiv.style.display = 'block';
-            } else {
-                contentSpan.textContent = data.mensaje;
-                textElement.className = 'text-info';
-                textElement.querySelector('i').className = 'bi bi-info-circle me-1';
-                messageDiv.style.display = 'block';
-            }
-        })
-        .catch(error => {
-            console.error('Error al verificar liquidación:', error);
-            messageDiv.style.display = 'none';
-        });
-    }, 500);
-}
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-// Agregar event listeners para verificación de parcialidad
-document.addEventListener('DOMContentLoaded', function() {
-    const contratoId = document.getElementById('contrato_id').value;
-    const montoInput = document.getElementById('monto');
-    const isNewPaymentFromContract = contratoId && !document.querySelector('input[name="_method"]');
-
-    // Solo activar verificación para nuevos pagos desde contrato (parcialidades)
-    if (isNewPaymentFromContract) {
-        // Verificar en blur después de formatear
-        montoInput.addEventListener('blur', function() {
-            setTimeout(verificarLiquidacionParcialidad, 100);
-        });
-
-        // Verificar al cargar la página si ya hay un monto
-        if (montoInput.value) {
-            verificarLiquidacionParcialidad();
-        }
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    // Formatear valor inicial si existe
-    if (montoInput.value && montoInput.value.trim() !== '') {
-        const valorLimpio = montoInput.value.replace(/[^0-9.]/g, '');
-        const valorNumerico = parseFloat(valorLimpio);
-        if (!isNaN(valorNumerico) && valorNumerico > 0) {
-            montoInput.value = formatearMoneda(valorNumerico);
-        }
-    }
-});
+
 </script>
 
 <style>
@@ -818,43 +680,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gap: 16px;
     }
 
-    /* Estado toggle */
-    .estado-toggle {
-        width: 100%;
-        padding: 8px 12px;
-        font-size: 14px;
-        font-weight: 500;
-        border-radius: 6px;
-        border: 1px solid;
-        cursor: pointer;
-        transition: all 0.15s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: none;
-    }
 
-    .estado-hecho {
-        color: #ffffff;
-        background: #28a745;
-        border-color: #28a745;
-    }
-
-    .estado-hecho:hover {
-        background: #218838;
-        border-color: #218838;
-    }
-
-    .estado-pendiente {
-        color: #6c757d;
-        background: #ffffff;
-        border-color: #d1d9e0;
-    }
-
-    .estado-pendiente:hover {
-        background: #f8f9fa;
-        border-color: #adb5bd;
-    }
 
     /* Hints */
     .form-hint {
@@ -1141,13 +967,13 @@ document.addEventListener('DOMContentLoaded', function() {
         background: #f3f4f6;
     }
 
-    .radio-option input[type="radio"]:checked + .radio-label {
+    .radio-option input[type="radio"]:checked+.radio-label {
         border-color: #0969da;
         background: #dbeafe;
         color: #0969da;
     }
 
-    .radio-option input[type="radio"]:focus + .radio-label {
+    .radio-option input[type="radio"]:focus+.radio-label {
         outline: none;
         box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
     }
@@ -1157,7 +983,7 @@ document.addEventListener('DOMContentLoaded', function() {
         min-width: 16px;
     }
 
-    .radio-option input[type="radio"]:checked + .radio-label i {
+    .radio-option input[type="radio"]:checked+.radio-label i {
         color: #0969da;
     }
 
@@ -1166,20 +992,20 @@ document.addEventListener('DOMContentLoaded', function() {
         .form-layout {
             grid-template-columns: 1fr;
         }
-        
+
         .left-column {
             border-right: none;
             border-bottom: 1px solid #e1e5e9;
         }
-        
+
         .form-section {
             padding: 24px 20px;
         }
-        
+
         .contract-info-section {
             padding: 20px;
         }
-        
+
         .contract-header {
             padding: 16px;
         }
@@ -1189,33 +1015,33 @@ document.addEventListener('DOMContentLoaded', function() {
         .minimal-form {
             padding: 16px;
         }
-        
+
         .form-section {
             padding: 20px 16px;
         }
-        
+
         .form-actions {
             padding: 20px;
             flex-direction: column;
             gap: 16px;
             align-items: stretch;
         }
-        
+
         .action-right {
             justify-content: space-between;
         }
-        
+
         .btn {
             flex: 1;
             text-align: center;
         }
-        
+
         .contract-header {
             flex-direction: column;
             text-align: center;
             gap: 12px;
         }
-        
+
         .contract-amount {
             text-align: center;
         }
@@ -1225,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .form-row {
             grid-template-columns: 1fr;
         }
-        
+
         .radio-group {
             grid-template-columns: 1fr;
         }

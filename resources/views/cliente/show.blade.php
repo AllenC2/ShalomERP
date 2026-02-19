@@ -131,7 +131,7 @@
 @push('scripts')
     <script>
         function copyAddress() {
-            const address = `{{ $cliente->domicilio_completo ?? 'Domicilio no disponible' }}`;
+            const address = @json($cliente->domicilio_completo ?? 'Domicilio no disponible');
 
             navigator.clipboard.writeText(address).then(function() {
                 // Cambiar el botón temporalmente para mostrar confirmación
@@ -581,7 +581,7 @@
                                                                     <div class="d-flex align-items-center">
                                                                         <i class="bi bi-calendar3 me-2 text-muted"></i>
                                                                         <span class="text-dark small">
-                                                                            {{ $pago->fecha_pago->translatedFormat('D MMM YYYY HH:mm') }}
+                                                                            {{ $pago->fecha_pago->isoFormat('D MMM YYYY HH:mm') }}
                                                                         </span>
                                                                     </div>
                                                                 </td>

@@ -5,207 +5,173 @@
 @endsection
 
 @section('content')
-<div class="container py-4" style="max-width: 1600px;">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <!-- Header moderno -->
-            <div class="page-header">
-                <div class="header-content">
-                    <div class="header-icon">
-                        <i class="bi bi-file-earmark-text"></i>
+    <div class="container py-4" style="max-width: 1600px;">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header moderno -->
+                <div class="page-header">
+                    <div class="header-content">
+                        <div class="header-icon">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                        <div class="header-text">
+                            <h1 class="page-title">{{ __('Contratos') }}</h1>
+                            <p class="page-subtitle">Gestione y consulte la información de los contratos</p>
+                        </div>
                     </div>
-                    <div class="header-text">
-                        <h1 class="page-title">{{ __('Contratos') }}</h1>
-                        <p class="page-subtitle">Gestione y consulte la información de los contratos</p>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <a href="{{ route('contratos.create') }}" class="btn text-secondary border-secondary custom-hover-btn">
-                        <i class="bi bi-plus-lg me-1"></i>
-                        {{ __('Nuevo Contrato') }}
-                    </a>
+                    <div class="header-actions">
+                        <a href="{{ route('contratos.create') }}"
+                            class="btn text-secondary border-secondary custom-hover-btn">
+                            <i class="bi bi-plus-lg me-1"></i>
+                            {{ __('Nuevo Contrato') }}
+                        </a>
 
-                </div>
-            </div>
-            <div class="">
-                <!-- Formulario de búsqueda -->
-                <div class="pb-3">
-                    <form method="GET" action="{{ route('contratos.index') }}" id="searchForm" class="row g-2 align-items-center">
-                        
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0">
-                                    <i class="bi bi-search"></i>
-                                </span>
-                                <input type="text" name="search" id="searchInput" class="bg-white form-control border-start-0" placeholder="Buscar cliente..." value="{{ request('search') }}" autocomplete="off">
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <button type="button" id="solo_activos" class="btn toggle-btn {{ request('solo_activos', '1') ? 'active' : '' }}" data-value="{{ request('solo_activos', '1') ? '1' : '0' }}">
-                                <i class="bi bi-toggle-{{ request('solo_activos', '1') ? 'on' : 'off' }} me-2"></i>
-                                Solo Activos
-                            </button>
-                        </div>
-                        <div class="col-auto">
-                            <div class="spinner-border spinner-border-sm text-primary d-none" id="loadingSpinner" role="status">
-                                <span class="visually-hidden">Cargando...</span>
-                            </div>
-                        </div>
-                        @if(request('search'))
-                        <div class="col-auto">
-                            <button type="button" id="clearSearch" class="btn btn-outline-secondary btn-sm">
-                                <i class="fa fa-times"></i> Limpiar
-                            </button>
-                        </div>
-                        @endif
-                    </form>
-                </div>
-                @if ($message = Session::get('success'))
-                    <div class="alert alert-success m-4">
-                        <p class="mb-0">{{ $message }}</p>
                     </div>
-                @endif
+                </div>
+                <div class="">
+                    <!-- Formulario de búsqueda -->
+                    <div class="pb-3">
+                        <form method="GET" action="{{ route('contratos.index') }}" id="searchForm"
+                            class="row g-2 align-items-center">
 
-                <div class="card-body p-0">
-                    <div id="contractsTableContainer">
-                        <div class="table-responsive" id="tabla-contratos">
-                            <table class="table table-hover align-middle mb-0 modern-table">
-                                <thead class="modern-header">
-                                    <tr>
-                                        <th scope="col" class="ps-4">ID</th>
-                                        <th scope="col">Cliente</th>
-                                        <th scope="col">Paquete</th>
-                                        <th scope="col">Progreso</th>
-                                        <th scope="col" class="pe-4">Estado de pagos</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($contratos as $contrato)
-                                        <tr class="modern-row clickable-row" data-href="{{ route('contratos.show', $contrato->id) }}">
-                                            <td class="ps-4">
-                                                <span class="badge bg-light text-dark fw-normal">{{ $contrato->id }}</span>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="avatar-circle me-3 d-flex align-items-center justify-content-center" style="min-width: 45px; min-height: 45px; width: 45px; height: 45px; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border-radius: 50%;">
-                                                        {{ strtoupper(substr($contrato->cliente->nombre, 0, 1) . substr($contrato->cliente->apellido, 0, 1)) }}
-                                                    </div>
-                                                    <div>
-                                                        <div class="fw-semibold text-dark">{{ $contrato->cliente->nombre }} {{ $contrato->cliente->apellido }}</div>
-                                                        <div class="fw-semibold text-dark mb-1 d-flex align-items-center">
-                                                        <span class="status-dot me-2 {{ 
-                                                            $contrato->estado == 'activo' ? 'status-dot-success' : 
-                                                            ($contrato->estado == 'suspendido' ? 'status-dot-warning' : 
-                                                            ($contrato->estado == 'cancelado' ? 'status-dot-danger' : 
-                                                            ($contrato->estado == 'finalizado' ? 'status-dot-primary' : 'status-dot-secondary'))) 
-                                                        }}"></span>
-                                                        <small class="text-muted">{{$contrato->paquete->nombre}}#{{ $contrato->id }}</small>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="package-info">
-                                                        {{ $contrato->paquete->nombre }}
-                                                    </div>
-                                                    <small class="text-muted">
-                                                        <i class="bi bi-currency-dollar me-1"></i>
-                                                        ${{ number_format($contrato->paquete->precio, 2) }}
-                                                    </small>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                @php
-                                                    // Calcular cuotas pagadas (solo pagos de tipo "cuota")
-                                                    $cuotasPagadas = $contrato->pagos->filter(function($pago) {
-                                                        return $pago->estado == 'hecho' && 
-                                                               strtolower($pago->tipo_pago ?? '') == 'cuota';
-                                                    })->count();
-                                                    $totalCuotas = $contrato->numero_cuotas ?? 0;
-                                                @endphp
-                                                <div class="progress-info">
-                                                    <div class="d-flex align-items-center" style="min-width:140px;">
-                                                        <span class="fw-bold me-2" style="min-width:40px;">{{ $contrato->porcentaje_pagado }}%</span>
-                                                        <div class="progress flex-grow-1" style="height: 12px;">
-                                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ $contrato->porcentaje_pagado }}%;" aria-valuenow="{{ $contrato->porcentaje_pagado }}" aria-valuemin="0" aria-valuemax="100">
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <small class="text-muted mb-2">
-                                                        Cuotas pagadas: {{ $cuotasPagadas }} de {{ $totalCuotas }}
-                                                    </small>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                @php
-                                                    $estadoPagos = $contrato->estado_pagos;
-                                                @endphp
-                                                <div class="payment-status-info">
-                                                    @if($estadoPagos['tiene_vencidas'])
-                                                        <div class="alert alert-danger p-2 mb-2" style="font-size: 0.85rem;">
-                                                            <div class="fw-bold">
-                                                                <i class="bi bi-exclamation-triangle me-1"></i>
-                                                                {{ $estadoPagos['cuotas_vencidas'] }} cuota{{ $estadoPagos['cuotas_vencidas'] > 1 ? 's' : '' }} retrasada{{ $estadoPagos['cuotas_vencidas'] > 1 ? 's' : '' }}
-                                                            </div>
-                                                            <small>
-                                                                Total: ${{ number_format($estadoPagos['monto_vencido'], 2) }}
-                                                                @if($estadoPagos['dias_retraso'])
-                                                                    <br>{{ intval($estadoPagos['dias_retraso']) }} día{{ intval($estadoPagos['dias_retraso']) > 1 ? 's' : '' }} de retraso
-                                                                @endif
-                                                            </small>
-                                                        </div>
-                                                    @elseif($estadoPagos['tiene_en_tolerancia'])
-                                                        <div class="alert alert-warning p-2 mb-2" style="font-size: 0.85rem;">
-                                                            <div class="fw-bold">
-                                                                <i class="bi bi-clock me-1"></i>
-                                                                {{ $estadoPagos['cuotas_en_tolerancia'] }} cuota{{ $estadoPagos['cuotas_en_tolerancia'] > 1 ? 's' : '' }} en período de gracia
-                                                            </div>
-                                                            <div style="font-size: 0.75rem;">
-                                                                Total: ${{ number_format($estadoPagos['monto_en_tolerancia'], 2) }}
-                                                                <br>Tolerancia: {{ $estadoPagos['tolerancia_dias'] }} día{{ $estadoPagos['tolerancia_dias'] > 1 ? 's' : '' }}
-                                                            </div>
-                                                        </div>
-                                                    @elseif($estadoPagos['proxima_cuota'])
-                                                        <div class="alert alert-success p-2 mb-2" style="font-size: 0.85rem;">
-                                                            <div class="fw-bold">
-                                                                <i class="bi bi-check-circle me-1"></i>
-                                                                Todas las cuotas al día
-                                                            </div>
-                                                            <small>
-                                                                Próximo pago: ${{ number_format($estadoPagos['proxima_cuota']['monto'], 2) }}
-                                                                <br>
-                                                                {{ \Carbon\Carbon::parse($estadoPagos['proxima_cuota']['fecha'])->translatedFormat('d \\d\\e F \\d\\e Y') }}
-                                                            </small>
-                                                        </div>
-                                                    @elseif($contrato->estado == 'finalizado')
-                                                        <div class="alert alert-primary p-2 mb-2" style="font-size: 0.85rem;">
-                                                            <div class="fw-bold">
-                                                                <i class="bi bi-check-circle-fill me-1"></i>
-                                                                Contrato finalizado
-                                                            </div>
-                                                            <small>
-                                                                Todas las cuotas pagadas
-                                                                <br>
-                                                                Sin pagos pendientes
-                                                            </small>
-                                                        </div>
-                                                    @else
-                                                        <div class="alert alert-info p-2 mb-2" style="font-size: 0.85rem;">
-                                                            <div class="fw-bold">
-                                                                <i class="bi bi-info-circle me-1"></i>
-                                                                Todas las cuotas pagadas
-                                                            </div>
-                                                            <small>
-                                                                Contrato {{ $contrato->estado }}
-                                                                <br>
-                                                                Sin pagos pendientes
-                                                            </small>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </td>
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" name="search" id="searchInput"
+                                        class="bg-white form-control border-start-0" placeholder="Buscar cliente..."
+                                        value="{{ request('search') }}" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" id="solo_activos"
+                                    class="btn toggle-btn {{ request('solo_activos', '1') ? 'active' : '' }}"
+                                    data-value="{{ request('solo_activos', '1') ? '1' : '0' }}">
+                                    <i class="bi bi-toggle-{{ request('solo_activos', '1') ? 'on' : 'off' }} me-2"></i>
+                                    Solo Activos
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <div class="spinner-border spinner-border-sm text-primary d-none" id="loadingSpinner"
+                                    role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                            </div>
+                            @if(request('search'))
+                                <div class="col-auto">
+                                    <button type="button" id="clearSearch" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fa fa-times"></i> Limpiar
+                                    </button>
+                                </div>
+                            @endif
+                        </form>
+                    </div>
+                    @if ($message = Session::get('success'))
+                        <div class="alert alert-success m-4">
+                            <p class="mb-0">{{ $message }}</p>
+                        </div>
+                    @endif
+
+                    <div class="card-body p-0">
+                        <div id="contractsTableContainer">
+                            <div class="table-responsive" id="tabla-contratos">
+                                <table class="table table-hover align-middle mb-0 modern-table">
+                                    <thead class="modern-header">
+                                        <tr>
+                                            <th scope="col" class="ps-4">ID</th>
+                                            <th scope="col">Cliente</th>
+                                            <th scope="col">Paquete</th>
+                                            <th scope="col">Progreso</th>
+                                            <th scope="col" class="pe-4">Estado de pagos</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($contratos as $contrato)
+                                                                        <tr class="modern-row clickable-row"
+                                                                            data-href="{{ route('contratos.show', $contrato->id) }}">
+                                                                            <td class="ps-4">
+                                                                                <span class="badge bg-light text-dark fw-normal">{{ $contrato->id }}</span>
+                                                                            </td>
+                                                                            <td>
+                                                                                <div class="d-flex align-items-center">
+                                                                                    <div class="avatar-circle me-3 d-flex align-items-center justify-content-center"
+                                                                                        style="min-width: 45px; min-height: 45px; width: 45px; height: 45px; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border-radius: 50%;">
+                                                                                        {{ strtoupper(substr($contrato->cliente->nombre, 0, 1) . substr($contrato->cliente->apellido, 0, 1)) }}
+                                                                                    </div>
+                                                                                    <div>
+                                                                                        <div class="fw-semibold text-dark">{{ $contrato->cliente->nombre }}
+                                                                                            {{ $contrato->cliente->apellido }}</div>
+                                                                                        <div class="fw-semibold text-dark mb-1 d-flex align-items-center">
+                                                                                            <span class="status-dot me-2 {{ 
+                                                                                                $contrato->estado == 'activo' ? 'status-dot-success' :
+                                            ($contrato->estado == 'suspendido' ? 'status-dot-warning' :
+                                                ($contrato->estado == 'cancelado' ? 'status-dot-danger' :
+                                                    ($contrato->estado == 'finalizado' ? 'status-dot-primary' : 'status-dot-secondary'))) 
+                                                                                            }}"></span>
+                                                                                            <small
+                                                                                                class="text-muted">{{$contrato->paquete->nombre}}#{{ $contrato->id }}</small>
+                                                                                        </div>
+                                                                                    </div>
+                                                                            </td>
+                                                                            <td>
+                                                                                <div class="package-info">
+                                                                                    {{ $contrato->paquete->nombre }}
+                                                                                </div>
+                                                                                <small class="text-muted">
+                                                                                    <i class="bi bi-currency-dollar me-1"></i>
+                                                                                    ${{ number_format($contrato->paquete->precio, 2) }}
+                                                                                </small>
+                                                            </div>
+                                                            </td>
+                                                            <td>
+                                                                @php
+                                                                    $estadoCuenta = $contrato->estado_cuenta;
+                                                                @endphp
+                                                                <div class="progress-info">
+                                                                    <div class="d-flex align-items-center" style="min-width:140px;">
+                                                                        <span class="fw-bold me-2"
+                                                                            style="min-width:40px;">{{ $estadoCuenta['porcentaje'] }}%</span>
+                                                                        <div class="progress flex-grow-1" style="height: 12px;">
+                                                                            <div class="progress-bar bg-success" role="progressbar"
+                                                                                style="width: {{ $estadoCuenta['porcentaje'] }}%;"
+                                                                                aria-valuenow="{{ $estadoCuenta['porcentaje'] }}" aria-valuemin="0"
+                                                                                aria-valuemax="100">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <small class="text-muted mb-2">
+                                                                        Pagado: ${{ number_format($estadoCuenta['pagado'], 2) }}
+                                                                    </small>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="payment-status-info">
+                                                                    @if($estadoCuenta['pendiente'] <= 0)
+                                                                        <div class="alert alert-success p-2 mb-2" style="font-size: 0.85rem;">
+                                                                            <div class="fw-bold">
+                                                                                <i class="bi bi-check-circle me-1"></i>
+                                                                                Completado
+                                                                            </div>
+                                                                            <small>Total pagado</small>
+                                                                        </div>
+                                                                    @else
+                                                                        <div class="alert alert-info p-2 mb-2" style="font-size: 0.85rem;">
+                                                                            <div class="fw-bold">
+                                                                                <i class="bi bi-clock me-1"></i>
+                                                                                Pendiente
+                                                                            </div>
+                                                                            <small>
+                                                                                Restante: ${{ number_format($estadoCuenta['pendiente'], 2) }}
+                                                                                <br>Total: ${{ number_format($estadoCuenta['total'], 2) }}
+                                                                            </small>
+                                                                        </div>
+                                                                    @endif
+                                                                </div>
+                                                            </td>
+                                                            </tr>
+                                        @endforeach
+                            </tbody>
                             </table>
                         </div>
                         <div class="d-flex justify-content-center mt-4">
@@ -216,7 +182,7 @@
             </div>
         </div>
     </div>
-</div>
+    </div>
 @endsection
 
 <style>
@@ -460,6 +426,7 @@
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -468,6 +435,7 @@
 
     /* Responsive */
     @media (max-width: 768px) {
+
         .modern-header th,
         .modern-row td {
             padding: 1rem 0.5rem !important;
@@ -499,7 +467,7 @@
             .payment-status-info {
                 display: none;
             }
-            
+
             .modern-header th:nth-child(5),
             .modern-row td:nth-child(5) {
                 display: none;
@@ -690,242 +658,242 @@
 
 
 @section('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const soloActivosToggle = document.getElementById('solo_activos');
-    const clearSearchBtn = document.getElementById('clearSearch');
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    const contractsContainer = document.getElementById('contractsTableContainer');
-    
-    let searchTimeout;
-    let currentRequest;
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('searchInput');
+            const soloActivosToggle = document.getElementById('solo_activos');
+            const clearSearchBtn = document.getElementById('clearSearch');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const contractsContainer = document.getElementById('contractsTableContainer');
 
-    // Función para realizar la búsqueda
-    function performSearch(immediate = false) {
-        clearTimeout(searchTimeout);
-        
-        const delay = immediate ? 0 : 300; // Sin delay para checkbox, con delay para input
-        
-        searchTimeout = setTimeout(() => {
-            // Cancelar request anterior si existe
-            if (currentRequest) {
-                currentRequest.abort();
+            let searchTimeout;
+            let currentRequest;
+
+            // Función para realizar la búsqueda
+            function performSearch(immediate = false) {
+                clearTimeout(searchTimeout);
+
+                const delay = immediate ? 0 : 300; // Sin delay para checkbox, con delay para input
+
+                searchTimeout = setTimeout(() => {
+                    // Cancelar request anterior si existe
+                    if (currentRequest) {
+                        currentRequest.abort();
+                    }
+
+                    const searchValue = searchInput.value.trim();
+                    const soloActivos = soloActivosToggle.getAttribute('data-value');
+
+                    // Mostrar spinner de carga
+                    loadingSpinner.classList.remove('d-none');
+
+                    // Crear URL con parámetros
+                    const url = new URL('{{ route("contratos.index") }}', window.location.origin);
+                    if (searchValue) {
+                        url.searchParams.set('search', searchValue);
+                    }
+                    url.searchParams.set('solo_activos', soloActivos);
+
+                    // Realizar request AJAX
+                    currentRequest = fetch(url.toString(), {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'text/html',
+                        }
+                    })
+                        .then(response => response.text())
+                        .then(data => {
+                            // Crear un elemento temporal para parsear la respuesta
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = data;
+
+                            // Buscar si hay una vista parcial (solo tabla) o vista completa
+                            const partialTable = tempDiv.querySelector('.table-responsive');
+                            const fullContainer = tempDiv.querySelector('#contractsTableContainer');
+
+                            if (partialTable && !fullContainer) {
+                                // Es una respuesta parcial (AJAX), reemplazar todo el contenedor
+                                contractsContainer.innerHTML = data;
+                            } else if (fullContainer) {
+                                // Es una respuesta completa, extraer solo el contenido del contenedor
+                                contractsContainer.innerHTML = fullContainer.innerHTML;
+                            } else {
+                                // Fallback: reemplazar con la respuesta completa
+                                contractsContainer.innerHTML = data;
+                            }
+
+                            // Actualizar la URL del navegador sin recargar la página
+                            window.history.replaceState({}, '', url.toString());
+
+                            // Actualizar botón de limpiar
+                            updateClearButton(searchValue);
+
+                            // Agregar event listeners a los nuevos enlaces de paginación y filas
+                            addPaginationListeners();
+                            initializeRowEvents();
+                        })
+                        .catch(error => {
+                            if (error.name !== 'AbortError') {
+                                console.error('Error en la búsqueda:', error);
+                            }
+                        })
+                        .finally(() => {
+                            loadingSpinner.classList.add('d-none');
+                            currentRequest = null;
+                        });
+                }, delay); // Usar el delay variable
             }
 
-            const searchValue = searchInput.value.trim();
-            const soloActivos = soloActivosToggle.getAttribute('data-value');
-            
-            // Mostrar spinner de carga
-            loadingSpinner.classList.remove('d-none');
-            
-            // Crear URL con parámetros
-            const url = new URL('{{ route("contratos.index") }}', window.location.origin);
-            if (searchValue) {
-                url.searchParams.set('search', searchValue);
-            }
-            url.searchParams.set('solo_activos', soloActivos);
-            
-            // Realizar request AJAX
-            currentRequest = fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'text/html',
-                }
-            })
-            .then(response => response.text())
-            .then(data => {
-                // Crear un elemento temporal para parsear la respuesta
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = data;
-                
-                // Buscar si hay una vista parcial (solo tabla) o vista completa
-                const partialTable = tempDiv.querySelector('.table-responsive');
-                const fullContainer = tempDiv.querySelector('#contractsTableContainer');
-                
-                if (partialTable && !fullContainer) {
-                    // Es una respuesta parcial (AJAX), reemplazar todo el contenedor
-                    contractsContainer.innerHTML = data;
-                } else if (fullContainer) {
-                    // Es una respuesta completa, extraer solo el contenido del contenedor
-                    contractsContainer.innerHTML = fullContainer.innerHTML;
+            // Función para actualizar el botón de limpiar
+            function updateClearButton(searchValue) {
+                const clearButtonContainer = clearSearchBtn?.parentElement;
+                if (searchValue && searchValue.length > 0) {
+                    if (!clearSearchBtn) {
+                        // Crear botón de limpiar si no existe
+                        const formRow = document.querySelector('#searchForm .row');
+                        const newCol = document.createElement('div');
+                        newCol.className = 'col-auto';
+                        newCol.innerHTML = `
+                        <button type="button" id="clearSearch" class="btn btn-outline-secondary btn-sm">
+                            <i class="fa fa-times"></i> Limpiar
+                        </button>
+                    `;
+                        formRow.appendChild(newCol);
+
+                        // Agregar event listener al nuevo botón
+                        newCol.querySelector('#clearSearch').addEventListener('click', clearSearch);
+                    }
                 } else {
-                    // Fallback: reemplazar con la respuesta completa
-                    contractsContainer.innerHTML = data;
-                }
-                
-                // Actualizar la URL del navegador sin recargar la página
-                window.history.replaceState({}, '', url.toString());
-                
-                // Actualizar botón de limpiar
-                updateClearButton(searchValue);
-                
-                // Agregar event listeners a los nuevos enlaces de paginación y filas
-                addPaginationListeners();
-                initializeRowEvents();
-            })
-            .catch(error => {
-                if (error.name !== 'AbortError') {
-                    console.error('Error en la búsqueda:', error);
-                }
-            })
-            .finally(() => {
-                loadingSpinner.classList.add('d-none');
-                currentRequest = null;
-            });
-        }, delay); // Usar el delay variable
-    }
-
-    // Función para actualizar el botón de limpiar
-    function updateClearButton(searchValue) {
-        const clearButtonContainer = clearSearchBtn?.parentElement;
-        if (searchValue && searchValue.length > 0) {
-            if (!clearSearchBtn) {
-                // Crear botón de limpiar si no existe
-                const formRow = document.querySelector('#searchForm .row');
-                const newCol = document.createElement('div');
-                newCol.className = 'col-auto';
-                newCol.innerHTML = `
-                    <button type="button" id="clearSearch" class="btn btn-outline-secondary btn-sm">
-                        <i class="fa fa-times"></i> Limpiar
-                    </button>
-                `;
-                formRow.appendChild(newCol);
-                
-                // Agregar event listener al nuevo botón
-                newCol.querySelector('#clearSearch').addEventListener('click', clearSearch);
-            }
-        } else {
-            if (clearButtonContainer) {
-                clearButtonContainer.remove();
-            }
-        }
-    }
-
-    // Función para limpiar búsqueda
-    function clearSearch() {
-        searchInput.value = '';
-        // Activar el toggle (Solo activos en true)
-        soloActivosToggle.setAttribute('data-value', '1');
-        soloActivosToggle.classList.add('active');
-        soloActivosToggle.innerHTML = '<i class="bi bi-toggle-on me-2"></i>Solo Activos';
-        performSearch(true); // Inmediato al limpiar
-    }
-
-    // Función para inicializar eventos de las filas
-    function initializeRowEvents() {
-        // Click en fila para ir al show
-        document.querySelectorAll('.clickable-row').forEach(row => {
-            row.addEventListener('click', function(e) {
-                // No redirigir si se hace click en los botones de acciones
-                if (!e.target.closest('td[onclick*="stopPropagation"]')) {
-                    window.location.href = this.getAttribute('data-href');
-                }
-            });
-        });
-    }
-
-    // Función para agregar listeners a enlaces de paginación
-    function addPaginationListeners() {
-        const paginationLinks = contractsContainer.querySelectorAll('.pagination a');
-        paginationLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const url = new URL(this.href);
-                
-                // Mantener parámetros de búsqueda actuales
-                const searchValue = searchInput.value.trim();
-                const soloActivos = soloActivosToggle.getAttribute('data-value');
-                
-                if (searchValue) {
-                    url.searchParams.set('search', searchValue);
-                }
-                url.searchParams.set('solo_activos', soloActivos);
-                
-                // Mostrar spinner
-                loadingSpinner.classList.remove('d-none');
-                
-                // Realizar petición AJAX
-                fetch(url.toString(), {
-                    method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'text/html',
+                    if (clearButtonContainer) {
+                        clearButtonContainer.remove();
                     }
-                })
-                .then(response => response.text())
-                .then(data => {
-                    // Crear un elemento temporal para parsear la respuesta
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = data;
-                    
-                    // Buscar si hay una vista parcial (solo tabla) o vista completa
-                    const partialTable = tempDiv.querySelector('.table-responsive');
-                    const fullContainer = tempDiv.querySelector('#contractsTableContainer');
-                    
-                    if (partialTable && !fullContainer) {
-                        // Es una respuesta parcial (AJAX), reemplazar todo el contenedor
-                        contractsContainer.innerHTML = data;
-                    } else if (fullContainer) {
-                        // Es una respuesta completa, extraer solo el contenido del contenedor
-                        contractsContainer.innerHTML = fullContainer.innerHTML;
-                    } else {
-                        // Fallback: reemplazar con la respuesta completa
-                        contractsContainer.innerHTML = data;
-                    }
-                    
-                    // Actualizar URL
-                    window.history.replaceState({}, '', url.toString());
-                    
-                    // Re-agregar listeners
-                    addPaginationListeners();
-                    initializeRowEvents();
-                })
-                .catch(error => {
-                    console.error('Error en la paginación:', error);
-                })
-                .finally(() => {
-                    loadingSpinner.classList.add('d-none');
+                }
+            }
+
+            // Función para limpiar búsqueda
+            function clearSearch() {
+                searchInput.value = '';
+                // Activar el toggle (Solo activos en true)
+                soloActivosToggle.setAttribute('data-value', '1');
+                soloActivosToggle.classList.add('active');
+                soloActivosToggle.innerHTML = '<i class="bi bi-toggle-on me-2"></i>Solo Activos';
+                performSearch(true); // Inmediato al limpiar
+            }
+
+            // Función para inicializar eventos de las filas
+            function initializeRowEvents() {
+                // Click en fila para ir al show
+                document.querySelectorAll('.clickable-row').forEach(row => {
+                    row.addEventListener('click', function (e) {
+                        // No redirigir si se hace click en los botones de acciones
+                        if (!e.target.closest('td[onclick*="stopPropagation"]')) {
+                            window.location.href = this.getAttribute('data-href');
+                        }
+                    });
                 });
+            }
+
+            // Función para agregar listeners a enlaces de paginación
+            function addPaginationListeners() {
+                const paginationLinks = contractsContainer.querySelectorAll('.pagination a');
+                paginationLinks.forEach(link => {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const url = new URL(this.href);
+
+                        // Mantener parámetros de búsqueda actuales
+                        const searchValue = searchInput.value.trim();
+                        const soloActivos = soloActivosToggle.getAttribute('data-value');
+
+                        if (searchValue) {
+                            url.searchParams.set('search', searchValue);
+                        }
+                        url.searchParams.set('solo_activos', soloActivos);
+
+                        // Mostrar spinner
+                        loadingSpinner.classList.remove('d-none');
+
+                        // Realizar petición AJAX
+                        fetch(url.toString(), {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'text/html',
+                            }
+                        })
+                            .then(response => response.text())
+                            .then(data => {
+                                // Crear un elemento temporal para parsear la respuesta
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = data;
+
+                                // Buscar si hay una vista parcial (solo tabla) o vista completa
+                                const partialTable = tempDiv.querySelector('.table-responsive');
+                                const fullContainer = tempDiv.querySelector('#contractsTableContainer');
+
+                                if (partialTable && !fullContainer) {
+                                    // Es una respuesta parcial (AJAX), reemplazar todo el contenedor
+                                    contractsContainer.innerHTML = data;
+                                } else if (fullContainer) {
+                                    // Es una respuesta completa, extraer solo el contenido del contenedor
+                                    contractsContainer.innerHTML = fullContainer.innerHTML;
+                                } else {
+                                    // Fallback: reemplazar con la respuesta completa
+                                    contractsContainer.innerHTML = data;
+                                }
+
+                                // Actualizar URL
+                                window.history.replaceState({}, '', url.toString());
+
+                                // Re-agregar listeners
+                                addPaginationListeners();
+                                initializeRowEvents();
+                            })
+                            .catch(error => {
+                                console.error('Error en la paginación:', error);
+                            })
+                            .finally(() => {
+                                loadingSpinner.classList.add('d-none');
+                            });
+                    });
+                });
+            }
+
+            // Event listeners
+            searchInput.addEventListener('input', () => performSearch(false)); // Con delay para input
+
+            // Event listener para el botón toggle
+            soloActivosToggle.addEventListener('click', function () {
+                const currentValue = this.getAttribute('data-value');
+                const newValue = currentValue === '1' ? '0' : '1';
+
+                // Actualizar el estado del botón
+                this.setAttribute('data-value', newValue);
+
+                if (newValue === '1') {
+                    this.classList.add('active');
+                    this.innerHTML = '<i class="bi bi-toggle-on me-2"></i>Solo Activos';
+                } else {
+                    this.classList.remove('active');
+                    this.innerHTML = '<i class="bi bi-toggle-off me-2"></i>Solo Activos';
+                }
+
+                performSearch(true); // Sin delay para el toggle
+            });
+
+            if (clearSearchBtn) {
+                clearSearchBtn.addEventListener('click', clearSearch);
+            }
+
+            // Configurar listeners iniciales para paginación y filas
+            addPaginationListeners();
+            initializeRowEvents();
+
+            // Manejar navegación del navegador (botones atrás/adelante)
+            window.addEventListener('popstate', function () {
+                location.reload();
             });
         });
-    }
-
-    // Event listeners
-    searchInput.addEventListener('input', () => performSearch(false)); // Con delay para input
-    
-    // Event listener para el botón toggle
-    soloActivosToggle.addEventListener('click', function() {
-        const currentValue = this.getAttribute('data-value');
-        const newValue = currentValue === '1' ? '0' : '1';
-        
-        // Actualizar el estado del botón
-        this.setAttribute('data-value', newValue);
-        
-        if (newValue === '1') {
-            this.classList.add('active');
-            this.innerHTML = '<i class="bi bi-toggle-on me-2"></i>Solo Activos';
-        } else {
-            this.classList.remove('active');
-            this.innerHTML = '<i class="bi bi-toggle-off me-2"></i>Solo Activos';
-        }
-        
-        performSearch(true); // Sin delay para el toggle
-    });
-    
-    if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', clearSearch);
-    }
-
-    // Configurar listeners iniciales para paginación y filas
-    addPaginationListeners();
-    initializeRowEvents();
-
-    // Manejar navegación del navegador (botones atrás/adelante)
-    window.addEventListener('popstate', function() {
-        location.reload();
-    });
-});
-</script>
+    </script>
 @endsection

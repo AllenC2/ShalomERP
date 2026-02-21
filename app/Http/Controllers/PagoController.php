@@ -71,7 +71,12 @@ class PagoController extends Controller
         $validatedData['estado'] = $validatedData['estado'] ?? 'hecho';
 
         // Crear el pago
-        Pago::create($validatedData);
+        $pago = Pago::create($validatedData);
+
+        // Actualizar contrato si está relacionado
+        if ($pago->contrato) {
+            $pago->contrato->actualizarProximaFechaPago();
+        }
 
         // Redirigir al contrato si existe, sino a la lista de pagos
         if (isset($validatedData['contrato_id']) && $validatedData['contrato_id']) {
@@ -129,6 +134,11 @@ class PagoController extends Controller
 
         $pago->update($validatedData);
 
+        // Actualizar contrato
+        if ($pago->contrato) {
+            $pago->contrato->actualizarProximaFechaPago();
+        }
+
         return Redirect::route('contratos.show', $pago->contrato_id)
             ->with('success', 'Pago modificado correctamente.');
     }
@@ -137,9 +147,14 @@ class PagoController extends Controller
     {
         $pago = Pago::findOrFail($id);
         $contratoId = $pago->contrato_id;
+        $contrato = $pago->contrato;
 
         // Eliminar el pago
         $pago->delete();
+
+        if ($contrato) {
+            $contrato->actualizarProximaFechaPago();
+        }
 
         return Redirect::route('pagos.index')
             ->with('success', 'Pago eliminado correctamente.');

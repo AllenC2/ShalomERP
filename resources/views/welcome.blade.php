@@ -1789,7 +1789,7 @@
     </div>
 
     <div class="text-center mt-3">
-        <small class="text-muted">Version 1.5 @imallen.dev</small>
+        <small class="text-muted">Version 1.5.1 @imallen.dev</small>
     </div>
     </div>
 </body>

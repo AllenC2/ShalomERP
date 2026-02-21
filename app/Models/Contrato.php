@@ -286,4 +286,19 @@ class Contrato extends Model
 
         return $pagoSimulado;
     }
+
+    /**
+     * Actualiza el campo proxima_fecha_pago en la base de datos evaluando
+     * el estado actual del contrato.
+     */
+    public function actualizarProximaFechaPago()
+    {
+        $siguiente = $this->siguiente_pago_calculado;
+        if ($siguiente) {
+            $this->proxima_fecha_pago = $siguiente->fecha_pago;
+        } else {
+            $this->proxima_fecha_pago = null;
+        }
+        $this->saveQuietly();
+    }
 }

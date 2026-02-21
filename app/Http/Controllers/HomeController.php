@@ -38,7 +38,7 @@ class HomeController extends Controller
 
         // Consultar la cantidad de contratos por día
         $contratosPorDia = $dias->map(function ($fecha) {
-            return 
+            return
                 [
                     'fecha' => $fecha,
                     'cantidad' => \App\Models\Contrato::whereDate('created_at', $fecha)->count()
@@ -47,13 +47,13 @@ class HomeController extends Controller
 
         // Solo los valores para el gráfico
         $cantidades = $contratosPorDia->pluck('cantidad');
-        $labels = $dias->map(function($fecha) {
+        $labels = $dias->map(function ($fecha) {
             return \Carbon\Carbon::parse($fecha)->isoFormat('ddd'); // Ej: Lun, Mar, etc.
         });
 
         // Agenda de pagos - obtener el offset de día desde la URL
         $dayOffset = $request->input('day', 0);
-        
+
         // Validar y convertir a entero de forma segura
         if (!is_numeric($dayOffset)) {
             $dayOffset = 0;
@@ -72,24 +72,27 @@ class HomeController extends Controller
             // Limitar el rango de semanas
             $weekOffset = max(-52, min(52, $weekOffset));
         }
-        
+
         // Configurar locale en español
         Carbon::setLocale('es');
-        
+
         // Calcular la fecha específica
         $fecha = Carbon::now()->addDays($dayOffset);
-        
+
         // Obtener pagos para el día específico
-        $pagosPendientes = \App\Models\Pago::with(['contrato', 'contrato.cliente'])
-            ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
-            ->where('estado', 'pendiente')
-            ->get();
-            
+        $pagosPendientes = \App\Models\Contrato::with(['cliente'])
+            ->whereDate('proxima_fecha_pago', $fecha->format('Y-m-d'))
+            ->where('estado', 'activo')
+            ->get()
+            ->map(function ($contrato) {
+                return $contrato->siguiente_pago_calculado; // Obtiene el objeto pago simulado
+            })->filter(); // Elimina los nulos si los hay
+
         $pagosHechos = \App\Models\Pago::with(['contrato', 'contrato.cliente'])
             ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
             ->where('estado', 'hecho')
             ->get();
-        
+
         // Crear estructura de datos para el día
         $agendaDia = [
             'fecha' => $fecha,
@@ -103,7 +106,7 @@ class HomeController extends Controller
         // Si es una petición AJAX para cambiar semana
         if ($request->ajax() && $request->has('week')) {
             $empleadoAgenda = $this->getEmpleadoAgenda($weekOffset);
-            
+
             return response()->json([
                 'success' => true,
                 'empleadoAgenda' => $this->formatEmpleadoAgendaForAjax($empleadoAgenda)
@@ -128,7 +131,7 @@ class HomeController extends Controller
     private function getEmpleadoContratos()
     {
         $user = Auth::user();
-        
+
         // Si es admin, no mostrar contratos de empleado
         if ($user->role === 'admin') {
             return collect();
@@ -136,7 +139,7 @@ class HomeController extends Controller
 
         // Buscar el empleado asociado al usuario
         $empleado = Empleado::where('user_id', $user->id)->first();
-        
+
         if (!$empleado) {
             return collect();
         }
@@ -161,7 +164,7 @@ class HomeController extends Controller
     private function getEmpleadoAgenda($weekOffset = 0)
     {
         $user = Auth::user();
-        
+
         // Si es admin, no mostrar agenda de empleado
         if ($user->role === 'admin') {
             return collect();
@@ -169,7 +172,7 @@ class HomeController extends Controller
 
         // Buscar el empleado asociado al usuario
         $empleado = Empleado::where('user_id', $user->id)->first();
-        
+
         if (!$empleado) {
             return collect();
         }
@@ -182,27 +185,32 @@ class HomeController extends Controller
 
         // Configurar locale en español
         Carbon::setLocale('es');
-        
+
         // Generar los 7 días basados en el offset de semana
         $agendaDias = collect();
         $fechaInicio = Carbon::now()->addWeeks($weekOffset);
-        
+
         for ($i = 0; $i < 7; $i++) {
             $fecha = $fechaInicio->copy()->addDays($i);
-            
+
             // Obtener pagos para contratos del empleado en esta fecha
-            $pagosPendientes = Pago::with(['contrato', 'contrato.cliente'])
-                ->whereIn('contrato_id', $contratoIds)
-                ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
-                ->where('estado', 'pendiente')
-                ->get();
-                
+            $pagosPendientes = \App\Models\Contrato::with(['cliente'])
+                ->whereIn('id', $contratoIds)
+                ->whereDate('proxima_fecha_pago', $fecha->format('Y-m-d'))
+                ->where('estado', 'activo')
+                ->get()
+                ->map(function ($contrato) {
+                    return $contrato->siguiente_pago_calculado; // Obtiene el objeto pago simulado
+                })->filter() // Elimina los nulos si los hay
+                ->values(); // Resetear indices para que jsonSerialize no lo convierta en objeto json
+
+
             $pagosHechos = Pago::with(['contrato', 'contrato.cliente'])
                 ->whereIn('contrato_id', $contratoIds)
                 ->whereDate('fecha_pago', $fecha->format('Y-m-d'))
                 ->where('estado', 'hecho')
                 ->get();
-                
+
             $agendaDias->push([
                 'fecha' => $fecha,
                 'dia_nombre' => ucfirst($fecha->isoFormat('dddd')),
@@ -222,7 +230,7 @@ class HomeController extends Controller
     private function getEmpleadoPagosVencidos()
     {
         $user = Auth::user();
-        
+
         // Si es admin, no mostrar pagos vencidos de empleado
         if ($user->role === 'admin') {
             return collect();
@@ -230,7 +238,7 @@ class HomeController extends Controller
 
         // Buscar el empleado asociado al usuario
         $empleado = Empleado::where('user_id', $user->id)->first();
-        
+
         if (!$empleado) {
             return collect();
         }
@@ -243,13 +251,13 @@ class HomeController extends Controller
 
         // Configurar locale en español
         Carbon::setLocale('es');
-        
+
         // Obtener la tolerancia de pagos desde los ajustes
         $toleranciaDias = \App\Models\Ajuste::obtenerToleranciaPagos();
-        
+
         // Calcular la fecha límite considerando la tolerancia
         $fechaLimite = Carbon::now()->subDays($toleranciaDias)->endOfDay();
-        
+
         // Obtener pagos vencidos (pendientes que son anteriores a la fecha límite)
         $pagosVencidos = Pago::with(['contrato', 'contrato.cliente'])
             ->whereIn('contrato_id', $contratoIds)
@@ -269,7 +277,7 @@ class HomeController extends Controller
         return $empleadoAgenda->map(function ($dia) {
             $pagosPendientes = $dia['pagos_pendientes'] ?? collect();
             $pagosHechos = $dia['pagos_hechos'] ?? collect();
-            
+
             // Combinar pagos pendientes y hechos para el formato del JS
             $todosPagos = $pagosPendientes->merge($pagosHechos)->map(function ($pago) {
                 return [
@@ -280,7 +288,7 @@ class HomeController extends Controller
                     'estado' => $pago->estado
                 ];
             });
-            
+
             return [
                 'fecha' => $dia['fecha']->format('Y-m-d'),
                 'dia_nombre' => $dia['dia_nombre'],

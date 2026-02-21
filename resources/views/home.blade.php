@@ -400,7 +400,7 @@
                                                 <a href="{{ route('contratos.show', $pago->contrato->id) }}" class="text-decoration-none pago-link">
                                                     <div class="pago-item p-3 bg-white rounded border-start border-4 h-100" 
                                                          style="border-left-color: #E1B240 !important;"
-                                                         title="PENDIENTE - Cliente: {{ $pago->contrato->cliente->nombre ?? 'Sin cliente' }} - Contrato #{{ $pago->contrato->id ?? 'N/A' }} - Click para ver detalles">
+                                                         title="Click para ver detalles">
                                                         <div class="fw-bold text-truncate mb-2">
                                                             <i class="bi bi-person-fill me-2" style="color: #E1B240;"></i>
                                                             {{ $pago->contrato->cliente->nombre ?? 'Sin cliente' }}
@@ -428,7 +428,7 @@
                                             <div class="col-md-6 col-lg-3">
                                                 <a href="{{ route('contratos.show', $pago->contrato->id) }}" class="text-decoration-none pago-link">
                                                     <div class="pago-item p-3 bg-white rounded border-start border-4 border-success h-100"
-                                                         title="COMPLETADO - Cliente: {{ $pago->contrato->cliente->nombre ?? 'Sin cliente' }} - Contrato #{{ $pago->contrato->id ?? 'N/A' }} - Click para ver detalles">
+                                                         title="Click para ver detalles">
                                                         <div class="fw-bold text-truncate mb-2">
                                                             <i class="bi bi-person-check-fill me-2 text-success"></i>
                                                             {{ $pago->contrato->cliente->nombre ?? 'Sin cliente' }}

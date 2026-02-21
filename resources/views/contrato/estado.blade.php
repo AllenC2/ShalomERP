@@ -52,12 +52,12 @@
                                             {{ $contrato->cliente->apellido }}
                                         </h5>
                                         <h6>
-                                            {{ $contrato->cliente->calle_y_numero ?: 'Dirección no registrada' }}<br>
-                                            {{ $contrato->cliente->colonia ?: 'Colonia no registrada' }},
+                                            {{ $contrato->cliente->calle_y_numero ?: 'Sin domicilio' }}<br>
+                                            {{ $contrato->cliente->colonia ?: '' }},
                                             {{ $contrato->cliente->municipio }} <br>
-                                            {{ $contrato->cliente->estado ?: 'Estado no registrado' }}<br>
+                                            {{ $contrato->cliente->estado ?: '' }}<br>
                                             C.P.
-                                            {{ $contrato->cliente->codigo_postal ?: 'Código Postal no registrado' }}
+                                            {{ $contrato->cliente->codigo_postal ?: '--' }}
                                         </h6>
                                     </div>
                                 </div>
@@ -520,20 +520,17 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="footer-divider"></div>
-                        <div class="footer-bottom">
-                            <div class="row align-items-center">
-                                <div class="col-sm-6">
-                                    <p class="footer-text mb-0">
-                                        <i class="bi bi-shield-check me-2"></i>
-                                        Documento generado automáticamente
-                                    </p>
-                                </div>
-                                <div class="col-sm-6 text-sm-end">
-                                    <p class="footer-text mb-0">
-                                        {{ now()->format('d/m/Y H:i:s') }}
-                                    </p>
-                                </div>
+
+                        <div class="row align-items-center">
+                            <div class="col-sm-6">
+                                <p class="footer-text mb-0">
+                                    Documento generado automáticamente
+                                </p>
+                            </div>
+                            <div class="col-sm-6 text-sm-end">
+                                <p class="footer-text mb-0">
+                                    {{ now()->format('d/m/Y H:i:s') }}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -542,10 +539,10 @@
         </div>
     </section>
 
-    <section class="content container-fluid">
+    <section class="content container-fluid d-print-none">
         <div class="container py-2">
             <!-- Botón de imprimir -->
-            <div class="text-center mb-3 d-print-none">
+            <div class="text-center mb-3 ">
                 <button onclick="window.print()" class="btn btn-primary">
                     <i class="bi bi-printer me-2"></i>Imprimir Estado de Cuenta
                 </button>
@@ -872,11 +869,11 @@
             background-color: transparent;
             color: var(--gray-900);
             font-weight: 700;
-            padding: 1rem 1.5rem;
+            padding: 0.5rem 0.5rem;
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 0.05em;
-            border-bottom: 2px solid var(--gray-900);
+            border-bottom: 1px solid var(--gray-500);
             border-top: none;
         }
 
@@ -885,11 +882,11 @@
         }
 
         .table-modern td {
-            padding: 1rem;
+            padding: 0.15rem 0.5rem;
             border: none;
             border-bottom: 1px solid var(--gray-100);
             vertical-align: middle;
-            background: white;
+
         }
 
         .table-row-hover {

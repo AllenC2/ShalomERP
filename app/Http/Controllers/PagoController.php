@@ -20,17 +20,27 @@ class PagoController extends Controller
     {
         $searchContrato = $request->input('search_contrato');
         $estado = $request->input('estado');
+        $sortBy = $request->input('sort_by', 'id');
+        $sortDirection = $request->input('sort_direction', 'desc');
 
-        $pagosQuery = Pago::query();
+        $pagosQuery = Pago::with(['contrato.cliente', 'creador']);
         if ($searchContrato) {
             $pagosQuery->where('contrato_id', $searchContrato);
         }
         if ($estado && in_array($estado, ['hecho', 'pendiente', 'retrasado'])) {
             $pagosQuery->where('estado', $estado);
         }
+        
+        $allowedSortColumns = ['id', 'contrato_id', 'monto', 'fecha_pago', 'estado', 'created_by'];
+        if (in_array($sortBy, $allowedSortColumns)) {
+            $pagosQuery->orderBy($sortBy, $sortDirection === 'asc' ? 'asc' : 'desc');
+        } else {
+            $pagosQuery->orderBy('id', 'desc');
+        }
+
         $pagos = $pagosQuery->paginate(25);
 
-        return view('pago.index', compact('pagos', 'searchContrato', 'estado'))
+        return view('pago.index', compact('pagos', 'searchContrato', 'estado', 'sortBy', 'sortDirection'))
             ->with('i', ($request->input('page', 1) - 1) * $pagos->perPage());
     }
 
@@ -69,6 +79,9 @@ class PagoController extends Controller
 
         // Asegurar que el estado sea 'hecho' por defecto si no viene
         $validatedData['estado'] = $validatedData['estado'] ?? 'hecho';
+        
+        // Asignar el usuario creador
+        $validatedData['created_by'] = auth()->id();
 
         // Crear el pago
         $pago = Pago::create($validatedData);

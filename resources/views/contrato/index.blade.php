@@ -783,14 +783,19 @@
 
             // Función para inicializar eventos de las filas
             function initializeRowEvents() {
-                // Click en fila para ir al show
-                document.querySelectorAll('.clickable-row').forEach(row => {
-                    row.addEventListener('click', function (e) {
+                // Prevenir múltiples bindings si se llama varias veces por AJAX
+                if (window.rowEventsInitialized) return;
+                window.rowEventsInitialized = true;
+
+                // Click en fila para ir al show (Delegación de eventos)
+                document.getElementById('contractsTableContainer').addEventListener('click', function (e) {
+                    const row = e.target.closest('.clickable-row');
+                    if (row) {
                         // No redirigir si se hace click en los botones de acciones
-                        if (!e.target.closest('td[onclick*="stopPropagation"]')) {
-                            window.location.href = this.getAttribute('data-href');
+                        if (!e.target.closest('td[onclick*="stopPropagation"]') && !e.target.closest('.action-btn')) {
+                            window.location.href = row.getAttribute('data-href');
                         }
-                    });
+                    }
                 });
             }
 

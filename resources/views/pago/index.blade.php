@@ -63,11 +63,36 @@
                             <table class="table table-hover align-middle mb-0 modern-table">
                                 <thead class="modern-header">
                                     <tr>
-                                        <th scope="col" class="ps-4">#</th>
-                                        <th scope="col">Contrato</th>
-                                        <th scope="col">Información del Pago</th>
-                                        <th scope="col">Fecha y tipo</th>
-                                        <th scope="col">Estado</th>
+                                        <th scope="col" class="ps-4">
+                                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'id', 'sort_direction' => ($sortBy == 'id' && $sortDirection == 'asc') ? 'desc' : 'asc']) }}" class="text-reset text-decoration-none d-flex align-items-center gap-1 sort-link">
+                                                # @if($sortBy == 'id') <i class="bi bi-arrow-{{ $sortDirection == 'asc' ? 'up' : 'down' }} small"></i> @endif
+                                            </a>
+                                        </th>
+                                        <th scope="col">
+                                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'contrato_id', 'sort_direction' => ($sortBy == 'contrato_id' && $sortDirection == 'asc') ? 'desc' : 'asc']) }}" class="text-reset text-decoration-none d-flex align-items-center gap-1 sort-link">
+                                                Contrato @if($sortBy == 'contrato_id') <i class="bi bi-arrow-{{ $sortDirection == 'asc' ? 'up' : 'down' }} small"></i> @endif
+                                            </a>
+                                        </th>
+                                        <th scope="col">
+                                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'monto', 'sort_direction' => ($sortBy == 'monto' && $sortDirection == 'asc') ? 'desc' : 'asc']) }}" class="text-reset text-decoration-none d-flex align-items-center gap-1 sort-link">
+                                                Información del Pago @if($sortBy == 'monto') <i class="bi bi-arrow-{{ $sortDirection == 'asc' ? 'up' : 'down' }} small"></i> @endif
+                                            </a>
+                                        </th>
+                                        <th scope="col">
+                                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'fecha_pago', 'sort_direction' => ($sortBy == 'fecha_pago' && $sortDirection == 'asc') ? 'desc' : 'asc']) }}" class="text-reset text-decoration-none d-flex align-items-center gap-1 sort-link">
+                                                Fecha y tipo @if($sortBy == 'fecha_pago') <i class="bi bi-arrow-{{ $sortDirection == 'asc' ? 'up' : 'down' }} small"></i> @endif
+                                            </a>
+                                        </th>
+                                        <th scope="col">
+                                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'estado', 'sort_direction' => ($sortBy == 'estado' && $sortDirection == 'asc') ? 'desc' : 'asc']) }}" class="text-reset text-decoration-none d-flex align-items-center gap-1 sort-link">
+                                                Estado @if($sortBy == 'estado') <i class="bi bi-arrow-{{ $sortDirection == 'asc' ? 'up' : 'down' }} small"></i> @endif
+                                            </a>
+                                        </th>
+                                        <th scope="col">
+                                            <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'created_by', 'sort_direction' => ($sortBy == 'created_by' && $sortDirection == 'asc') ? 'desc' : 'asc']) }}" class="text-reset text-decoration-none d-flex align-items-center gap-1 sort-link">
+                                                Registrado por @if($sortBy == 'created_by') <i class="bi bi-arrow-{{ $sortDirection == 'asc' ? 'up' : 'down' }} small"></i> @endif
+                                            </a>
+                                        </th>
                                         <th scope="col" class="text-center pe-4">Acciones</th>
                                     </tr>
                                 </thead>
@@ -75,7 +100,7 @@
                                     @foreach ($pagos as $pago)
                                         <tr class="modern-row clickable-row" data-href="{{ route('pagos.show', $pago->id) }}">
                                             <td class="ps-4">
-                                                <span class="badge bg-light text-dark fw-normal">{{ ($pagos->currentPage() - 1) * $pagos->perPage() + $loop->iteration }}</span>
+                                                <span class="badge bg-light text-dark fw-normal">{{ $pago->id }}</span>
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
@@ -121,6 +146,13 @@
                                                     @endif">
                                                     {{ ucfirst($pago->estado) }}
                                                 </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div>
+                                                        <div class="fw-semibold text-dark small" style="white-space: nowrap;">{{ $pago->creador->name ?? 'NA' }}</div>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td class="text-center pe-4" onclick="event.stopPropagation();">
                                                 <div class="btn-group" role="group">
@@ -596,6 +628,7 @@
         // Funcionalidad de búsqueda AJAX
         $('#search_contrato, #estado').on('change keyup', function() {
             var formData = $('#form-busqueda').serialize();
+            formData += '&sort_by={{ $sortBy }}&sort_direction={{ $sortDirection }}';
             $.ajax({
                 url: "{{ route('pagos.index') }}",
                 type: 'GET',
@@ -636,19 +669,25 @@
             });
         }
 
-        // Función para inicializar eventos de paginación
+        // Función para inicializar eventos de paginación y ordenamiento
         function initializePaginationEvents() {
-            $('.pagination a').off('click').on('click', function(e) {
+            $('.pagination a, .sort-link').off('click').on('click', function(e) {
                 e.preventDefault();
                 var url = $(this).attr('href');
-                var formData = $('#form-busqueda').serialize();
+                var formData = $('#form-busqueda').serializeArray();
                 
-                // Combinar parámetros de búsqueda con URL de paginación
-                var separator = url.includes('?') ? '&' : '?';
-                var fullUrl = url + separator + formData;
+                // Combinar parámetros de búsqueda actuales con URL de paginación/ordenamiento
+                var urlObj = new URL(url, window.location.origin);
+                formData.forEach(function(item) {
+                    if (item.value) {
+                        urlObj.searchParams.set(item.name, item.value);
+                    } else {
+                        urlObj.searchParams.delete(item.name);
+                    }
+                });
                 
                 $.ajax({
-                    url: fullUrl,
+                    url: urlObj.toString(),
                     type: 'GET',
                     success: function(data) {
                         var newHtml = $(data);

@@ -55,7 +55,7 @@ class Pago extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['contrato_id', 'tipo_pago', 'metodo_pago', 'monto', 'fecha_pago', 'referencia', 'documento', 'observaciones', 'estado'];
+    protected $fillable = ['contrato_id', 'tipo_pago', 'metodo_pago', 'monto', 'fecha_pago', 'referencia', 'documento', 'observaciones', 'estado', 'created_by'];
 
     /**
      * The attributes that should be cast.
@@ -93,6 +93,14 @@ class Pago extends Model
     public function contrato()
     {
         return $this->belongsTo(\App\Models\Contrato::class, 'contrato_id', 'id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function creador()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by', 'id');
     }
 
     /**

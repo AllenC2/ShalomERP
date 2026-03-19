@@ -353,14 +353,39 @@
                 <div class="form-section">
                     <h6 class="section-title">Plan de Pagos</h6>
 
-                    <div class="form-row three-cols">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="duracion_meses" class="form-label">Duración del plan (Meses)</label>
+                            @php
+                                $duracionActual = isset($contrato) && $contrato->numero_cuotas > 0 && $contrato->frecuencia_cuotas > 0 
+                                    ? round(($contrato->numero_cuotas * $contrato->frecuencia_cuotas) / 30) 
+                                    : '';
+                            @endphp
+                            <select name="duracion_meses" id="duracion_meses" class="form-control @error('duracion_meses') is-invalid @enderror" required>
+                                <option value="">Seleccionar duración</option>
+                                @foreach([3, 6, 9, 12, 18, 24, 32, 48] as $meses)
+                                    <option value="{{ $meses }}" {{ old('duracion_meses', $duracionActual) == $meses ? 'selected' : '' }}>{{ $meses }} meses</option>
+                                @endforeach
+                            </select>
+                            @error('duracion_meses')<div class="error-text">{{ $message }}</div>@enderror
+                        </div>
+
                         <div class="form-group">
                             <label for="frecuencia_cuotas" class="form-label">Frecuencia (Días)</label>
                             <input type="number" name="frecuencia_cuotas"
                                 class="form-control @error('frecuencia_cuotas') is-invalid @enderror"
                                 value="{{ old('frecuencia_cuotas', $contrato?->frecuencia_cuotas ?? 'Cada cuanto') }}"
-                                id="frecuencia_cuotas" placeholder="Cada cuanto" min="1" required>
+                                id="frecuencia_cuotas" placeholder="Ej. 15 o 30" min="1" required>
                             @error('frecuencia_cuotas')<div class="error-text">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="numero_cuotas" class="form-label">Número de Cuotas</label>
+                            <input type="number" name="numero_cuotas"
+                                class="form-control @error('numero_cuotas') is-invalid @enderror"
+                                value="{{ old('numero_cuotas', $contrato?->numero_cuotas) }}" id="numero_cuotas"
+                                placeholder="Se calcula automáticamente" min="1" required readonly>
+                            @error('numero_cuotas')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="form-group">
@@ -370,15 +395,6 @@
                                 value="{{ old('monto_cuota', isset($contrato) ? '$' . number_format($contrato->monto_cuota, 2, '.', ',') : '') }}"
                                 id="monto_cuota" readonly placeholder="$0.00">
                             @error('monto_cuota')<div class="error-text">{{ $message }}</div>@enderror
-                        </div>
-
-                        <div class="form-group">
-                            <label for="numero_cuotas" class="form-label">Número de Cuotas</label>
-                            <input type="number" name="numero_cuotas"
-                                class="form-control @error('numero_cuotas') is-invalid @enderror"
-                                value="{{ old('numero_cuotas', $contrato?->numero_cuotas) }}" id="numero_cuotas"
-                                placeholder="Escriba el numero de cuotas" min="1" required>
-                            @error('numero_cuotas')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
@@ -435,14 +451,29 @@
 
 <script>
     function calcularPagos() {
-        const numeroCuotas = parseInt(document.getElementById('numero_cuotas').value) || 0;
+        const duracionMesesSelect = document.getElementById('duracion_meses');
+        const numCuotasInput = document.getElementById('numero_cuotas');
+        const freqInput = document.getElementById('frecuencia_cuotas');
+        
+        let numeroCuotas = parseInt(numCuotasInput.value) || 0;
+        let frecuenciaCuotas = parseInt(freqInput.value) || 0;
+
+        // Auto calcular el número de cuotas si ambos están seleccionados
+        if (duracionMesesSelect && duracionMesesSelect.value && freqInput.value) {
+            const duracionMeses = parseInt(duracionMesesSelect.value);
+            frecuenciaCuotas = parseInt(freqInput.value);
+            const diasTotales = duracionMeses * 30;
+            // Calcular cuotas reales
+            numeroCuotas = Math.round(diasTotales / frecuenciaCuotas);
+            numCuotasInput.value = numeroCuotas;
+        }
+
         const montoTotalStr = document.getElementById('monto_total').value.replace(/[$,]/g, '');
         const montoTotal = parseFloat(montoTotalStr) || 0;
         const montoInicialStr = document.getElementById('monto_inicial').value.replace(/[$,]/g, '');
         const montoInicial = parseFloat(montoInicialStr) || 0;
         const montoBonificacionStr = document.getElementById('monto_bonificacion').value.replace(/[$,]/g, '');
         const montoBonificacion = parseFloat(montoBonificacionStr) || 0;
-        const frecuenciaCuotas = parseInt(document.getElementById('frecuencia_cuotas').value) || 7;
 
         if (!numeroCuotas || !montoTotal) {
             document.getElementById('pagos_card').style.display = 'none';
@@ -498,6 +529,11 @@
 
     document.getElementById('numero_cuotas').addEventListener('input', calcularPagos);
     document.getElementById('frecuencia_cuotas').addEventListener('input', calcularPagos);
+    
+    const duracionSelect = document.getElementById('duracion_meses');
+    if (duracionSelect) {
+        duracionSelect.addEventListener('change', calcularPagos);
+    }
 
     // Aplicar formateo solo al salir del campo (blur) para permitir edición libre
     document.getElementById('monto_inicial').addEventListener('blur', function () {
@@ -620,6 +656,7 @@
             'contrato_id',
             'paquete_id',
             'fecha_inicio',
+            'duracion_meses',
             'numero_cuotas',
             'frecuencia_cuotas'
         ];
@@ -670,7 +707,7 @@
                 }
 
                 // Validar otros campos
-                ['contrato_id', 'paquete_id', 'fecha_inicio', 'numero_cuotas', 'frecuencia_cuotas'].forEach(fieldId => {
+                ['contrato_id', 'paquete_id', 'fecha_inicio', 'duracion_meses', 'numero_cuotas', 'frecuencia_cuotas'].forEach(fieldId => {
                     const field = document.getElementById(fieldId);
                     if (field && !validateField(field)) {
                         hasErrors = true;
@@ -823,6 +860,7 @@
             'id': 'El ID del contrato es obligatorio',
             'paquete_id': 'Debe seleccionar un paquete',
             'fecha_inicio': 'La fecha de inicio es obligatoria',
+            'duracion_meses': 'Debe seleccionar una duración',
             'numero_cuotas': 'El número de cuotas es obligatorio',
             'frecuencia_cuotas': 'La frecuencia de cuotas es obligatoria'
         };
@@ -1003,6 +1041,7 @@
     .form-label[for="cliente_search"]::after,
     .form-label[for="contrato_id"]::after,
     .form-label[for="paquete_id"]::after,
+    .form-label[for="duracion_meses"]::after,
     .form-label[for="fecha_inicio"]::after,
     .form-label[for="numero_cuotas"]::after,
     .form-label[for="frecuencia_cuotas"]::after {

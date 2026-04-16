@@ -30,6 +30,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('empleados/{id}/cambiar-contrasena', [App\Http\Controllers\EmpleadoController::class, 'cambiarContrasena'])->name('empleados.cambiarContrasena');
 
     // Rutas de comisiones
+    Route::get('comisiones/recibo-consolidado', [App\Http\Controllers\ComisioneController::class, 'reciboConsolidado'])->name('comisiones.reciboConsolidado');
     Route::resource('comisiones', App\Http\Controllers\ComisioneController::class);
     Route::patch('comisiones/{id}/toggle-estado', [App\Http\Controllers\ComisioneController::class, 'toggleEstado'])->name('comisiones.toggleEstado');
     Route::get('contratos/{contrato_id}/comisiones/estados', [App\Http\Controllers\ComisioneController::class, 'getEstadosContrato'])->name('comisiones.getEstadosContrato');

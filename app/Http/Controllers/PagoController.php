@@ -91,13 +91,7 @@ class PagoController extends Controller
             $pago->contrato->actualizarProximaFechaPago();
         }
 
-        // Redirigir al contrato si existe, sino a la lista de pagos
-        if (isset($validatedData['contrato_id']) && $validatedData['contrato_id']) {
-            return redirect()->route('contratos.show', $validatedData['contrato_id'])
-                ->with('success', 'Pago registrado correctamente.');
-        }
-
-        return redirect()->route('pagos.index')
+        return redirect()->route('pagos.show', $pago->id)
             ->with('success', 'Pago registrado correctamente.');
     }
 
@@ -152,7 +146,7 @@ class PagoController extends Controller
             $pago->contrato->actualizarProximaFechaPago();
         }
 
-        return Redirect::route('contratos.show', $pago->contrato_id)
+        return Redirect::route('pagos.show', $pago->id)
             ->with('success', 'Pago modificado correctamente.');
     }
 

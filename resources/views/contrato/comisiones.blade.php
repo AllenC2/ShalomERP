@@ -202,7 +202,7 @@
                                             @if($totalCantidadReal > 0)
                                                 <!-- Resumen total -->
                                                 <div class="estado-resumen border-top pt-3">
-                                                    <div class="row text-center">
+                                                    <div class="row text-center mb-2">
                                                         <div class="col-6">
                                                             <small class="text-muted d-block">Comisiones</small>
                                                             <span class="fw-bold text-primary">{{ $totalCantidadReal }}</span>
@@ -212,6 +212,7 @@
                                                             <span class="fw-bold text-success">${{ number_format($montoTotal, 2) }}</span>
                                                         </div>
                                                     </div>
+                                                  
                                                 </div>
                                             @endif
                                         </div>
@@ -223,10 +224,11 @@
                         <!-- Tarjeta 3: Form de Parcialidad pagada de la comision -->
                         <div class="col-md-4">
                             <div class="card bg-white border-0 shadow-sm modern-card">
-                                <div class="card-header border-0 bg-white">
+                                <div class="card-header border-0 bg-white d-flex justify-content-between align-items-center">
                                     <h6 class="text-muted text-uppercase small fw-bold mt-2 mb-0">
                                         <i class="bi bi-file-text me-2"></i>Pago de comisiones
                                     </h6>
+                                    <span class="badge bg-primary">Saldo disponible: ${{ number_format($contrato->saldo_comisiones, 2) }}</span>
                                 </div>
                                 <div class="card-body">
                                     @if($comisionesPadre->count() > 0)
@@ -1091,13 +1093,18 @@ class ComisionesRealTime {
         badge.textContent = estadoOriginal;
         badge.className = claseOriginal;
         
-        // Mostrar error temporal
+        // Mostrar notificación si existe la función
+        if (typeof showNotification === 'function') {
+            showNotification(errorMessage, 'error');
+        }
+        
+        // Mostrar error temporal en el badge
         badge.textContent = '✗ Error';
         badge.className = 'modern-badge estado-badge bg-danger text-white';
         setTimeout(() => {
             badge.textContent = estadoOriginal;
             badge.className = claseOriginal;
-        }, 2000);
+        }, 3000); // Dar un poco más de tiempo (3s) para ver el error en el badge
     }
     
     async checkForUpdates() {

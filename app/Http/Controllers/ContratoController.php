@@ -629,6 +629,16 @@ class ContratoController extends Controller
                 ], 400);
             }
 
+            // Validar que hay saldo disponible en el contrato
+            $contrato = $comisionPadre->contrato;
+            $saldoDisponible = $contrato->saldo_comisiones;
+            if (bccomp($request->monto, $saldoDisponible, 2) > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Saldo insuficiente. El saldo disponible para comisiones es de $" . number_format($saldoDisponible, 2)
+                ], 400);
+            }
+
             // Crear la parcialidad
             $parcialidad = Comisione::create([
                 'contrato_id' => $comisionPadre->contrato_id,

@@ -18,8 +18,9 @@ class ComisioneController extends Controller
     public function index(Request $request): View
     {
         $comisiones = Comisione::paginate();
+        $empleados = \App\Models\Empleado::orderBy('nombre')->get();
 
-        return view('comisione.index', compact('comisiones'))
+        return view('comisione.index', compact('comisiones', 'empleados'))
             ->with('i', ($request->input('page', 1) - 1) * $comisiones->perPage());
     }
 
@@ -168,6 +169,31 @@ class ComisioneController extends Controller
             
             // Alternar entre 'Pendiente' y 'Pagada'
             $nuevoEstado = $comision->estado === 'Pendiente' ? 'Pagada' : 'Pendiente';
+
+            // Validar saldo si está cambiando a 'Pagada'
+            if ($nuevoEstado === 'Pagada') {
+                $contrato = \App\Models\Contrato::find($comision->contrato_id);
+                if ($contrato) {
+                    $saldoDisponible = $contrato->saldo_comisiones;
+                    
+                    $montoAPagar = $comision->monto;
+                    // Si es una comisión padre que ya tiene algunas parcialidades pagadas, 
+                    // el monto real a pagar ahora es solo el restante
+                    if (is_null($comision->comision_padre_id)) {
+                        $pagadoEnParcialidades = $comision->parcialidades()->where('estado', 'Pagada')->sum('monto');
+                        $montoAPagar -= $pagadoEnParcialidades;
+                    }
+                    
+                    // Comparamos usando redondeo a 2 decimales para evitar problemas de precisión flotante
+                    if (round($montoAPagar, 2) > round($saldoDisponible, 2)) {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'Saldo insuficiente. El saldo disponible para comisiones es de $' . number_format($saldoDisponible, 2)
+                        ], 400);
+                    }
+                }
+            }
+
             $comision->estado = $nuevoEstado;
             
             // Actualizar fecha_comision según el nuevo estado
@@ -439,5 +465,54 @@ class ComisioneController extends Controller
                 'message' => 'Error al actualizar el empleado: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Generar un recibo consolidado de comisiones para un empleado en un rango de fechas
+     */
+    public function reciboConsolidado(Request $request)
+    {
+        $request->validate([
+            'empleado_id' => 'required|exists:empleados,id',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio'
+        ]);
+
+        $empleado = \App\Models\Empleado::findOrFail($request->empleado_id);
+        $fechaInicio = \Carbon\Carbon::parse($request->fecha_inicio)->startOfDay();
+        $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
+        $incluirPendientes = $request->has('incluir_pendientes');
+
+        $comisiones = Comisione::where('empleado_id', $empleado->id)
+            ->whereBetween('fecha_comision', [$fechaInicio, $fechaFin])
+            ->orderBy('fecha_comision', 'asc')
+            ->get();
+
+        $comisionesPagadas = $comisiones->filter(function($comision) {
+            return in_array(ucfirst(strtolower($comision->estado)), ['Pagada', 'Entregada', 'Hecho']);
+        });
+
+        $comisionesPendientes = $comisiones->filter(function($comision) {
+            return in_array(ucfirst(strtolower($comision->estado)), ['Pendiente', 'Generada']);
+        })->map(function($comision) {
+            $montoEstimado = $comision->monto;
+            
+            // Si es una comisión padre, restamos lo que ya se haya pagado en sus parcialidades
+            if (is_null($comision->comision_padre_id)) {
+                $pagadoEnParcialidades = $comision->parcialidades()->where('estado', 'Pagada')->sum('monto');
+                $montoEstimado -= $pagadoEnParcialidades;
+            }
+            
+            // Asignamos propiedad temporal para la vista
+            $comision->monto_restante_calculado = max(0, $montoEstimado);
+            return $comision;
+        })->filter(function($comision) {
+            return $comision->monto_restante_calculado > 0;
+        });
+
+        $totalPagadas = $comisionesPagadas->sum('monto');
+        $totalPendientes = $comisionesPendientes->sum('monto_restante_calculado');
+
+        return view('comisione.recibo_consolidado', compact('empleado', 'fechaInicio', 'fechaFin', 'comisionesPagadas', 'comisionesPendientes', 'totalPagadas', 'totalPendientes', 'incluirPendientes'));
     }
 }

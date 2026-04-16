@@ -5,127 +5,206 @@
 @endsection
 
 @section('content')
-<div class="container py-4" style="max-width: 1600px;">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <!-- Header moderno -->
-            <div class="page-header">
-                <div class="header-content">
-                    <div class="header-icon">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
-                    <div class="header-text">
-                        <h1 class="page-title">{{ __('Empleados') }}</h1>
-                        <p class="page-subtitle">Gestione y consulte la información de los empleados</p>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <a href="{{ route('empleados.create') }}" class="btn text-secondary border-secondary custom-hover-btn">
-                        <i class="bi bi-plus-lg me-1"></i>
-                        {{ __('Nuevo Empleado') }}
-                    </a>
-                    <style>
-                        .custom-hover-btn:hover {
-                            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important;
-                            color: #fff !important;
-                            border-color: #E1B240 !important;
-                        }
-                    </style>
-                </div>
-            </div>
-            <div class="">
-                @if ($message = Session::get('success'))
-                    <div class="alert alert-success m-4">
-                        <p class="mb-0">{{ $message }}</p>
-                    </div>
-                @endif
-
-                <div class="card-body p-0">
-                    <div id="empleadosTableContainer">
-                        <div class="table-responsive" id="tabla-empleados">
-                            <table class="table table-hover align-middle mb-0 modern-table">
-                                <thead class="modern-header">
-                                    <tr>
-                                        <th scope="col" class="ps-4">ID</th>
-                                        <th scope="col">Empleado</th>
-                                        <th scope="col">Información de Contacto</th>
-                                        <th scope="col">Estado</th>
-                                        <th scope="col" class="pe-4">Comisiones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($empleados as $empleado)
-                                        <tr class="modern-row clickable-row" data-href="{{ route('empleados.show', $empleado->id) }}">
-                                            <td class="ps-4">
-                                                <span class="badge bg-light text-dark fw-normal">{{ $empleado->id }}</span>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="avatar-circle me-3 d-flex align-items-center justify-content-center" style="min-width: 45px; min-height: 45px; width: 45px; height: 45px; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border-radius: 50%;">
-                                                        {{ strtoupper(substr($empleado->nombre, 0, 1) . substr($empleado->apellido, 0, 1)) }}
-                                                    </div>
-                                                    <div>
-                                                        <div class="fw-semibold text-dark">{{ $empleado->nombre }} {{ $empleado->apellido }}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="contact-info">
-                                                    <div class="fw-semibold">{{ $empleado->user->email }}</div>
-                                                    <small class="text-muted d-block">
-                                                        <i class="bi bi-telephone me-1"></i>
-                                                        {{ $empleado->telefono }}
-                                                    </small>
-                                                    <small class="text-muted d-block">
-                                                        <i class="bi bi-geo-alt me-1"></i>
-                                                        {{ $empleado->domicilio }}
-                                                    </small>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span class="badge {{ ($empleado->estado ?? 'activo') === 'activo' ? 'bg-success' : 'bg-danger' }}">
-                                                    {{ ucfirst($empleado->estado ?? 'Activo') }}
-                                                </span>
-                                            </td>
-                                            <td class="pe-4">
-                                                <div class="commissions-info">
-                                                    @php
-                                                        $comisionesPagadas = $empleado->comisiones->where('estado', 'Pagada')->count();
-                                                        $comisionesPendientes = $empleado->comisiones->where('estado', 'Pendiente')->count();
-                                                        $totalComisiones = $empleado->comisiones->count();
-                                                    @endphp
-                                                    
-                                                    @if($totalComisiones > 0)
-                                                        <div class="d-flex align-items-center mb-1">
-                                                            <span class="badge bg-success me-2">{{ $comisionesPagadas }}</span>
-                                                            <span class="fw-semibold text-success">Pagadas</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center">
-                                                            <span class="badge bg-warning me-2">{{ $comisionesPendientes }}</span>
-                                                            <span class="fw-semibold text-warning">Pendientes</span>
-                                                        </div>
-                                                    @else
-                                                        <div class="text-muted text-center">
-                                                            <i class="bi bi-dash-circle me-1"></i>
-                                                            Sin comisiones
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+    <div class="container py-4" style="max-width: 1600px;">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <!-- Header moderno -->
+                <div class="page-header">
+                    <div class="header-content">
+                        <div class="header-icon">
+                            <i class="bi bi-people-fill"></i>
                         </div>
-                        <div class="d-flex justify-content-center mt-4">
-                            {!! $empleados->withQueryString()->links('vendor.pagination.custom') !!}
+                        <div class="header-text">
+                            <h1 class="page-title">{{ __('Empleados') }}</h1>
+                            <p class="page-subtitle">Gestione y consulte la información de los empleados</p>
+                        </div>
+                    </div>
+                    <div class="header-actions gap-2 d-flex">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#reciboConsolidadoModal"
+                            style="border-radius: 12px; font-weight: 600; padding: 0.75rem 1.5rem;">
+                            <i class="bi bi-file-earmark-text me-1"></i>Recibo de Comisiones
+                        </button>
+                        <a href="{{ route('empleados.create') }}"
+                            class="btn text-secondary border-secondary custom-hover-btn">
+                            <i class="bi bi-plus-lg me-1"></i>
+                            {{ __('Nuevo Empleado') }}
+                        </a>
+                        <style>
+                            .custom-hover-btn:hover {
+                                background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important;
+                                color: #fff !important;
+                                border-color: #E1B240 !important;
+                            }
+                        </style>
+                    </div>
+                </div>
+                <div class="">
+                    @if ($message = Session::get('success'))
+                        <div class="alert alert-success m-4">
+                            <p class="mb-0">{{ $message }}</p>
+                        </div>
+                    @endif
+
+                    <div class="card-body p-0">
+                        <div id="empleadosTableContainer">
+                            <div class="table-responsive" id="tabla-empleados">
+                                <table class="table table-hover align-middle mb-0 modern-table">
+                                    <thead class="modern-header">
+                                        <tr>
+                                            <th scope="col" class="ps-4">ID</th>
+                                            <th scope="col">Empleado</th>
+                                            <th scope="col">Información de Contacto</th>
+                                            <th scope="col">Estado</th>
+                                            <th scope="col" class="pe-4">Comisiones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($empleados as $empleado)
+                                            <tr class="modern-row clickable-row"
+                                                data-href="{{ route('empleados.show', $empleado->id) }}">
+                                                <td class="ps-4">
+                                                    <span class="badge bg-light text-dark fw-normal">{{ $empleado->id }}</span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar-circle me-3 d-flex align-items-center justify-content-center"
+                                                            style="min-width: 45px; min-height: 45px; width: 45px; height: 45px; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border-radius: 50%;">
+                                                            {{ strtoupper(substr($empleado->nombre, 0, 1) . substr($empleado->apellido, 0, 1)) }}
+                                                        </div>
+                                                        <div>
+                                                            <div class="fw-semibold text-dark">{{ $empleado->nombre }}
+                                                                {{ $empleado->apellido }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="contact-info">
+                                                        <div class="fw-semibold">{{ $empleado->user->email }}</div>
+                                                        <small class="text-muted d-block">
+                                                            <i class="bi bi-telephone me-1"></i>
+                                                            {{ $empleado->telefono }}
+                                                        </small>
+                                                        <small class="text-muted d-block">
+                                                            <i class="bi bi-geo-alt me-1"></i>
+                                                            {{ $empleado->domicilio }}
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        class="badge {{ ($empleado->estado ?? 'activo') === 'activo' ? 'bg-success' : 'bg-danger' }}">
+                                                        {{ ucfirst($empleado->estado ?? 'Activo') }}
+                                                    </span>
+                                                </td>
+                                                <td class="pe-4">
+                                                    <div class="commissions-info">
+                                                        @php
+                                                            $comisionesPagadas = $empleado->comisiones->where('estado', 'Pagada')->count();
+                                                            $comisionesPendientes = $empleado->comisiones->where('estado', 'Pendiente')->count();
+                                                            $totalComisiones = $empleado->comisiones->count();
+                                                        @endphp
+
+                                                        @if($totalComisiones > 0)
+                                                            <div class="d-flex align-items-center mb-1">
+                                                                <span class="badge bg-success me-2">{{ $comisionesPagadas }}</span>
+                                                                <span class="fw-semibold text-success">Pagadas</span>
+                                                            </div>
+                                                            <div class="d-flex align-items-center">
+                                                                <span
+                                                                    class="badge bg-warning me-2">{{ $comisionesPendientes }}</span>
+                                                                <span class="fw-semibold text-warning">Pendientes</span>
+                                                            </div>
+                                                        @else
+                                                            <div class="text-muted text-center">
+                                                                <i class="bi bi-dash-circle me-1"></i>
+                                                                Sin comisiones
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex justify-content-center mt-4">
+                                {!! $empleados->withQueryString()->links('vendor.pagination.custom') !!}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Modal Recibo Consolidado -->
+    <div class="modal fade" id="reciboConsolidadoModal" tabindex="-1" aria-labelledby="reciboConsolidadoModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title" id="reciboConsolidadoModalLabel">
+                        <i class="bi bi-receipt me-2"></i>Generar recibo de comisiones
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form action="{{ route('comisiones.reciboConsolidado') }}" method="GET" target="_blank">
+                    <div class="modal-body p-4">
+
+                        <div class="mb-3">
+                            @php $todosEmpleados = \App\Models\Empleado::orderBy('nombre')->get(); @endphp
+                            <label for="empleado_id" class="form-label fw-bold">Asesor</label>
+                            <select class="form-select" id="empleado_id" name="empleado_id" required>
+                                <option value="" disabled selected>Seleccione un asesor</option>
+                                @foreach($todosEmpleados as $empleadoModal)
+                                    <option value="{{ $empleadoModal->id }}">{{ $empleadoModal->nombre }}
+                                        {{ $empleadoModal->apellido }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio</label>
+                                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required
+                                        max="{{ date('Y-m-d') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha_fin" class="form-label fw-bold">Fecha Fin</label>
+                                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required
+                                        value="{{ date('Y-m-d') }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="incluir_pendientes"
+                                    name="incluir_pendientes" value="1">
+                                <label class="form-check-label fw-bold text-muted small" for="incluir_pendientes">Mostrar
+                                    sección de comisiones pendientes</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-1"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary" onclick="$('#reciboConsolidadoModal').modal('hide')">
+                            <i class="bi bi-printer me-1"></i>Generar Recibo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 <style>
@@ -251,6 +330,7 @@
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -259,6 +339,7 @@
 
     /* Responsive */
     @media (max-width: 768px) {
+
         .modern-header th,
         .modern-row td {
             padding: 1rem 0.5rem !important;
@@ -277,6 +358,7 @@
 
         /* En móvil, ocultar la columna de comisiones en pantallas muy pequeñas */
         @media (max-width: 576px) {
+
             .modern-header th:nth-child(4),
             .modern-row td:nth-child(4) {
                 display: none;
@@ -457,21 +539,49 @@
 </style>
 
 @section('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Función para inicializar eventos de las filas clickeables
-    function initializeRowEvents() {
-        // Click en fila para ir al show
-        document.querySelectorAll('.clickable-row').forEach(row => {
-            row.addEventListener('click', function(e) {
-                // Redirigir al show del empleado
-                window.location.href = this.getAttribute('data-href');
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        .select2-container .select2-selection--single {
+            height: 38px;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Función para inicializar eventos de las filas clickeables
+            function initializeRowEvents() {
+                // Click en fila para ir al show
+                document.querySelectorAll('.clickable-row').forEach(row => {
+                    row.addEventListener('click', function (e) {
+                        // Redirigir al show del empleado
+                        window.location.href = this.getAttribute('data-href');
+                    });
+                });
+            }
+
+            // Inicializar eventos al cargar la página
+            initializeRowEvents();
+
+            // Inicializar Select2 al abrir el modal para evitar problemas de focus y renderizado
+            $('#reciboConsolidadoModal').on('shown.bs.modal', function () {
+                $('#empleado_id').select2({
+                    dropdownParent: $('#reciboConsolidadoModal'),
+                    placeholder: "Escriba para buscar o seleccione un asesor",
+                    allowClear: true,
+                    width: '100%'
+                });
             });
         });
-    }
-
-    // Inicializar eventos al cargar la página
-    initializeRowEvents();
-});
-</script>
+    </script>
 @endsection

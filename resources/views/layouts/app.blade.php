@@ -177,6 +177,10 @@
 
                             @if(auth()->user() && auth()->user()->role === 'admin')
                                 <li>
+                                    <a class="nav-link {{ request()->routeIs('empleados.*') ? 'active' : '' }}"
+                                        href="{{ route('empleados.index') }}">{{ __('Empleados') }}</a>
+                                </li>
+                                <li>
                                     <a class="nav-link {{ request()->routeIs('ajustes.*') ? 'active' : '' }}"
                                         href="{{ route('ajustes.index') }}">{{ __('Ajustes') }}</a>
                                 </li>
@@ -212,6 +216,29 @@
         </main>
     </div>
 
+    <!-- Global Toast para mensajes de éxito -->
+    @if(session('success'))
+        <div class="toast-container position-fixed bottom-0 end-0 p-3 d-print-none" style="z-index: 1055;">
+            <div id="globalSuccessToast" class="toast align-items-center text-white bg-success border-0 show shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex py-1">
+                    <div class="toast-body fw-bold fs-6">
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i> {{ session('success') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast" aria-label="Close" onclick="document.getElementById('globalSuccessToast').classList.remove('show')"></button>
+                </div>
+            </div>
+        </div>
+        <script>
+            setTimeout(function() {
+                var toastEl = document.getElementById('globalSuccessToast');
+                if (toastEl) {
+                    toastEl.style.transition = 'opacity 0.5s ease';
+                    toastEl.style.opacity = '0';
+                    setTimeout(() => toastEl.remove(), 500);
+                }
+            }, 4000);
+        </script>
+    @endif
 
     @stack('scripts')
     @yield('scripts')

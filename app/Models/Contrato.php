@@ -139,11 +139,6 @@ class Contrato extends Model
      * 
      * @return array
      */
-    /**
-     * Obtiene el estado detallado de pagos para la vista show
-     * 
-     * @return array
-     */
     public function getEstadoPagosAttribute()
     {
         $pagosPendientes = $this->pagos()->where('estado', 'pendiente')->where('tipo_pago', 'cuota')->get();
@@ -188,11 +183,6 @@ class Contrato extends Model
     }
 
     /**
-     * Calcula la siguiente cuota a pagar basada en el progreso del contrato
-     * 
-     * @return object|null Retorna un objeto similar a Pago con los datos calculados o null si el contrato está finalizado
-     */
-    /**
      * Calcula el monto real de la cuota (usando config o promedio)
      */
     public function getMontoCuotaRealAttribute()
@@ -221,6 +211,34 @@ class Contrato extends Model
         $totalPagado = $this->pagos()->where('estado', 'hecho')->sum('monto');
 
         return $totalPagado / $montoCuota;
+    }
+
+    /**
+     * Calcula el monto total que ya se ha pagado en comisiones a los empleados.
+     * 
+     * @return float
+     */
+    public function getComisionesPagadasAttribute()
+    {
+        $comisiones = $this->comisiones()->with('parcialidades')->whereNull('comision_padre_id')->get();
+        
+        return $comisiones->sum(function($comision) {
+            if (strtolower($comision->estado) === 'pagada') {
+                return $comision->monto;
+            }
+            return $comision->parcialidades->where('estado', 'Pagada')->sum('monto');
+        });
+    }
+
+    /**
+     * Calcula el saldo disponible para pagar comisiones.
+     * (Total abonado por el cliente - Comisiones ya pagadas a los empleados)
+     * 
+     * @return float
+     */
+    public function getSaldoComisionesAttribute()
+    {
+        return max(0, $this->total_pagado - $this->comisiones_pagadas);
     }
 
     /**

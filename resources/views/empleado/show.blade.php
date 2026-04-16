@@ -213,6 +213,10 @@
                     <!-- Barra de acciones rápidas -->
                     <div class="mb-3">
                         <div class="btn-group w-100" role="group" aria-label="Acciones rápidas">
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#reciboConsolidadoModal">
+                                <i class="bi bi-file-earmark-text me-1"></i> Generar recibo
+                            </button>
                             <a href="{{ route('empleados.edit', $empleado->id) }}" class="btn btn-outline-secondary">
                                 <i class="bi bi-pencil-square me-1"></i> Editar
                             </a>
@@ -472,8 +476,12 @@
         }
 
         /* Estilos para los botones de acción */
-        .btn-group form {
-            flex: 1;
+        .btn-group form,
+        .btn-group > .btn {
+            flex: 1 1 0;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .btn-group .btn {
@@ -527,5 +535,65 @@
             }
         }
     </script>
+
+    <!-- Modal Recibo Consolidado -->
+    <div class="modal fade" id="reciboConsolidadoModal" tabindex="-1" aria-labelledby="reciboConsolidadoModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title" id="reciboConsolidadoModalLabel">
+                        <i class="bi bi-receipt me-2"></i>Generar recibo de comisiones
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form action="{{ route('comisiones.reciboConsolidado') }}" method="GET" target="_blank">
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="empleado_id" value="{{ $empleado->id }}">
+                        
+                        <div class="alert alert-light border">
+                            <i class="bi bi-person-badge text-primary me-2"></i>
+                            <strong>Asesor:</strong> {{ $empleado->nombre }} {{ $empleado->apellido }}
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio</label>
+                                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required
+                                        max="{{ date('Y-m-d') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha_fin" class="form-label fw-bold">Fecha Fin</label>
+                                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required
+                                        value="{{ date('Y-m-d') }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="incluir_pendientes"
+                                    name="incluir_pendientes" value="1">
+                                <label class="form-check-label fw-bold text-muted small" for="incluir_pendientes">Mostrar
+                                    sección de comisiones pendientes</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-1"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary" onclick="$('#reciboConsolidadoModal').modal('hide')">
+                            <i class="bi bi-printer me-1"></i>Generar Recibo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     @endif
 @endsection

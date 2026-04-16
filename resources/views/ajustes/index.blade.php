@@ -521,7 +521,7 @@
                                                             id="mensaje_recordatorio" name="mensaje_recordatorio" rows="6"
                                                             placeholder="Escribe aquí el mensaje que se enviará por WhatsApp..."
                                                             maxlength="250" required>{{ old('mensaje_recordatorio', $mensajeRecordatorio ?? 'Hola {nombreCliente}, te recordamos que el pago de tu paquete {nombrePaquete} por {cantidadPagoProximo} será cobrado el día {fechaPago}.') }}
-                                            </textarea>
+                                                </textarea>
                                                         <div class="form-text d-flex justify-content-between">
                                                             <span>Usa las variables disponibles para personalizar el
                                                                 mensaje</span>
@@ -917,7 +917,7 @@
                     </form>
                 </div>
             @endauth
-            <small class="text-muted">Version 1.5.2 @imallen.dev</small>
+            <small class="text-muted">Version 1.6 @imallen.dev</small>
 
         </div>
     </div>
@@ -2007,10 +2007,10 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show mb-4';
             alertDiv.innerHTML = `
-                    <i class="bi bi-check-circle-fill me-2"></i>
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
 
             // Insertar después del header
             const pageHeader = document.querySelector('.page-header');

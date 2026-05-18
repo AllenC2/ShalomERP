@@ -56,44 +56,93 @@
             background: #e9ecef;
         }
 
-        /* Estilos para el header moderno */
+        /* Estilos para el header premium */
         .page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem 0;
+            margin-bottom: 2.5rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(to bottom, #007bff, #00c6ff);
         }
 
         .header-content {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 1.5rem;
         }
 
         .header-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            border-radius: 12px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #0d6efd 0%, #00c6ff 100%);
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.5rem;
+            font-size: 2rem;
+            box-shadow: 0 8px 16px rgba(13, 110, 253, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .page-header:hover .header-icon {
+            transform: rotate(-5deg) scale(1.05);
         }
 
         .page-title {
-            font-size: 2rem;
-            font-weight: 700;
+            font-size: 1.75rem;
+            font-weight: 800;
             margin: 0;
-            color: #2c3e50;
+            color: #1a2a3a;
+            letter-spacing: -0.5px;
         }
 
         .page-subtitle {
-            margin: 0;
+            margin: 0.25rem 0 0;
             color: #6c757d;
             font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .header-actions .status-badge {
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.5rem;
+                padding: 1.5rem;
+            }
+            .header-actions {
+                width: 100%;
+                text-align: left !important;
+            }
+            .text-md-end {
+                text-align: left !important;
+            }
         }
 
         .modern-link {
@@ -186,20 +235,24 @@
                         <div class="page-header">
                             <div class="header-content">
                                 <div class="header-icon">
-                                    <i class="bi bi-person-circle"></i>
+                                    <i class="bi bi-person-fill"></i>
                                 </div>
                                 <div class="header-text">
-                                    <h1 class="page-title">Cliente {{ $cliente->nombre }} {{ $cliente->apellido }}</h1>
-                                    <p class="page-subtitle">Información del cliente y contratos</p>
+                                    <h1 class="page-title">{{ $cliente->nombre }} {{ $cliente->apellido }}</h1>
+                                    <p class="page-subtitle">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Expediente de cliente y gestión de contratos
+                                    </p>
                                 </div>
                             </div>
                             <div class="header-actions">
                                 <div class="text-md-end">
-                                    <span class="badge status-badge bg-info">
-                                        CLIENTE
+                                    <span class="badge status-badge bg-primary bg-gradient text-white">
+                                        <i class="bi bi-shield-check me-1"></i> CLIENTE ACTIVO
                                     </span>
-                                    <p class="text-muted mb-0 mt-2">
-                                        Cliente desde: {{ $cliente->created_at->translatedFormat('d \d\e F \d\e Y') }}
+                                    <p class="text-muted mb-0 mt-3 small">
+                                        <i class="bi bi-calendar-check me-1"></i> Miembro desde: 
+                                        <span class="fw-bold text-dark">{{ $cliente->created_at->translatedFormat('d M, Y') }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -671,7 +724,7 @@
                                                                 </h6>
                                                                 <small class="text-muted">
                                                                     <i class="bi bi-calendar-event me-1"></i>
-                                                                    {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('D MMM YYYY') }}
+                                                                    {{ \Carbon\Carbon::parse($contrato->fecha_inicio)->isoFormat('D MMM YYYY') }}
                                                                 </small>
                                                             </div>
                                                         </div>

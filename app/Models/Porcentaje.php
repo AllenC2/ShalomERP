@@ -29,7 +29,7 @@ class Porcentaje extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['paquete_id', 'cantidad_porcentaje', 'tipo_porcentaje', 'observaciones'];
+    protected $fillable = ['paquete_id', 'cantidad_porcentaje', 'tipo_porcentaje', 'observaciones', 'modo_comision', 'monto_fijo'];
 
 
     /**

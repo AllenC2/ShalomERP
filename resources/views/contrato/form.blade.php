@@ -414,6 +414,28 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Proyección de Cuotas Temporales -->
+                    <div class="payment-projection mt-3" id="projection_card" style="display:none; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px;">
+                        <h6 class="summary-title" style="font-size: 0.9rem; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Proyección de Cuotas <small class="text-muted fw-normal">(Ajenas a Inicial y Bonificación)</small></h6>
+                        <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
+                                <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                                    <tr>
+                                        <th style="border-bottom: 2px solid #f3f4f6;"># Cuota</th>
+                                        <th style="border-bottom: 2px solid #f3f4f6;">Monto</th>
+                                        <th style="border-bottom: 2px solid #f3f4f6;">Fecha Estimada</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="projection_body">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i> El Pago Inicial y Bonificación descuentan el saldo, pero su pago no forma parte de este calendario.
+                        </div>
+                    </div>
+                    
                     <!-- Estado del Contrato (oculto) -->
                     <div class="form-group" style="display: none;">
                         <label for="estado" class="form-label">Estado del Contrato</label>
@@ -474,6 +496,7 @@
 
         if (saldoPendiente <= 0 || !montoTotal) {
             document.getElementById('pagos_card').style.display = 'none';
+            document.getElementById('projection_card').style.display = 'none';
             numCuotasInput.value = '';
             if (duracionMesesInput) duracionMesesInput.value = '';
             return;
@@ -496,6 +519,7 @@
 
         if (!numeroCuotas || !montoCuotaIngresado) {
             document.getElementById('pagos_card').style.display = 'none';
+            document.getElementById('projection_card').style.display = 'none';
             return;
         }
 
@@ -543,6 +567,32 @@
                 <div>Bonificación: -${formatearMoneda(montoBonificacion)}</div>
                 <div><strong>Restante a liquidar: ${formatearMoneda(saldoPendiente)}</strong></div>
             `;
+
+        // Generar proyección detallada
+        if (fechaInicio) {
+            let trs = '';
+            let currentDate = new Date(fechaInicio);
+            
+            // Añadir timezone offset para evitar que la fecha cambie por diferencia horaria local vs UTC
+            currentDate.setMinutes(currentDate.getMinutes() + currentDate.getTimezoneOffset());
+            
+            for (let i = 1; i <= numeroCuotas; i++) {
+                currentDate.setDate(currentDate.getDate() + frecuenciaCuotas);
+                let montoCuotaActual = (i === numeroCuotas) ? montoUltimaCuota : montoPorCuotaBase;
+                let fechaFormateada = formatearFechaConMes(currentDate);
+                trs += `
+                    <tr>
+                        <td class="fw-bold">Cuota ${i}</td>
+                        <td class="text-success fw-bold">${formatearMoneda(montoCuotaActual)}</td>
+                        <td class="text-muted">${fechaFormateada}</td>
+                    </tr>
+                `;
+            }
+            document.getElementById('projection_body').innerHTML = trs;
+            document.getElementById('projection_card').style.display = 'block';
+        } else {
+            document.getElementById('projection_card').style.display = 'none';
+        }
 
         document.getElementById('pagos_card').style.display = 'block';
     }

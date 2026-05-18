@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -33,6 +34,10 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Contrato extends Model
 {
+    use Auditable;
+
+    // Campos masivos a excluir de los logs de auditoría de este modelo
+    protected $dontAudit = ['observaciones', 'documento'];
 
     protected $perPage = 20;
 
@@ -208,9 +213,13 @@ class Contrato extends Model
         if ($montoCuota <= 0)
             return 0;
 
-        $totalPagado = $this->pagos()->where('estado', 'hecho')->sum('monto');
+        // Solo sumar los pagos reales de cuotas, excluyendo inicial y bonificación
+        $totalPagadoCuotas = $this->pagos()
+            ->where('estado', 'hecho')
+            ->where('tipo_pago', 'cuota')
+            ->sum('monto');
 
-        return $totalPagado / $montoCuota;
+        return $totalPagadoCuotas / $montoCuota;
     }
 
     /**
@@ -238,7 +247,10 @@ class Contrato extends Model
      */
     public function getSaldoComisionesAttribute()
     {
-        return max(0, $this->total_pagado - $this->comisiones_pagadas);
+        // La bonificación cuenta como pago para el saldo del cliente, pero NO es dinero real para comisiones.
+        $dineroReal = max(0, $this->total_pagado - ($this->monto_bonificacion ?? 0));
+        
+        return max(0, $dineroReal - $this->comisiones_pagadas);
     }
 
     /**
@@ -263,14 +275,14 @@ class Contrato extends Model
         $montoBonificacion = $this->monto_bonificacion ?? 0;
         $montoFinanciado = max(0, $this->monto_total - $montoInicial - $montoBonificacion);
 
-        // 3. Calcular la fecha del próximo pago
-        // Fórmula: Fecha Inicio + (Cuotas Pagadas * Frecuencia)
-        $fechaInicio = \Carbon\Carbon::parse($this->fecha_inicio);
-        $diasPagados = $cuotasPagadasDecimal * $this->frecuencia_cuotas;
-        $fechaProgramada = $fechaInicio->copy()->addDays($diasPagados); // Aquí sumamos los días exactos calculados
-
         // Determinar el número de la siguiente cuota (entero)
         $siguienteNumeroCuota = floor($cuotasPagadasDecimal) + 1;
+
+        // 3. Calcular la fecha del próximo pago
+        // Fórmula: Fecha Inicio + (Numero de Cuota Siguiente * Frecuencia)
+        $fechaInicio = \Carbon\Carbon::parse($this->fecha_inicio);
+        $diasProyectados = $siguienteNumeroCuota * $this->frecuencia_cuotas;
+        $fechaProgramada = $fechaInicio->copy()->addDays($diasProyectados);
 
         // Si ya se cubrió todo el monto financiado, no hay siguiente
         if ($totalPagado >= $montoFinanciado || $siguienteNumeroCuota > $this->numero_cuotas + 1) { // +1 por margen de error en decimales

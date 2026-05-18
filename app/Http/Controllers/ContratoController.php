@@ -23,29 +23,49 @@ class ContratoController extends Controller
     public function index(Request $request): View
     {
         $search = $request->input('search');
-        $soloActivos = $request->input('solo_activos', '1'); // Por defecto activado
-
-        // Debug: Log de valores recibidos
-        \Log::info('Filtros recibidos:', [
-            'search' => $search,
-            'solo_activos' => $soloActivos,
-            'is_ajax' => $request->hasHeader('X-Requested-With')
-        ]);
+        $vendedorId = $request->input('vendedor_id');
+        $fecha = $request->input('fecha');
+        $estado = $request->input('estado'); // Reemplaza la lógica anterior de solo_activos
 
         $contratosQuery = Contrato::with(['cliente', 'paquete', 'pagos']);
 
+        // Filtro por búsqueda general (Nombre, Domicilio o Folio)
         if ($search) {
-            $contratosQuery = $contratosQuery->whereHas('cliente', function ($q) use ($search) {
-                $q->where('nombre', 'like', "%$search%")
-                    ->orWhere('apellido', 'like', "%$search%");
+            $contratosQuery->where(function($query) use ($search) {
+                $query->where('id', 'like', "%$search%")
+                    ->orWhereHas('cliente', function ($q) use ($search) {
+                        $q->where('nombre', 'like', "%$search%")
+                            ->orWhere('apellido', 'like', "%$search%")
+                            ->orWhere('domicilio_completo', 'like', "%$search%");
+                    });
             });
         }
 
-        if ($soloActivos === '1') {
-            $contratosQuery = $contratosQuery->where('estado', 'activo');
+        // Filtro por Vendedor (Empleado asignado en comisiones)
+        if ($vendedorId) {
+            $contratosQuery->whereHas('comisiones', function($q) use ($vendedorId) {
+                $q->where('empleado_id', $vendedorId);
+            });
         }
 
-        $contratos = $contratosQuery->paginate();
+        // Filtro por Fecha
+        if ($fecha) {
+            $contratosQuery->whereDate('created_at', $fecha);
+        }
+
+        // Filtro por Estado
+        if ($request->filled('estado')) {
+            if ($estado === 'inactivo') {
+                $contratosQuery->where('estado', '!=', 'activo');
+            } else {
+                $contratosQuery->where('estado', $estado);
+            }
+        } elseif (!$request->has('estado')) {
+            // Comportamiento por defecto: solo activos (solo si no se ha enviado el parámetro estado)
+            $contratosQuery->where('estado', 'activo');
+        }
+
+        $contratos = $contratosQuery->latest()->paginate();
 
         // Calcular porcentaje pagado para cada contrato
         foreach ($contratos as $contrato) {
@@ -61,7 +81,9 @@ class ContratoController extends Controller
             return view('contrato.partials.table', compact('contratos'));
         }
 
-        return view('contrato.index', compact('contratos'))
+        $vendedores = \App\Models\Empleado::all();
+
+        return view('contrato.index', compact('contratos', 'vendedores'))
             ->with('i', ($request->input('page', 1) - 1) * $contratos->perPage());
     }
 
@@ -167,6 +189,7 @@ class ContratoController extends Controller
             \App\Models\Pago::create([
                 'contrato_id' => $contrato->id,
                 'metodo_pago' => 'otro',
+                'tipo_pago' => 'inicial', // Evita que se cuente como cuota pagada
                 'monto' => $montoInicial,
                 'fecha_pago' => $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now(),
                 'referencia' => null,
@@ -181,6 +204,7 @@ class ContratoController extends Controller
             \App\Models\Pago::create([
                 'contrato_id' => $contrato->id,
                 'metodo_pago' => 'otro',
+                'tipo_pago' => 'bonificacion', // Evita que se cuente como cuota pagada
                 'monto' => $montoBonificacion,
                 'fecha_pago' => $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio) : now(),
                 'referencia' => null,
@@ -192,27 +216,99 @@ class ContratoController extends Controller
 
         // NOTA: Ya no se generan cuotas automáticas ("pagos pendientes")
 
-        // Crear comisiones si se proporcionaron (simplificado)
+        // Crear comisiones tradicionales si se proporcionaron
+        $mapTiposAEmpleados = [];
         if ($request->has('comisiones') && is_array($request->comisiones)) {
             foreach ($request->comisiones as $porcentaje_id => $empleado_id) {
                 if (!empty($empleado_id)) {
                     $porcentaje = \App\Models\Porcentaje::find($porcentaje_id);
                     if ($porcentaje) {
-                        $montoComision = ($montoTotal * $porcentaje->cantidad_porcentaje) / 100;
+                        $mapTiposAEmpleados[$porcentaje->tipo_porcentaje] = $empleado_id;
+                        if ($porcentaje->modo_comision === 'monto') {
+                            $montoComision = $porcentaje->monto_fijo;
+                            $descComision = "Comisión fija por {$porcentaje->tipo_porcentaje} ($" . number_format($montoComision, 2) . ")";
+                        } else {
+                            $montoComision = ($montoTotal * $porcentaje->cantidad_porcentaje) / 100;
+                            $descComision = "Comisión tradicional por {$porcentaje->tipo_porcentaje} ({$porcentaje->cantidad_porcentaje}%)";
+                        }
 
                         \App\Models\Comisione::create([
                             'contrato_id' => $contrato->id,
                             'nombre_paquete' => $contrato->paquete->nombre ?? '',
                             'empleado_id' => $empleado_id,
                             'fecha_comision' => $contrato->fecha_inicio ?? now(),
-                            'porcentaje' => $porcentaje->cantidad_porcentaje,
+                            'porcentaje' => $porcentaje->modo_comision === 'porcentaje' ? $porcentaje->cantidad_porcentaje : 0,
                             'tipo_comision' => $porcentaje->tipo_porcentaje,
                             'monto' => $montoComision,
-                            'observaciones' => "Comisión por {$porcentaje->tipo_porcentaje} ({$porcentaje->cantidad_porcentaje}%)",
+                            'observaciones' => $descComision,
                             'documento' => 'No',
                             'estado' => 'Pendiente'
                         ]);
                     }
+                }
+            }
+        }
+
+        // Crear comisiones fijas basadas ÚNICAMENTE en el pago inicial
+        if ($montoInicial > 0) {
+            $ajustesComisiones = \App\Models\Ajuste::where('nombre', 'like', 'comision_fija_%')->where('activo', true)->get();
+            $totalFixedAssigned = 0;
+            $restanteAjuste = null;
+            $fixedCommissionsToCreate = [];
+
+            foreach ($ajustesComisiones as $ajuste) {
+                $tipo = str_replace('comision_fija_', '', $ajuste->nombre);
+                
+                $data = is_array($ajuste->valor) ? $ajuste->valor : json_decode($ajuste->valor, true);
+                $esJson = is_array($data);
+                
+                $montoConfig = $esJson && isset($data['monto']) ? floatval($data['monto']) : floatval($ajuste->valor);
+                $tipoValor = $esJson && isset($data['tipo_valor']) ? $data['tipo_valor'] : 'fijo';
+                
+                if ($tipoValor === 'restante') {
+                    $restanteAjuste = $tipo;
+                    continue;
+                }
+                
+                $montoCalculado = 0;
+                if ($tipoValor === 'fijo') {
+                    $montoCalculado = $montoConfig;
+                } elseif ($tipoValor === 'porcentaje') {
+                    $montoCalculado = ($montoInicial * $montoConfig) / 100;
+                }
+                
+                $totalFixedAssigned += $montoCalculado;
+                
+                $fixedCommissionsToCreate[] = [
+                    'tipo' => $tipo,
+                    'monto' => $montoCalculado,
+                    'empleado_id' => $mapTiposAEmpleados[$tipo] ?? null
+                ];
+            }
+            
+            if ($restanteAjuste) {
+                $montoRestante = max(0, $montoInicial - $totalFixedAssigned);
+                $fixedCommissionsToCreate[] = [
+                    'tipo' => $restanteAjuste,
+                    'monto' => $montoRestante,
+                    'empleado_id' => $mapTiposAEmpleados[$restanteAjuste] ?? null
+                ];
+            }
+
+            foreach ($fixedCommissionsToCreate as $fc) {
+                if ($fc['monto'] >= 0) {
+                    \App\Models\Comisione::create([
+                        'contrato_id' => $contrato->id,
+                        'nombre_paquete' => $contrato->paquete->nombre ?? '',
+                        'empleado_id' => $fc['empleado_id'],
+                        'fecha_comision' => $contrato->fecha_inicio ?? now(),
+                        'porcentaje' => 0,
+                        'tipo_comision' => 'Fija - ' . $fc['tipo'],
+                        'monto' => $fc['monto'],
+                        'observaciones' => "Comisión fija descontada automáticamente del pago inicial",
+                        'documento' => 'No',
+                        'estado' => 'Pagada' // Al nacer como pagada, consume instantáneamente el saldo generado por el pago inicial
+                    ]);
                 }
             }
         }
@@ -237,7 +333,13 @@ class ContratoController extends Controller
             ->where('estado', 'activo')
             ->count();
 
-        return view('contrato.show', compact('contrato', 'pagos_contrato', 'contratos_cliente', 'contratos_activos_cliente'));
+        // Obtener todas las visitas con la información del usuario asignado
+        $visitas = \App\Models\Visita::where('contrato_id', $id)
+            ->with('user')
+            ->latest()
+            ->get();
+
+        return view('contrato.show', compact('contrato', 'pagos_contrato', 'contratos_cliente', 'contratos_activos_cliente', 'visitas'));
     }
 
     /**
@@ -247,17 +349,20 @@ class ContratoController extends Controller
     {
         $contrato = Contrato::findOrFail($id);
         // Obtener todas las comisiones (padres e hijas) para mostrar en la tabla, ordenadas por nombre del empleado
+        // Las comisiones fijas aparecerán al final
         $comisiones = Comisione::where('contrato_id', $id)
             ->with(['empleado', 'comisionPadre', 'parcialidades'])
-            ->join('empleados', 'comisiones.empleado_id', '=', 'empleados.id')
+            ->leftJoin('empleados', 'comisiones.empleado_id', '=', 'empleados.id')
+            ->orderByRaw("CASE WHEN tipo_comision LIKE 'Fija - %' THEN 1 ELSE 0 END ASC")
             ->orderBy('empleados.nombre', 'asc')
             ->orderBy('empleados.apellido', 'asc')
             ->select('comisiones.*')
             ->get();
 
-        // Obtener solo comisiones padre para el formulario de parcialidades
+        // Obtener solo comisiones padre para el formulario de parcialidades (excluyendo las fijas)
         $comisionesPadre = Comisione::where('contrato_id', $id)
             ->whereNull('comision_padre_id')
+            ->where('tipo_comision', 'NOT LIKE', 'Fija - %')
             ->with(['empleado', 'parcialidades'])
             ->join('empleados', 'comisiones.empleado_id', '=', 'empleados.id')
             ->orderBy('empleados.nombre', 'asc')
@@ -414,8 +519,11 @@ class ContratoController extends Controller
 
         // Actualizar comisiones si se proporcionaron (simplificado)
         if ($request->has('comisiones') && is_array($request->comisiones)) {
-            // Eliminar comisiones existentes para este contrato
-            \App\Models\Comisione::where('contrato_id', $contrato->id)->delete();
+            // Eliminar comisiones existentes para este contrato (excepto las fijas y parcialidades)
+            \App\Models\Comisione::where('contrato_id', $contrato->id)
+                ->where('tipo_comision', 'NOT LIKE', 'Fija - %')
+                ->where('tipo_comision', '!=', 'PARCIALIDAD')
+                ->delete();
 
             // Crear nuevas comisiones
             $montoTotal = $contrato->monto_total;
@@ -423,17 +531,23 @@ class ContratoController extends Controller
                 if (!empty($empleado_id)) {
                     $porcentaje = \App\Models\Porcentaje::find($porcentaje_id);
                     if ($porcentaje) {
-                        $montoComision = ($montoTotal * $porcentaje->cantidad_porcentaje) / 100;
+                        if ($porcentaje->modo_comision === 'monto') {
+                            $montoComision = $porcentaje->monto_fijo;
+                            $descComision = "Comisión por {$porcentaje->tipo_porcentaje} ($" . number_format($montoComision, 2) . ")";
+                        } else {
+                            $montoComision = ($montoTotal * $porcentaje->cantidad_porcentaje) / 100;
+                            $descComision = "Comisión por {$porcentaje->tipo_porcentaje} ({$porcentaje->cantidad_porcentaje}%)";
+                        }
 
                         \App\Models\Comisione::create([
                             'contrato_id' => $contrato->id,
                             'empleado_id' => $empleado_id,
                             'fecha_comision' => $contrato->fecha_inicio ?? now(),
                             'nombre_paquete' => $contrato->paquete->nombre ?? '',
-                            'porcentaje' => $porcentaje->cantidad_porcentaje,
+                            'porcentaje' => $porcentaje->modo_comision === 'porcentaje' ? $porcentaje->cantidad_porcentaje : 0,
                             'tipo_comision' => $porcentaje->tipo_porcentaje,
                             'monto' => $montoComision,
-                            'observaciones' => "Comisión por {$porcentaje->tipo_porcentaje} ({$porcentaje->cantidad_porcentaje}%)",
+                            'observaciones' => $descComision,
                             'documento' => 'No',
                             'estado' => 'pendiente'
                         ]);

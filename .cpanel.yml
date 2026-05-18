@@ -9,3 +9,6 @@ deployment:
     
     # 3. Dar permisos correctos a la carpeta de almacenamiento de Laravel
     - /bin/chmod -R 775 $DEPLOYPATH/storage $DEPLOYPATH/bootstrap/cache
+    
+    # 4. Correr migraciones en producción de forma segura y automática
+    - cd $DEPLOYPATH && php artisan migrate --force

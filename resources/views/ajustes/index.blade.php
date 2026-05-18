@@ -226,6 +226,23 @@
                             </div>
                         </button>
                     </div>
+
+                    <div class="col-md-6">
+                        <button type="button" class="config-btn-card text-decoration-none" data-bs-toggle="modal"
+                            data-bs-target="#comisionesFijasModal">
+                            <div class="config-card-icon"
+                                style="background: linear-gradient(90deg, #8B5CF6 0%, #6D28D9 100%);">
+                                <i class="bi bi-currency-dollar"></i>
+                            </div>
+                            <div class="config-card-content">
+                                <h6 class="config-card-title">Comisiones Fijas</h6>
+                                <p class="config-card-subtitle">Configurar montos fijos de comisiones</p>
+                            </div>
+                            <div class="config-card-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -520,8 +537,9 @@
                                                         <textarea class="form-control modern-input"
                                                             id="mensaje_recordatorio" name="mensaje_recordatorio" rows="6"
                                                             placeholder="Escribe aquí el mensaje que se enviará por WhatsApp..."
-                                                            maxlength="250" required>{{ old('mensaje_recordatorio', $mensajeRecordatorio ?? 'Hola {nombreCliente}, te recordamos que el pago de tu paquete {nombrePaquete} por {cantidadPagoProximo} será cobrado el día {fechaPago}.') }}
-                                                </textarea>
+                                                            maxlength="250"
+                                                            required>{{ old('mensaje_recordatorio', $mensajeRecordatorio ?? 'Hola {nombreCliente}, te recordamos que el pago de tu paquete {nombrePaquete} por {cantidadPagoProximo} será cobrado el día {fechaPago}.') }}
+                                                                                                                                        </textarea>
                                                         <div class="form-text d-flex justify-content-between">
                                                             <span>Usa las variables disponibles para personalizar el
                                                                 mensaje</span>
@@ -904,6 +922,240 @@
                 </div>
             </div>
 
+            <!-- Modal de Comisiones Fijas -->
+            <div class="modal fade" id="comisionesFijasModal" tabindex="-1" aria-labelledby="comisionesFijasModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                        <div class="modal-body" style="padding: 2rem;">
+                            <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+                                data-bs-dismiss="modal" aria-label="Close" style="z-index: 1050;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+
+                            <!-- Tarjeta de Comisiones Fijas -->
+                            <div class="comisiones-fijas-section mb-5 w-100"
+                                style="margin-right: 0; margin-left: 0; max-width: 100%;">
+                                <div class="card modern-card">
+                                    <div class="card-header" style="background: #fff;">
+                                        <div class="header-content">
+                                            <div class="header-icon"
+                                                style="background: linear-gradient(90deg, #8B5CF6 0%, #6D28D9 100%); color:#fff;">
+                                                <i class="bi bi-currency-dollar"></i>
+                                            </div>
+                                            <div class="header-text">
+                                                <h4 class="card-title mb-1">Comisiones Fijas</h4>
+                                                <p class="card-subtitle text-muted mb-0">Configura el esquema de montos
+                                                    fijos para la
+                                                    reparticion del 100% del dinero recibido por pagos iniciales en el
+                                                    registro de
+                                                    nuevos contratos.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="comisiones-fijas-form" action="{{ route('ajustes.comisionesFijas') }}"
+                                            method="POST">
+                                            @csrf
+
+                                            <div id="comisiones-fijas-container">
+                                                @php
+                                                    $funerariaConfig = collect($comisionesFijasGuardadas ?? [])->firstWhere('tipo', 'Funeraria');
+                                                    if (!$funerariaConfig) {
+                                                        $funerariaConfig = ['tipo' => 'Funeraria', 'monto' => '0', 'activo' => true, 'tipo_valor' => 'fijo'];
+                                                    }
+
+                                                    // Remover Funeraria de la lista principal
+                                                    $comisionesDinamicas = collect($comisionesFijasGuardadas ?? [])->filter(function ($item) {
+                                                        return $item['tipo'] !== 'Funeraria';
+                                                    })->values()->all();
+                                                @endphp
+
+                                                @if(count($comisionesDinamicas) > 0)
+                                                    @foreach($comisionesDinamicas as $index => $comisionGuardada)
+                                                        @php $tipoValor = $comisionGuardada['tipo_valor'] ?? 'fijo'; @endphp
+                                                        <div class="row align-items-end g-3 mb-4 comision-fija-row dinamica-row">
+                                                            <div class="col-auto d-flex align-items-center mb-2">
+                                                                <div class="form-check form-switch" style="font-size: 1.2rem;">
+                                                                    <input class="form-check-input comision-fija-checkbox"
+                                                                        type="checkbox" role="switch"
+                                                                        id="estado_comision_fija_{{ $index }}" {{ $comisionGuardada['activo'] ? 'checked' : '' }}>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col">
+                                                                <label class="form-label text-muted small mb-1">Tipo de
+                                                                    Comisión</label>
+                                                                <select class="form-select modern-input comision-fija-select"
+                                                                    name="tipo_comision[]">
+                                                                    <option value="">Seleccione un tipo...</option>
+                                                                    @if(isset($tiposComision) && count($tiposComision) > 0)
+                                                                        @foreach($tiposComision as $tipo)
+                                                                            @if($tipo !== 'Funeraria')
+                                                                                <option value="{{ $tipo }}" {{ $comisionGuardada['tipo'] == $tipo ? 'selected' : '' }}>{{ ucfirst($tipo) }}</option>
+                                                                            @endif
+                                                                        @endforeach
+                                                                    @endif
+                                                                </select>
+                                                            </div>
+                                                            <div class="col">
+                                                                <label class="form-label text-muted small mb-1">Monto Fijo</label>
+                                                                <div class="input-group">
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-secondary px-3 comision-fija-tipo-toggle"
+                                                                        data-tipo="{{ $tipoValor }}" title="Cambiar tipo de valor">
+                                                                        <i
+                                                                            class="bi {{ $tipoValor === 'porcentaje' ? 'bi-percent' : ($tipoValor === 'restante' ? 'bi-pie-chart' : 'bi-currency-dollar') }}"></i>
+                                                                    </button>
+                                                                    <input type="hidden" name="tipo_valor[]"
+                                                                        class="comision-fija-tipo-input" value="{{ $tipoValor }}">
+                                                                    <input type="number"
+                                                                        class="form-control modern-input comision-fija-monto"
+                                                                        placeholder="{{ $tipoValor === 'restante' ? 'Automático' : '0.00' }}"
+                                                                        min="0"
+                                                                        step="{{ $tipoValor === 'porcentaje' ? '1' : '0.01' }}"
+                                                                        name="monto_fijo[]"
+                                                                        value="{{ $tipoValor === 'restante' ? '' : $comisionGuardada['monto'] }}"
+                                                                        {{ $tipoValor === 'restante' ? 'readonly' : '' }}>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-auto mb-1">
+                                                                <button type="button"
+                                                                    class="btn btn-outline-danger btn-sm comision-fija-delete"
+                                                                    title="Borrar fila"
+                                                                    style="border-radius: 8px; width: 35px; height: 35px;">
+                                                                    <i class="bi bi-x-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                @else
+                                                    <div class="row align-items-end g-3 mb-4 comision-fija-row dinamica-row">
+                                                        <div class="col-auto d-flex align-items-center mb-2">
+                                                            <div class="form-check form-switch" style="font-size: 1.2rem;">
+                                                                <input class="form-check-input comision-fija-checkbox"
+                                                                    type="checkbox" role="switch" id="estado_comision_fija_1"
+                                                                    disabled>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label text-muted small mb-1">Tipo de
+                                                                Comisión</label>
+                                                            <select class="form-select modern-input comision-fija-select"
+                                                                name="tipo_comision[]">
+                                                                <option value="">Seleccione un tipo...</option>
+                                                                @if(isset($tiposComision) && count($tiposComision) > 0)
+                                                                    @foreach($tiposComision as $tipo)
+                                                                        @if($tipo !== 'Funeraria')
+                                                                            <option value="{{ $tipo }}">{{ ucfirst($tipo) }}</option>
+                                                                        @endif
+                                                                    @endforeach
+                                                                @endif
+                                                            </select>
+                                                        </div>
+                                                        <div class="col">
+                                                            <label class="form-label text-muted small mb-1">Monto Fijo</label>
+                                                            <div class="input-group">
+                                                                <button type="button"
+                                                                    class="btn btn-outline-secondary px-3 comision-fija-tipo-toggle"
+                                                                    data-tipo="fijo" title="Cambiar tipo de valor">
+                                                                    <i class="bi bi-currency-dollar"></i>
+                                                                </button>
+                                                                <input type="hidden" name="tipo_valor[]"
+                                                                    class="comision-fija-tipo-input" value="fijo">
+                                                                <input type="number"
+                                                                    class="form-control modern-input comision-fija-monto"
+                                                                    placeholder="0.00" min="0" step="0.01" name="monto_fijo[]">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-auto mb-1">
+                                                            <button type="button"
+                                                                class="btn btn-outline-danger btn-sm comision-fija-delete"
+                                                                title="Borrar fila"
+                                                                style="border-radius: 8px; width: 35px; height: 35px;">
+                                                                <i class="bi bi-x-lg"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                @endif
+
+                                                <hr class="my-4" style="border-color: #e5e7eb;">
+
+                                                <!-- Fila especial Funeraria -->
+                                                <div class="row align-items-end g-3 mb-4 comision-fija-row funeraria-row">
+                                                    <div class="col-auto d-flex align-items-center mb-2">
+                                                        <div class="form-check form-switch" style="font-size: 1.2rem;">
+                                                            <input class="form-check-input comision-fija-checkbox"
+                                                                type="checkbox" role="switch"
+                                                                id="estado_comision_fija_funeraria" {{ $funerariaConfig['activo'] ? 'checked' : '' }}>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col">
+                                                        <label class="form-label text-muted small mb-1">Tipo de Comisión
+                                                            (Balance General)</label>
+                                                        <input type="text" class="form-control modern-input"
+                                                            value="Funeraria" readonly>
+                                                        <input type="hidden" name="tipo_comision[]"
+                                                            class="comision-fija-select" value="Funeraria">
+                                                    </div>
+                                                    <div class="col">
+                                                        <label class="form-label text-muted small mb-1">Monto Fijo</label>
+                                                        <div class="input-group">
+                                                            @php $tipoValorFuneraria = $funerariaConfig['tipo_valor'] ?? 'fijo'; @endphp
+                                                            <button type="button"
+                                                                class="btn btn-outline-secondary px-3 comision-fija-tipo-toggle no-restante"
+                                                                data-tipo="{{ $tipoValorFuneraria }}"
+                                                                title="Cambiar tipo de valor">
+                                                                <i
+                                                                    class="bi {{ $tipoValorFuneraria === 'porcentaje' ? 'bi-percent' : 'bi-currency-dollar' }}"></i>
+                                                            </button>
+                                                            <input type="hidden" name="tipo_valor[]"
+                                                                class="comision-fija-tipo-input"
+                                                                value="{{ $tipoValorFuneraria }}">
+                                                            <input type="number"
+                                                                class="form-control modern-input comision-fija-monto"
+                                                                placeholder="0.00" min="0"
+                                                                step="{{ $tipoValorFuneraria === 'porcentaje' ? '1' : '0.01' }}"
+                                                                name="monto_fijo[]" value="{{ $funerariaConfig['monto'] }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-auto mb-1">
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                            disabled title="Fila reservada"
+                                                            style="visibility: hidden; border-radius: 8px; width: 35px; height: 35px;">
+                                                            <i class="bi bi-lock-fill"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Botones de acción -->
+                                            <div class="card-actions mt-4 border-0">
+                                                <div class="d-flex justify-content-between">
+                                                    <button type="button" class="btn btn-outline-secondary"
+                                                        data-bs-dismiss="modal">
+                                                        <i class="bi bi-x-circle me-2"></i>Cerrar
+                                                    </button>
+                                                    <div>
+                                                        <button type="button" class="btn btn-outline-secondary me-2"
+                                                            id="btn-add-comision-row" style="">
+                                                            <i class="bi bi-plus-circle me-2"></i>Nueva Comisión Fija
+                                                        </button>
+                                                        <button type="submit" class="btn btn-primary text-white" style="">
+                                                            <i class="bi bi-save me-2"></i>Guardar Cambios
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
 
             @auth
@@ -917,7 +1169,7 @@
                     </form>
                 </div>
             @endauth
-            <small class="text-muted">Version 1.6 @imallen.dev</small>
+            <small class="text-muted">Version 1.7 @imallen.dev</small>
 
         </div>
     </div>
@@ -2007,10 +2259,10 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show mb-4';
             alertDiv.innerHTML = `
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        ${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
+                                                                                                                <i class="bi bi-check-circle-fill me-2"></i>
+                                                                                                                ${message}
+                                                                                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                                                                            `;
 
             // Insertar después del header
             const pageHeader = document.querySelector('.page-header');
@@ -2402,5 +2654,217 @@
                 // El formulario se enviará normalmente al servidor
             });
         }
+        // Funciones para Comisiones Fijas
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('comisiones-fijas-container');
+            const btnAddRow = document.getElementById('btn-add-comision-row');
+
+            if (!container || !btnAddRow) return;
+
+            // Función para validar una fila y habilitar/deshabilitar el checkbox
+            function updateRowValidation(row) {
+                const select = row.querySelector('.comision-fija-select');
+                const input = row.querySelector('.comision-fija-monto');
+                const checkbox = row.querySelector('.comision-fija-checkbox');
+                const tipoValorInput = row.querySelector('.comision-fija-tipo-input');
+                const tipoValor = tipoValorInput ? tipoValorInput.value : 'fijo';
+                const isFuneraria = select.value === 'Funeraria';
+
+                // Para restante no importa el monto. Para funeraria puede ser 0 o más. Para los demás debe ser mayor a 0.
+                const isValidMonto = tipoValor === 'restante' ||
+                    (input.value.trim() !== '' && (isFuneraria ? parseFloat(input.value) >= 0 : parseFloat(input.value) > 0));
+
+                const isValid = select.value.trim() !== '' && isValidMonto;
+
+                if (isValid) {
+                    checkbox.disabled = false;
+                    select.classList.remove('is-invalid');
+                    input.classList.remove('is-invalid');
+                } else {
+                    checkbox.disabled = true;
+                    checkbox.checked = false;
+                }
+            }
+
+            // Delegación de eventos para validar cambios en los inputs
+            container.addEventListener('input', function (e) {
+                if (e.target.classList.contains('comision-fija-select') || e.target.classList.contains('comision-fija-monto')) {
+                    const row = e.target.closest('.comision-fija-row');
+                    updateRowValidation(row);
+                }
+            });
+
+            // Delegación de eventos para botones de toggle
+            container.addEventListener('click', function (e) {
+                const btnToggle = e.target.closest('.comision-fija-tipo-toggle');
+                if (btnToggle) {
+                    const row = btnToggle.closest('.comision-fija-row');
+                    const hiddenInput = row.querySelector('.comision-fija-tipo-input');
+                    const icon = btnToggle.querySelector('i');
+                    const montoInput = row.querySelector('.comision-fija-monto');
+                    const isNoRestante = btnToggle.classList.contains('no-restante');
+
+                    let currentType = hiddenInput.value;
+
+                    if (currentType === 'fijo') {
+                        currentType = 'porcentaje';
+                        icon.className = 'bi bi-percent';
+                        montoInput.readOnly = false;
+                        montoInput.placeholder = '0';
+                        montoInput.step = '1';
+                        if (montoInput.value === 'Automático') montoInput.value = '';
+                    } else if (currentType === 'porcentaje' && !isNoRestante) {
+                        currentType = 'restante';
+                        icon.className = 'bi bi-pie-chart';
+                        montoInput.readOnly = true;
+                        montoInput.value = '';
+                        montoInput.placeholder = 'Automático';
+                    } else {
+                        currentType = 'fijo';
+                        icon.className = 'bi bi-currency-dollar';
+                        montoInput.readOnly = false;
+                        montoInput.placeholder = '0.00';
+                        montoInput.step = '0.01';
+                        if (montoInput.value === 'Automático') montoInput.value = '';
+                    }
+
+                    hiddenInput.value = currentType;
+                    btnToggle.dataset.tipo = currentType;
+
+                    // Disparar evento input para validación
+                    updateRowValidation(row);
+                }
+            });
+
+            // Delegación de eventos para eliminar filas
+            container.addEventListener('click', function (e) {
+                const btnDelete = e.target.closest('.comision-fija-delete');
+                if (btnDelete) {
+                    const row = btnDelete.closest('.comision-fija-row');
+                    const rows = container.querySelectorAll('.dinamica-row');
+
+                    if (confirm('¿Estás seguro de que deseas borrar esta fila de comisiones fijas?')) {
+                        if (rows.length > 1) {
+                            row.remove();
+                        } else {
+                            // Si es la única fila, solo limpiamos los valores
+                            const select = row.querySelector('.comision-fija-select');
+                            const input = row.querySelector('.comision-fija-monto');
+                            const checkbox = row.querySelector('.comision-fija-checkbox');
+                            const toggle = row.querySelector('.comision-fija-tipo-toggle');
+                            const hiddenTipo = row.querySelector('.comision-fija-tipo-input');
+
+                            select.value = '';
+                            select.classList.remove('is-invalid');
+                            input.value = '';
+                            input.readOnly = false;
+                            input.placeholder = '0.00';
+                            input.step = '0.01';
+                            input.classList.remove('is-invalid');
+                            checkbox.checked = false;
+                            checkbox.disabled = true;
+
+                            if (hiddenTipo && toggle) {
+                                hiddenTipo.value = 'fijo';
+                                toggle.dataset.tipo = 'fijo';
+                                toggle.querySelector('i').className = 'bi bi-currency-dollar';
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Función para agregar una fila nueva
+            btnAddRow.addEventListener('click', function () {
+                const rows = container.querySelectorAll('.dinamica-row');
+                const lastRow = rows[rows.length - 1];
+
+                const select = lastRow.querySelector('.comision-fija-select');
+                const input = lastRow.querySelector('.comision-fija-monto');
+                const hiddenTipoValor = lastRow.querySelector('.comision-fija-tipo-input');
+
+                let hasError = false;
+                if (select.value.trim() === '') {
+                    select.classList.add('is-invalid');
+                    hasError = true;
+                }
+                if (hiddenTipoValor && hiddenTipoValor.value !== 'restante' && (input.value.trim() === '' || parseFloat(input.value) <= 0)) {
+                    input.classList.add('is-invalid');
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    alert('Por favor, complete el tipo de comisión y el monto en la última fila antes de agregar una nueva.');
+                    return;
+                }
+
+                // Clonar la última fila
+                const newRow = lastRow.cloneNode(true);
+
+                // Limpiar valores
+                const newSelect = newRow.querySelector('.comision-fija-select');
+                const newInput = newRow.querySelector('.comision-fija-monto');
+                const newCheckbox = newRow.querySelector('.comision-fija-checkbox');
+                const newToggle = newRow.querySelector('.comision-fija-tipo-toggle');
+                const newHiddenTipo = newRow.querySelector('.comision-fija-tipo-input');
+
+                newSelect.value = '';
+                newSelect.classList.remove('is-invalid');
+                newInput.value = '';
+                newInput.readOnly = false;
+                newInput.placeholder = '0.00';
+                newInput.step = '0.01';
+                newInput.classList.remove('is-invalid');
+                newCheckbox.checked = false;
+                newCheckbox.disabled = true;
+
+                if (newHiddenTipo && newToggle) {
+                    newHiddenTipo.value = 'fijo';
+                    newToggle.dataset.tipo = 'fijo';
+                    newToggle.querySelector('i').className = 'bi bi-currency-dollar';
+                }
+
+                // Generar un nuevo ID si existía uno
+                newCheckbox.id = 'estado_comision_fija_d' + (rows.length + 1);
+
+                container.appendChild(newRow);
+            });
+
+            // Inicializar las filas existentes
+            container.querySelectorAll('.comision-fija-row').forEach(updateRowValidation);
+
+            // Manejar envío del formulario de comisiones fijas
+            const comisionesForm = document.getElementById('comisiones-fijas-form');
+            if (comisionesForm) {
+                comisionesForm.addEventListener('submit', function (e) {
+                    // Renombrar los inputs para enviarlos como un array estructurado
+                    const rows = container.querySelectorAll('.comision-fija-row');
+                    rows.forEach((row, index) => {
+                        const select = row.querySelector('.comision-fija-select');
+                        const input = row.querySelector('.comision-fija-monto');
+                        const checkbox = row.querySelector('.comision-fija-checkbox');
+                        const tipoValorInput = row.querySelector('.comision-fija-tipo-input');
+
+                        if (select) select.name = `comisiones[${index}][tipo]`;
+                        if (input) input.name = `comisiones[${index}][monto]`;
+                        if (tipoValorInput) tipoValorInput.name = `comisiones[${index}][tipo_valor]`;
+
+                        // Crear un input oculto para el checkbox porque los checkboxes deshabilitados o no marcados no se envían
+                        const hiddenCheckbox = document.createElement('input');
+                        hiddenCheckbox.type = 'hidden';
+                        hiddenCheckbox.name = `comisiones[${index}][activo]`;
+                        hiddenCheckbox.value = checkbox.checked ? '1' : '0';
+                        comisionesForm.appendChild(hiddenCheckbox);
+                    });
+
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Guardando...';
+                        submitBtn.disabled = true;
+                        submitBtn.classList.add('loading');
+                    }
+                });
+            }
+        });
     </script>
 @endsection

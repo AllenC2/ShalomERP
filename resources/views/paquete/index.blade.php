@@ -106,7 +106,11 @@
                                                                             </div>
                                                                             <span class="badge rounded-pill" 
                                                                                 style="background: {{ $porcentaje->tipo_porcentaje == 'vendedor' ? '#2196f3' : ($porcentaje->tipo_porcentaje == 'supervisor' ? '#ff9800' : 'linear-gradient(135deg, #E1B240 0%, #79481D 100%)') }}; font-size: 0.7em;">
-                                                                                {{ $porcentaje->cantidad_porcentaje }}%
+                                                                                @if($porcentaje->modo_comision === 'monto')
+                                                                                    ${{ number_format($porcentaje->monto_fijo, 0) }}
+                                                                                @else
+                                                                                    {{ $porcentaje->cantidad_porcentaje }}%
+                                                                                @endif
                                                                             </span>
                                                                         </div>
                                                                     </div>

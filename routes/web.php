@@ -15,12 +15,19 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 // Rutas restringidas - Solo acceso para administradores
 Route::middleware(['auth', 'role:admin'])->group(function () {
+    // Rutas de auditoría
+    Route::get('auditoria/verify', [App\Http\Controllers\AuditoriaController::class, 'showVerifyForm'])->name('auditoria.verify.form');
+    Route::post('auditoria/verify', [App\Http\Controllers\AuditoriaController::class, 'verifyPassword'])->name('auditoria.verify.submit');
+    Route::get('auditoria', [App\Http\Controllers\AuditoriaController::class, 'index'])->name('auditoria.index');
+    Route::get('auditoria/{id}', [App\Http\Controllers\AuditoriaController::class, 'show'])->name('auditoria.show');
+
     // Rutas de ajustes
     Route::resource('ajustes', App\Http\Controllers\AjustesController::class);
     Route::post('ajustes/empresa', [App\Http\Controllers\AjustesController::class, 'actualizarEmpresa'])->name('ajustes.empresa');
     Route::post('ajustes/recordatorio-whatsapp', [App\Http\Controllers\AjustesController::class, 'actualizarRecordatorioWhatsApp'])->name('ajustes.recordatorioWhatsApp');
     Route::post('ajustes/tolerancia-pagos', [App\Http\Controllers\AjustesController::class, 'actualizarToleranciaPagos'])->name('ajustes.toleranciaPagos');
     Route::post('ajustes/registro-publico', [App\Http\Controllers\AjustesController::class, 'actualizarRegistroPublico'])->name('ajustes.registroPublico');
+    Route::post('ajustes/comisiones-fijas', [App\Http\Controllers\AjustesController::class, 'actualizarComisionesFijas'])->name('ajustes.comisionesFijas');
 
     // Rutas de empleados
     Route::resource('empleados', App\Http\Controllers\EmpleadoController::class);
@@ -98,6 +105,9 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
 
     // Ruta alternativa para pagos
     Route::get('pagos_alt', [PagoController::class, 'index'])->name('pagos_alt.index');
+
+    // Ruta para registrar visitas
+    Route::post('visitas', [App\Http\Controllers\VisitaController::class, 'store'])->name('visitas.store');
 });
 
 // Rutas de clientes específicas - Solo administrador (deben ir después de las rutas con 'create' para evitar conflictos)

@@ -41,40 +41,71 @@
                 <!-- Porcentajes -->
                 <div class="form-section">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h6 class="section-title mb-0">Porcentajes de Comisión</h6>
+                        <div>
+                            <h6 class="section-title mb-0">Porcentajes de Comisión</h6>
+                            <div class="mt-1">
+                                <small class="text-muted">Utilidad restante: </small>
+                                <small id="monto-restante-valor" class="fw-bold text-success">$0.00</small>
+                            </div>
+                        </div>
                         <button type="button" class="btn btn-sm btn-success" id="addPorcentaje">
                             <i class="fas fa-plus me-1"></i> Agregar Porcentaje
                         </button>
                     </div>
                     
                     <div id="porcentajes-container" class="form-row">
-                        @if(isset($paquete) && $paquete->porcentajes && $paquete->porcentajes->count() > 0)
-                            @foreach($paquete->porcentajes as $index => $porcentaje)
+                        @php
+                            $porcentajesOld = old('porcentajes');
+                            if ($porcentajesOld) {
+                                // Convertir a objetos para uniformidad
+                                $porcentajesData = collect($porcentajesOld)->map(function($p) { return (object)$p; });
+                            } else {
+                                $porcentajesData = isset($paquete) ? $paquete->porcentajes : collect();
+                            }
+                        @endphp
+
+                        @if($porcentajesData->count() > 0)
+                            @foreach($porcentajesData as $index => $porcentaje)
                                 <div class="porcentaje-row">
                                     <div class="porcentaje-content">
                                         <div class="form-group">
-                                            <label class="form-label">Tipo de Porcentaje</label>
+                                            <label class="form-label">Tipo de Comisión</label>
                                             <input type="text" name="porcentajes[{{ $index }}][tipo_porcentaje]" 
                                                    class="form-control @error('porcentajes.'.$index.'.tipo_porcentaje') is-invalid @enderror" 
-                                                   value="{{ old('porcentajes.'.$index.'.tipo_porcentaje', $porcentaje->tipo_porcentaje) }}" 
+                                                   value="{{ $porcentaje->tipo_porcentaje }}" 
                                                    placeholder="Ej: Vendedor, Supervisor, etc.">
                                             @error('porcentajes.'.$index.'.tipo_porcentaje')<div class="error-text">{{ $message }}</div>@enderror
                                         </div>
 
                                         <div class="form-group">
-                                            <label class="form-label">Porcentaje (%)</label>
-                                            <input type="number" step="0.01" name="porcentajes[{{ $index }}][cantidad_porcentaje]" 
-                                                   class="form-control @error('porcentajes.'.$index.'.cantidad_porcentaje') is-invalid @enderror" 
-                                                   value="{{ old('porcentajes.'.$index.'.cantidad_porcentaje', $porcentaje->cantidad_porcentaje) }}" 
-                                                   placeholder="0.00" min="0" max="100">
+                                            <label class="form-label">Cantidad</label>
+                                            <div class="input-group">
+                                                <input type="hidden" name="porcentajes[{{ $index }}][modo_comision]" class="modo-comision-input" value="{{ $porcentaje->modo_comision ?? 'porcentaje' }}">
+                                                <button type="button" class="btn btn-outline-secondary toggle-modo-btn" title="Click para cambiar entre % y $">
+                                                    <i class="fas {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'porcentaje') ? 'fa-percentage' : 'fa-dollar-sign' }}"></i>
+                                                </button>
+                                                
+                                                {{-- Input de Porcentaje --}}
+                                                <input type="number" step="0.01" name="porcentajes[{{ $index }}][cantidad_porcentaje]" 
+                                                       class="form-control valor-porcentaje-input {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'monto') ? 'd-none' : '' }}" 
+                                                       value="{{ $porcentaje->cantidad_porcentaje ?? '' }}" 
+                                                       placeholder="0.00 %" min="0" max="100">
+                                                
+                                                {{-- Input de Monto Fijo --}}
+                                                <input type="number" step="0.01" name="porcentajes[{{ $index }}][monto_fijo]" 
+                                                       class="form-control valor-monto-input {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'porcentaje') ? 'd-none' : '' }}" 
+                                                       value="{{ $porcentaje->monto_fijo ?? '' }}" 
+                                                       placeholder="$ 0.00">
+                                            </div>
                                             @error('porcentajes.'.$index.'.cantidad_porcentaje')<div class="error-text">{{ $message }}</div>@enderror
+                                            @error('porcentajes.'.$index.'.monto_fijo')<div class="error-text">{{ $message }}</div>@enderror
                                         </div>
 
                                         <div class="form-group">
                                             <label class="form-label">Observaciones</label>
                                             <input type="text" name="porcentajes[{{ $index }}][observaciones]" 
                                                    class="form-control @error('porcentajes.'.$index.'.observaciones') is-invalid @enderror" 
-                                                   value="{{ old('porcentajes.'.$index.'.observaciones', $porcentaje->observaciones) }}" 
+                                                   value="{{ $porcentaje->observaciones ?? '' }}" 
                                                    placeholder="Observaciones opcionales">
                                             @error('porcentajes.'.$index.'.observaciones')<div class="error-text">{{ $message }}</div>@enderror
                                         </div>
@@ -117,18 +148,73 @@ document.addEventListener('DOMContentLoaded', function() {
     // Formatear campo de precio
     const precioInput = document.getElementById('precio');
     if (precioInput) {
-        precioInput.addEventListener('input', function() {
+        precioInput.addEventListener('blur', function() {
             formatearCampoMoneda(this);
+            actualizarMontoRestante();
+        });
+        
+        precioInput.addEventListener('focus', function() {
+            // Al entrar, quitar formato para facilitar edición
+            let value = this.value.replace(/[$,]/g, '');
+            if (value && !isNaN(parseFloat(value))) {
+                this.value = value;
+            }
+        });
+
+        precioInput.addEventListener('input', function() {
+            actualizarMontoRestante();
         });
         
         // Aplicar formato inicial si hay valor
-        if (precioInput.value && !precioInput.value.startsWith('$')) {
-            const valor = parseFloat(precioInput.value.replace(/[^0-9.]/g, ''));
+        if (precioInput.value) {
+            const valorLimpio = precioInput.value.replace(/[$,]/g, '');
+            const valor = parseFloat(valorLimpio);
             if (!isNaN(valor)) {
                 precioInput.value = formatearMoneda(valor);
             }
         }
     }
+
+    function actualizarMontoRestante() {
+        const precioField = document.getElementById('precio');
+        if (!precioField) return;
+
+        let precioBase = parseFloat(precioField.value.replace(/[$,]/g, '')) || 0;
+        let totalComisiones = 0;
+
+        const rows = document.querySelectorAll('.porcentaje-row');
+        rows.forEach(row => {
+            const modo = row.querySelector('.modo-comision-input').value;
+            const porcentajeInput = row.querySelector('.valor-porcentaje-input');
+            const montoInput = row.querySelector('.valor-monto-input');
+
+            if (modo === 'porcentaje') {
+                let p = parseFloat(porcentajeInput.value) || 0;
+                totalComisiones += (precioBase * p) / 100;
+            } else {
+                let m = parseFloat(montoInput.value) || 0;
+                totalComisiones += m;
+            }
+        });
+
+        const restante = precioBase - totalComisiones;
+        const restanteElement = document.getElementById('monto-restante-valor');
+
+        if (restanteElement) {
+            restanteElement.textContent = formatearMoneda(restante);
+            
+            if (restante < 0) {
+                restanteElement.classList.remove('text-success');
+                restanteElement.classList.add('text-danger');
+            } else {
+                restanteElement.classList.remove('text-danger');
+                restanteElement.classList.add('text-success');
+            }
+        }
+    }
+
+    // Inicializar cálculo
+    setTimeout(actualizarMontoRestante, 500);
 
     // Agregar nuevo porcentaje
     document.getElementById('addPorcentaje').addEventListener('click', function() {
@@ -145,21 +231,27 @@ document.addEventListener('DOMContentLoaded', function() {
         newRow.innerHTML = `
             <div class="porcentaje-content">
                 <div class="form-group">
-                    <label class="form-label">Tipo de Porcentaje</label>
+                    <label class="form-label">Tipo de Comisión</label>
                     <input type="text" name="porcentajes[${porcentajeIndex}][tipo_porcentaje]" 
                            class="form-control" placeholder="Ej: Vendedor, Supervisor, etc.">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Porcentaje (%)</label>
+                <div class="form-group">
+                    <label class="form-label">Monto</label>
+                    <div class="input-group">
+                        <input type="hidden" name="porcentajes[${porcentajeIndex}][modo_comision]" class="modo-comision-input" value="porcentaje">
+                        <button type="button" class="btn btn-outline-secondary toggle-modo-btn" title="Click para cambiar entre % y $">
+                            <i class="fas fa-percentage"></i>
+                        </button>
                         <input type="number" step="0.01" name="porcentajes[${porcentajeIndex}][cantidad_porcentaje]" 
-                               class="form-control" placeholder="0.00" min="0" max="100">
+                               class="form-control valor-porcentaje-input" placeholder="0.00" min="0" max="100">
+                        <input type="number" step="0.01" name="porcentajes[${porcentajeIndex}][monto_fijo]" 
+                               class="form-control valor-monto-input d-none" placeholder="0.00">
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Observaciones</label>
-                        <input type="text" name="porcentajes[${porcentajeIndex}][observaciones]" 
-                               class="form-control" placeholder="Observaciones opcionales">
-                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Observaciones</label>
+                    <input type="text" name="porcentajes[${porcentajeIndex}][observaciones]" 
+                           class="form-control" placeholder="Observaciones opcionales">
                 </div>
             </div>
             <div class="porcentaje-actions">
@@ -181,8 +273,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 50);
     });
 
-    // Remover porcentaje
+    // Escuchar cambios en los inputs de comisiones para recalcular
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('valor-porcentaje-input') || e.target.classList.contains('valor-monto-input')) {
+            actualizarMontoRestante();
+        }
+    });
+
+    // Manejar el toggle de modo (porcentaje vs monto)
     document.addEventListener('click', function(e) {
+        const toggleBtn = e.target.closest('.toggle-modo-btn');
+        if (toggleBtn) {
+            const row = toggleBtn.closest('.porcentaje-row');
+            const hiddenInput = row.querySelector('.modo-comision-input');
+            const icon = toggleBtn.querySelector('i');
+            const porcentajeInput = row.querySelector('.valor-porcentaje-input');
+            const montoInput = row.querySelector('.valor-monto-input');
+            
+            if (hiddenInput.value === 'porcentaje') {
+                // Cambiar a monto
+                hiddenInput.value = 'monto';
+                icon.className = 'fas fa-dollar-sign';
+                porcentajeInput.classList.add('d-none');
+                montoInput.classList.remove('d-none');
+                porcentajeInput.value = ''; // Limpiar el otro valor
+            } else {
+                // Cambiar a porcentaje
+                hiddenInput.value = 'porcentaje';
+                icon.className = 'fas fa-percentage';
+                porcentajeInput.classList.remove('d-none');
+                montoInput.classList.add('d-none');
+                montoInput.value = ''; // Limpiar el otro valor
+            }
+            actualizarMontoRestante();
+        }
+
         if (e.target.classList.contains('remove-porcentaje') || e.target.closest('.remove-porcentaje')) {
             const row = e.target.closest('.porcentaje-row');
             const container = document.getElementById('porcentajes-container');
@@ -194,6 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             setTimeout(() => {
                 row.remove();
+                actualizarMontoRestante();
                 
                 // Si no quedan porcentajes, mostrar el estado vacío
                 if (container.children.length === 0) {
@@ -217,8 +343,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
-            // Limpiar formato de moneda antes de enviar
+            // Verificar utilidad restante
             const precioField = document.getElementById('precio');
+            let precioBase = parseFloat(precioField.value.replace(/[$,]/g, '')) || 0;
+            let totalComisiones = 0;
+
+            const rows = document.querySelectorAll('.porcentaje-row');
+            rows.forEach(row => {
+                const modo = row.querySelector('.modo-comision-input').value;
+                if (modo === 'porcentaje') {
+                    let p = parseFloat(row.querySelector('.valor-porcentaje-input').value) || 0;
+                    totalComisiones += (precioBase * p) / 100;
+                } else {
+                    let m = parseFloat(row.querySelector('.valor-monto-input').value) || 0;
+                    totalComisiones += m;
+                }
+            });
+
+            if (totalComisiones > precioBase) {
+                e.preventDefault();
+                alert('Error: Las comisiones totales ($' + totalComisiones.toFixed(2) + ') no pueden ser mayores al precio del paquete ($' + precioBase.toFixed(2) + ').');
+                return false;
+            }
+
+            // Limpiar formato de moneda antes de enviar
             if (precioField && precioField.value) {
                 const valorLimpio = precioField.value.replace(/[$,]/g, '');
                 if (valorLimpio && !isNaN(parseFloat(valorLimpio))) {

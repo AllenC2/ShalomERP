@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -25,6 +26,10 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Pago extends Model
 {
+    use Auditable;
+
+    // Campos masivos a excluir de los logs de auditoría de este modelo
+    protected $dontAudit = ['observaciones', 'documento'];
     // Constantes para valores permitidos
     const TIPOS_PAGO = [
         'cuota' => 'Cuota',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -21,6 +22,10 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Paquete extends Model
 {
+    use Auditable;
+
+    // Campos masivos a excluir de los logs de auditoría de este modelo
+    protected $dontAudit = ['descripcion'];
     
     protected $perPage = 20;
 

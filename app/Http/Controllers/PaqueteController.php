@@ -48,8 +48,17 @@ class PaqueteController extends Controller
             // Crear los porcentajes asociados solo si existen
             if ($request->has('porcentajes') && is_array($request->porcentajes)) {
                 foreach ($request->porcentajes as $porcentajeData) {
-                    // Verificar que los datos requeridos estén presentes
-                    if (!empty($porcentajeData['cantidad_porcentaje']) && !empty($porcentajeData['tipo_porcentaje'])) {
+                    $tipo = $porcentajeData['tipo_porcentaje'] ?? null;
+                    $modo = $porcentajeData['modo_comision'] ?? 'porcentaje';
+                    $cantP = $porcentajeData['cantidad_porcentaje'] ?? null;
+                    $montoF = $porcentajeData['monto_fijo'] ?? null;
+
+                    // Asegurar valores por defecto para evitar errores de SQL (null en columnas no nulas)
+                    $porcentajeData['cantidad_porcentaje'] = $cantP ?: 0;
+                    $porcentajeData['monto_fijo'] = $montoF ?: 0;
+
+                    // Verificar que tenga tipo y al menos uno de los valores
+                    if (!empty($tipo) && (($modo === 'porcentaje' && $cantP !== null && $cantP !== '') || ($modo === 'monto' && $montoF !== null && $montoF !== ''))) {
                         $porcentajeData['paquete_id'] = $paquete->id;
                         Porcentaje::create($porcentajeData);
                     }
@@ -92,10 +101,12 @@ class PaqueteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(PaqueteRequest $request, Paquete $paquete): RedirectResponse
+    public function update(PaqueteRequest $request, $id): RedirectResponse
     {
         try {
             DB::beginTransaction();
+
+            $paquete = Paquete::findOrFail($id);
 
             // Actualizar el paquete
             $paquete->update($request->validated());
@@ -106,8 +117,16 @@ class PaqueteController extends Controller
             // Crear los nuevos porcentajes solo si existen
             if ($request->has('porcentajes') && is_array($request->porcentajes)) {
                 foreach ($request->porcentajes as $porcentajeData) {
-                    // Verificar que los datos requeridos estén presentes
-                    if (!empty($porcentajeData['cantidad_porcentaje']) && !empty($porcentajeData['tipo_porcentaje'])) {
+                    $tipo = $porcentajeData['tipo_porcentaje'] ?? null;
+                    $modo = $porcentajeData['modo_comision'] ?? 'porcentaje';
+                    $cantP = $porcentajeData['cantidad_porcentaje'] ?? null;
+                    $montoF = $porcentajeData['monto_fijo'] ?? null;
+
+                    // Asegurar valores por defecto para evitar errores de SQL (null en columnas no nulas)
+                    $porcentajeData['cantidad_porcentaje'] = $cantP ?: 0;
+                    $porcentajeData['monto_fijo'] = $montoF ?: 0;
+
+                    if (!empty($tipo) && (($modo === 'porcentaje' && $cantP !== null && $cantP !== '') || ($modo === 'monto' && $montoF !== null && $montoF !== ''))) {
                         $porcentajeData['paquete_id'] = $paquete->id;
                         Porcentaje::create($porcentajeData);
                     }

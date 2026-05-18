@@ -25,9 +25,11 @@ class PaqueteRequest extends FormRequest
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'precio' => 'required|numeric|min:0',
-            'porcentajes' => 'nullable|array|min:1',
-            'porcentajes.*.cantidad_porcentaje' => 'required_with:porcentajes|numeric|min:0|max:100',
-            'porcentajes.*.tipo_porcentaje' => 'required_with:porcentajes|string|max:30',
+            'porcentajes' => 'nullable|array',
+            'porcentajes.*.cantidad_porcentaje' => 'nullable|numeric|min:0|max:100',
+            'porcentajes.*.monto_fijo' => 'nullable|numeric|min:0',
+            'porcentajes.*.modo_comision' => 'nullable|string|in:porcentaje,monto',
+            'porcentajes.*.tipo_porcentaje' => 'nullable|string|max:100',
             'porcentajes.*.observaciones' => 'nullable|string|max:255',
         ];
     }
@@ -44,11 +46,13 @@ class PaqueteRequest extends FormRequest
             'precio.required' => 'El precio del paquete es obligatorio.',
             'precio.numeric' => 'El precio debe ser un número válido.',
             'porcentajes.min' => 'Debe agregar al menos un porcentaje.',
-            'porcentajes.*.cantidad_porcentaje.required_with' => 'La cantidad del porcentaje es obligatoria.',
+            'porcentajes.*.cantidad_porcentaje.required_if' => 'La cantidad del porcentaje es obligatoria.',
+            'porcentajes.*.monto_fijo.required_if' => 'El monto fijo es obligatorio.',
             'porcentajes.*.cantidad_porcentaje.numeric' => 'La cantidad del porcentaje debe ser un número.',
+            'porcentajes.*.monto_fijo.numeric' => 'El monto fijo debe ser un número.',
             'porcentajes.*.cantidad_porcentaje.max' => 'La cantidad del porcentaje no puede ser mayor a 100.',
-            'porcentajes.*.tipo_porcentaje.required_with' => 'El tipo de porcentaje es obligatorio.',
-            'porcentajes.*.tipo_porcentaje.max' => 'El tipo de porcentaje no puede tener más de 30 caracteres.',
+            'porcentajes.*.tipo_porcentaje.required_with' => 'El tipo de comisión es obligatorio.',
+            'porcentajes.*.tipo_porcentaje.max' => 'El tipo de comisión no puede tener más de 30 caracteres.',
         ];
     }
 }

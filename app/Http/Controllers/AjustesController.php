@@ -83,7 +83,29 @@ class AjustesController extends Controller
             $registroPublico = false;
         }
         
-        return view('ajustes.index', compact('infoEmpresa', 'mensajeRecordatorio', 'toleranciaPagos', 'registroPublico'));
+        // Obtener tipos de comisión de los paquetes
+        $tiposComision = \App\Models\Porcentaje::select('tipo_porcentaje')
+            ->whereNotNull('tipo_porcentaje')
+            ->distinct()
+            ->pluck('tipo_porcentaje')
+            ->filter(function($value) {
+                return trim($value) !== '';
+            })
+            ->values();
+            
+        // Obtener comisiones fijas guardadas
+        $comisionesFijasGuardadas = Ajuste::where('nombre', 'like', 'comision_fija_%')->get()->map(function($ajuste) {
+            $data = is_array($ajuste->valor) ? $ajuste->valor : json_decode($ajuste->valor, true);
+            $esJson = is_array($data);
+            return [
+                'tipo' => str_replace('comision_fija_', '', $ajuste->nombre),
+                'monto' => $esJson && isset($data['monto']) ? $data['monto'] : $ajuste->valor,
+                'tipo_valor' => $esJson && isset($data['tipo_valor']) ? $data['tipo_valor'] : 'fijo',
+                'activo' => $ajuste->activo
+            ];
+        });
+        
+        return view('ajustes.index', compact('infoEmpresa', 'mensajeRecordatorio', 'toleranciaPagos', 'registroPublico', 'tiposComision', 'comisionesFijasGuardadas'));
     }
 
     /**
@@ -306,6 +328,53 @@ class AjustesController extends Controller
             
             return redirect()->route('ajustes.index')
                            ->with('error', 'Error al actualizar la configuración de registro público: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualizar configuración de comisiones fijas
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function actualizarComisionesFijas(Request $request)
+    {
+        try {
+            // Eliminar todas las comisiones fijas existentes primero para reemplazarlas
+            Ajuste::where('nombre', 'like', 'comision_fija_%')->delete();
+
+            if ($request->has('comisiones')) {
+                foreach ($request->comisiones as $comision) {
+                    if (!empty($comision['tipo']) && isset($comision['activo'])) {
+                        $tipoValor = $comision['tipo_valor'] ?? 'fijo';
+                        // Para 'restante', no se requiere monto numérico obligatorio
+                        $montoValido = ($tipoValor === 'restante') || (isset($comision['monto']) && $comision['monto'] !== '');
+                        
+                        if ($montoValido) {
+                            $valorJson = json_encode([
+                                'monto' => $comision['monto'] ?? '0',
+                                'tipo_valor' => $tipoValor
+                            ]);
+                            Ajuste::create([
+                                'nombre' => 'comision_fija_' . $comision['tipo'],
+                                'valor' => $valorJson,
+                                'tipo' => 'json',
+                                'descripcion' => 'Comisión fija para el tipo: ' . $comision['tipo'],
+                                'activo' => filter_var($comision['activo'], FILTER_VALIDATE_BOOLEAN)
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            return redirect()->route('ajustes.index')
+                           ->with('success', 'Configuración de comisiones fijas actualizada correctamente.');
+
+        } catch (\Exception $e) {
+            \Log::error('Error al actualizar comisiones fijas', ['error' => $e->getMessage()]);
+            
+            return redirect()->route('ajustes.index')
+                           ->with('error', 'Error al actualizar las comisiones fijas: ' . $e->getMessage());
         }
     }
 }

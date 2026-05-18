@@ -61,15 +61,22 @@
                                 <div>
                                     <div class="fw-semibold text-dark">{{ $contrato->cliente->nombre }}
                                         {{ $contrato->cliente->apellido }}</div>
-                                    <span class="status-dot me-2 {{ 
-                                            $contrato->estado == 'activo' ? 'status-dot-success' :
-                ($contrato->estado == 'suspendido' ? 'status-dot-warning' :
-                    ($contrato->estado == 'cancelado' ? 'status-dot-danger' :
-                        ($contrato->estado == 'finalizado' ? 'status-dot-primary' : 'status-dot-secondary'))) 
-                                        }}"></span>
-                                    <small class="text-muted">
-                                        {{$contrato->paquete->nombre}}#{{ $contrato->id }}
-                                    </small>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="status-dot me-2 {{ 
+                                                $contrato->estado == 'activo' ? 'status-dot-success' :
+                    ($contrato->estado == 'suspendido' ? 'status-dot-warning' :
+                        ($contrato->estado == 'cancelado' ? 'status-dot-danger' :
+                            ($contrato->estado == 'finalizado' ? 'status-dot-primary' : 'status-dot-secondary'))) 
+                                            }}"></span>
+                                        <small class="text-muted">
+                                            {{$contrato->paquete->nombre}}#{{ $contrato->id }}
+                                        </small>
+                                    </div>
+                                    @if($contrato->cliente->domicilio_completo)
+                                        <div class="text-muted small" style="font-size: 0.75rem; max-width: 300px; line-height: 1.2;">
+                                            <i class="bi bi-geo-alt-fill me-1"></i>{{ $contrato->cliente->domicilio_completo }}
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </td>

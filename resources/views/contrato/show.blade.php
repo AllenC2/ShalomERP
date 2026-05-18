@@ -444,195 +444,328 @@
                         @endphp
 
                         @if($siguienteCuota)
-                            <div class="card mb-4">
-                                <div class="card-header bg-white">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="card-title mb-0">
-                                            <i class="bi bi-calendar-event me-2" style="color: #79481D;"></i>Registro de pagos
-                                        </h5>
-                                        @php
-                                            $fechaCuota = \Carbon\Carbon::parse($siguienteCuota->fecha_pago);
-                                            $diasRestantes = now()->diffInDays($fechaCuota, false);
-                                            $esVencida = $diasRestantes < 0;
-                                        @endphp
-                                        @php
-                                            $esRetrasadoHeader = pagoEstaRetrasado($siguienteCuota->fecha_pago, $siguienteCuota->estado);
-                                            $enToleranciaHeader = $siguienteCuota->estado == 'pendiente' &&
-                                                $fechaCuota->isPast() &&
-                                                !$esRetrasadoHeader;
-                                        @endphp
-                                        @if($esRetrasadoHeader)
-                                            <span class="badge bg-danger">Retrasada</span>
-                                        @elseif($enToleranciaHeader)
-                                            <span class="badge bg-warning text-dark">En gracia</span>
-                                        @elseif($diasRestantes <= 7)
-                                            <span class="badge bg-warning text-dark">Próxima a vencer</span>
-                                        @else
-                                            <span class="badge bg-success">Al día</span>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <!-- Columna izquierda: Información de la cuota -->
-                                        <div class="col-12">
-                                            @php
-                                                // Usar la misma lógica que en el historial
-                                                $esRetrasadoCuota = pagoEstaRetrasado($siguienteCuota->fecha_pago, $siguienteCuota->estado);
-                                                $enToleranciaCuota = $siguienteCuota->estado == 'pendiente' &&
-                                                    $fechaCuota->isPast() &&
-                                                    !$esRetrasadoCuota;
-                                                $diasGraciaRestantesCuota = diasDeGraciaRestantes($siguienteCuota->fecha_pago, $siguienteCuota->estado);
+                            <div class="row">
+                                <div
+                                    class="{{ Auth::check() && Auth::user()->role === 'empleado' ? 'col-lg-8' : 'col-lg-12' }}">
+                                    <div class="card mb-4">
+                                        <div class="card-header bg-white">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h5 class="card-title mb-0">
+                                                    <i class="bi bi-calendar-event me-2" style="color: #79481D;"></i>Registro de
+                                                    pagos
+                                                </h5>
+                                                @php
+                                                    $fechaCuota = \Carbon\Carbon::parse($siguienteCuota->fecha_pago);
+                                                    $diasRestantes = now()->diffInDays($fechaCuota, false);
+                                                    $esVencida = $diasRestantes < 0;
+                                                @endphp
+                                                @php
+                                                    $esRetrasadoHeader = pagoEstaRetrasado($siguienteCuota->fecha_pago, $siguienteCuota->estado);
+                                                    $enToleranciaHeader = $siguienteCuota->estado == 'pendiente' &&
+                                                        $fechaCuota->isPast() &&
+                                                        !$esRetrasadoHeader;
+                                                @endphp
+                                                @if($esRetrasadoHeader)
+                                                    <span class="badge bg-danger">Retrasada</span>
+                                                @elseif($enToleranciaHeader)
+                                                    <span class="badge bg-warning text-dark">En gracia</span>
+                                                @elseif($diasRestantes <= 7)
+                                                    <span class="badge bg-warning text-dark">Próxima a vencer</span>
+                                                @else
+                                                    <span class="badge bg-success">Al día</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <!-- Columna izquierda: Información de la cuota -->
+                                                <div class="col-12">
+                                                    @php
+                                                        // Usar la misma lógica que en el historial
+                                                        $esRetrasadoCuota = pagoEstaRetrasado($siguienteCuota->fecha_pago, $siguienteCuota->estado);
+                                                        $enToleranciaCuota = $siguienteCuota->estado == 'pendiente' &&
+                                                            $fechaCuota->isPast() &&
+                                                            !$esRetrasadoCuota;
+                                                        $diasGraciaRestantesCuota = diasDeGraciaRestantes($siguienteCuota->fecha_pago, $siguienteCuota->estado);
 
-                                                // Determinar color del borde según el estado
-                                                $colorBordeCuota = 'border-light';
-                                                $colorBadgeCuota = 'warning text-dark';
-                                                $textoBadge = 'Pendiente';
+                                                        // Determinar color del borde según el estado
+                                                        $colorBordeCuota = 'border-light';
+                                                        $colorBadgeCuota = 'warning text-dark';
+                                                        $textoBadge = 'Pendiente';
 
-                                                if ($esRetrasadoCuota) {
-                                                    $colorBordeCuota = 'border-danger';
-                                                    $colorBadgeCuota = 'danger';
-                                                    $textoBadge = 'Retrasado';
-                                                } elseif ($enToleranciaCuota) {
-                                                    $colorBordeCuota = 'border-warning';
-                                                    $colorBadgeCuota = 'warning text-dark';
-                                                    $textoBadge = $diasGraciaRestantesCuota > 0 ? 'En gracia por ' . $diasGraciaRestantesCuota . ' días más' : 'Último día de gracia';
-                                                } elseif ($diasRestantes <= 7 && $diasRestantes > 0) {
-                                                    $colorBordeCuota = 'border-warning';
-                                                    $colorBadgeCuota = 'warning text-dark';
-                                                    $textoBadge = 'Próxima a vencer';
-                                                } elseif ($diasRestantes > 7) {
-                                                    $colorBordeCuota = 'border-info';
-                                                    $colorBadgeCuota = 'info';
-                                                    $textoBadge = 'Al día';
-                                                }
+                                                        if ($esRetrasadoCuota) {
+                                                            $colorBordeCuota = 'border-danger';
+                                                            $colorBadgeCuota = 'danger';
+                                                            $textoBadge = 'Retrasado';
+                                                        } elseif ($enToleranciaCuota) {
+                                                            $colorBordeCuota = 'border-warning';
+                                                            $colorBadgeCuota = 'warning text-dark';
+                                                            $textoBadge = $diasGraciaRestantesCuota > 0 ? 'En gracia por ' . $diasGraciaRestantesCuota . ' días más' : 'Último día de gracia';
+                                                        } elseif ($diasRestantes <= 7 && $diasRestantes > 0) {
+                                                            $colorBordeCuota = 'border-warning';
+                                                            $colorBadgeCuota = 'warning text-dark';
+                                                            $textoBadge = 'Próxima a vencer';
+                                                        } elseif ($diasRestantes > 7) {
+                                                            $colorBordeCuota = 'border-info';
+                                                            $colorBadgeCuota = 'info';
+                                                            $textoBadge = 'Al día';
+                                                        }
 
-                                                // Formatear fecha como en el historial
-                                                $fechaCuotaFormateada = \Carbon\Carbon::parse($siguienteCuota->fecha_pago);
-                                                $diaCuota = ucfirst($fechaCuotaFormateada->dayName);
-                                                $fechaCuotaTexto = $fechaCuotaFormateada->format('d') . ' de ' . ucfirst($fechaCuotaFormateada->monthName) . ' de ' . $fechaCuotaFormateada->format('Y');
-                                            @endphp
+                                                        // Formatear fecha como en el historial
+                                                        $fechaCuotaFormateada = \Carbon\Carbon::parse($siguienteCuota->fecha_pago);
+                                                        $diaCuota = ucfirst($fechaCuotaFormateada->dayName);
+                                                        $fechaCuotaTexto = $fechaCuotaFormateada->format('d') . ' de ' . ucfirst($fechaCuotaFormateada->monthName) . ' de ' . $fechaCuotaFormateada->format('Y');
+                                                    @endphp
 
-                                            <!-- Tarjeta de información de cuota con el mismo estilo del historial -->
-                                            <div class="mb-3 card payment-card border-start border-3 {{ $colorBordeCuota }}">
-                                                <div class="card-body">
-                                                    <div class="d-flex justify-content-between">
-                                                        <div>
-                                                            <span
-                                                                class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadgeCuota) }}"
-                                                                style="font-size: 1.8em;">
-                                                                Cuota {{ $siguienteCuota->numero_cuota ?? 'N/A' }} de
-                                                                {{ $contrato->numero_cuotas }}
-                                                            </span>
-                                                            <br>
-                                                            <span class="badge bg-{{ $colorBadgeCuota }}">
-                                                                {{ $textoBadge }}
-                                                            </span>
-                                                            @if($siguienteCuota->id)
-
-                                                            @else
-                                                                <span class="badge bg-light text-dark border">
-                                                                    Calculada
-                                                                </span>
-                                                            @endif
-                                                        </div>
-                                                        <div class="text-end">
-                                                            @php
-                                                                $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
-                                                                $montoRestante = $siguienteCuota->monto_pendiente ?? $siguienteCuota->monto;
-                                                            @endphp
-
-                                                            @if($montoParcialidades > 0)
-                                                                <div class="text-end">
-                                                                    <small class="text-muted d-block">Restante</small>
-                                                                    <p class="fw-bold mb-0 mt-0 text-warning"
+                                                    <!-- Tarjeta de información de cuota con el mismo estilo del historial -->
+                                                    <div
+                                                        class="mb-3 card payment-card border-start border-3 {{ $colorBordeCuota }}">
+                                                        <div class="card-body">
+                                                            <div class="d-flex justify-content-between">
+                                                                <div>
+                                                                    <span
+                                                                        class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadgeCuota) }}"
                                                                         style="font-size: 1.8em;">
-                                                                        ${{ number_format($montoRestante, 2) }}</p>
+                                                                        Cuota {{ $siguienteCuota->numero_cuota ?? 'N/A' }} de
+                                                                        {{ $contrato->numero_cuotas }}
+                                                                    </span>
+                                                                    <br>
+                                                                    <span class="badge bg-{{ $colorBadgeCuota }}">
+                                                                        {{ $textoBadge }}
+                                                                    </span>
+                                                                    @if($siguienteCuota->id)
+
+                                                                    @else
+                                                                        <span class="badge bg-light text-dark border">
+                                                                            Calculada
+                                                                        </span>
+                                                                    @endif
                                                                 </div>
-                                                            @else
-                                                                <p class="fw-bold mb-0 mt-1" style="font-size: 1.8em;">
-                                                                    ${{ number_format($siguienteCuota->monto, 2) }}</p>
+                                                                <div class="text-end">
+                                                                    @php
+                                                                        $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
+                                                                        $montoRestante = $siguienteCuota->monto_pendiente ?? $siguienteCuota->monto;
+                                                                    @endphp
+
+                                                                    @if($montoParcialidades > 0)
+                                                                        <div class="text-end">
+                                                                            <small class="text-muted d-block">Restante</small>
+                                                                            <p class="fw-bold mb-0 mt-0 text-warning"
+                                                                                style="font-size: 1.8em;">
+                                                                                ${{ number_format($montoRestante, 2) }}</p>
+                                                                        </div>
+                                                                    @else
+                                                                        <p class="fw-bold mb-0 mt-1" style="font-size: 1.8em;">
+                                                                            ${{ number_format($siguienteCuota->monto, 2) }}</p>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                            <p class="mb-1 text-muted">
+                                                                {{ $diaCuota }}, {{ $fechaCuotaTexto }}
+                                                            </p>
+
+                                                            <!-- Información adicional del estado -->
+                                                            @if($esVencida)
+                                                                <div
+                                                                    class="mt-2 p-2 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded">
+                                                                    <small class="text-danger">
+                                                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                                        @if(abs(intval($diasRestantes)) > 0)
+                                                                            Vencida hace {{ abs(intval($diasRestantes)) }}
+                                                                            día{{ abs(intval($diasRestantes)) != 1 ? 's' : '' }}
+                                                                        @else
+                                                                            Vencida hoy
+                                                                        @endif
+                                                                    </small>
+                                                                </div>
+                                                            @elseif($diasRestantes <= 7 && $diasRestantes > 0)
+                                                                <div
+                                                                    class="mt-2 p-2 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded">
+                                                                    <small class="text-warning">
+                                                                        <i class="bi bi-clock-fill me-1"></i>
+                                                                        @if($diasRestantes == 1)
+                                                                            Vence mañana
+                                                                        @elseif($diasRestantes > 1)
+                                                                            Vence en {{ intval($diasRestantes) }}
+                                                                            día{{ intval($diasRestantes) != 1 ? 's' : '' }}
+                                                                        @else
+                                                                            Vence hoy
+                                                                        @endif
+                                                                    </small>
+                                                                </div>
+                                                            @elseif($diasRestantes > 7)
+                                                                <div
+                                                                    class="mt-2 p-2 bg-info bg-opacity-10 border border-info border-opacity-25 rounded">
+                                                                    <small class="text-info">
+                                                                        <i class="bi bi-calendar-check-fill me-1"></i>
+                                                                        @if($diasRestantes == 1)
+                                                                            Falta 1 día para el pago
+                                                                        @else
+                                                                            Faltan {{ intval($diasRestantes) }} días para el pago
+                                                                        @endif
+                                                                    </small>
+                                                                </div>
                                                             @endif
                                                         </div>
                                                     </div>
-                                                    <p class="mb-1 text-muted">
-                                                        {{ $diaCuota }}, {{ $fechaCuotaTexto }}
-                                                    </p>
 
-                                                    <!-- Información adicional del estado -->
-                                                    @if($esVencida)
-                                                        <div
-                                                            class="mt-2 p-2 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded">
-                                                            <small class="text-danger">
-                                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                                                @if(abs(intval($diasRestantes)) > 0)
-                                                                    Vencida hace {{ abs(intval($diasRestantes)) }}
-                                                                    día{{ abs(intval($diasRestantes)) != 1 ? 's' : '' }}
-                                                                @else
-                                                                    Vencida hoy
-                                                                @endif
-                                                            </small>
+                                                    @php
+                                                        $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
+                                                        $montoRestante = $siguienteCuota->monto_pendiente ?? $siguienteCuota->monto;
+
+                                                        // Calcular cuota regular del contrato
+                                                        $montoInicial = $contrato->monto_inicial ?? 0;
+                                                        $montoBonificacion = $contrato->monto_bonificacion ?? 0;
+                                                        $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
+                                                        $cuotaRegular = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
+                                                    @endphp
+
+                                                    <div class="text-center h-100 d-flex flex-column justify-content-between">
+                                                        <!-- Botones de acción -->
+                                                        <div class="d-grid gap-2">
+                                                            @if($siguienteCuota->id)
+                                                                <a href="{{ route('pagos.show', $siguienteCuota->id) }}"
+                                                                    class="btn btn-outline-primary btn-sm">
+                                                                    <i class="bi bi-eye me-1"></i>Ver detalles
+                                                                </a>
+                                                            @endif
+                                                            <a href="{{ route('pagos.create', ['contrato_id' => $contrato->id]) }}"
+                                                                class="btn btn-success btn-sm">
+                                                                <i class="bi bi-cash-coin me-1"></i>Registrar pago
+                                                            </a>
                                                         </div>
-                                                    @elseif($diasRestantes <= 7 && $diasRestantes > 0)
-                                                        <div
-                                                            class="mt-2 p-2 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded">
-                                                            <small class="text-warning">
-                                                                <i class="bi bi-clock-fill me-1"></i>
-                                                                @if($diasRestantes == 1)
-                                                                    Vence mañana
-                                                                @elseif($diasRestantes > 1)
-                                                                    Vence en {{ intval($diasRestantes) }}
-                                                                    día{{ intval($diasRestantes) != 1 ? 's' : '' }}
-                                                                @else
-                                                                    Vence hoy
-                                                                @endif
-                                                            </small>
-                                                        </div>
-                                                    @elseif($diasRestantes > 7)
-                                                        <div
-                                                            class="mt-2 p-2 bg-info bg-opacity-10 border border-info border-opacity-25 rounded">
-                                                            <small class="text-info">
-                                                                <i class="bi bi-calendar-check-fill me-1"></i>
-                                                                @if($diasRestantes == 1)
-                                                                    Falta 1 día para el pago
-                                                                @else
-                                                                    Faltan {{ intval($diasRestantes) }} días para el pago
-                                                                @endif
-                                                            </small>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </div>
-
-                                            @php
-                                                $montoParcialidades = $parcialidadesRelacionadas->sum('monto');
-                                                $montoRestante = $siguienteCuota->monto_pendiente ?? $siguienteCuota->monto;
-
-                                                // Calcular cuota regular del contrato
-                                                $montoInicial = $contrato->monto_inicial ?? 0;
-                                                $montoBonificacion = $contrato->monto_bonificacion ?? 0;
-                                                $montoFinanciado = $contrato->monto_total - $montoInicial - $montoBonificacion;
-                                                $cuotaRegular = $contrato->numero_cuotas > 0 ? $montoFinanciado / $contrato->numero_cuotas : 0;
-                                            @endphp
-
-                                            <div class="text-center h-100 d-flex flex-column justify-content-between">
-                                                <!-- Botones de acción -->
-                                                <div class="d-grid gap-2">
-                                                    @if($siguienteCuota->id)
-                                                        <a href="{{ route('pagos.show', $siguienteCuota->id) }}"
-                                                            class="btn btn-outline-primary btn-sm">
-                                                            <i class="bi bi-eye me-1"></i>Ver detalles
-                                                        </a>
-                                                    @endif
-                                                    <a href="{{ route('pagos.create', ['contrato_id' => $contrato->id]) }}"
-                                                        class="btn btn-success btn-sm">
-                                                        <i class="bi bi-cash-coin me-1"></i>Registrar pago
-                                                    </a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                                @if(Auth::check() && Auth::user()->role === 'empleado')
+                                    <div class="col-lg-4">
+                                        <!-- Nueva tarjeta: Registrar Visita -->
+                                        <div class="card mb-4 border"
+                                            style="background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);">
+                                            <div class="card-header bg-white">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <h5 class="card-title mb-0">
+                                                        <i class="bi bi-geo-alt-fill me-2" style="color: #79481D;"></i>Registro de
+                                                        Visitas
+                                                    </h5>
+                                                    @if($visitas->count() > 0)
+                                                        <span class="badge bg-light text-muted border px-2.5 py-1.5 rounded-pill"
+                                                            id="visitaCounter"
+                                                            style="font-size: 0.75rem; font-weight: 700; border-color: rgba(0,0,0,0.08) !important;">
+                                                            1 de {{ $visitas->count() }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="card-body py-4">
+                                                <!-- Slider de visitas -->
+                                                <div class="mb-4 position-relative px-4">
+                                                    <div id="visitasCarousel" class="carousel slide" data-bs-ride="false"
+                                                        data-bs-wrap="false">
+                                                        <div class="carousel-inner">
+                                                            @forelse($visitas as $index => $visita)
+                                                                <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                                                                    <div class="p-3 rounded-4 text-start border shadow-sm"
+                                                                        style="background: #fdfaf2; border-color: rgba(225, 178, 64, 0.15) !important; border-left: 4px solid #E1B240 !important;">
+                                                                        <div
+                                                                            class="d-flex justify-content-between align-items-center mb-2">
+                                                                            <div class="d-flex align-items-center">
+                                                                                <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                                                                                    style="width: 32px; height: 32px; font-size: 0.8rem; font-weight: bold; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important; box-shadow: 0 2px 5px rgba(121, 72, 29, 0.15); flex-shrink: 0;">
+                                                                                    {{ strtoupper(substr($visita->user->name ?? 'U', 0, 1)) }}
+                                                                                </div>
+                                                                                <div class="d-flex flex-column justify-content-center">
+                                                                                    <span class="fw-bold text-dark lh-1"
+                                                                                        style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 95px; margin-bottom: 2px;">
+                                                                                        {{ $visita->user->name ?? 'Gestor' }}
+                                                                                    </span>
+                                                                                    <span class="text-muted lh-1"
+                                                                                        style="font-size: 0.6rem; font-weight: 500;">
+                                                                                        {{ ucfirst($visita->created_at->diffForHumans()) }}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <small class="text-muted fw-semibold"
+                                                                                style="font-size: 0.65rem;">
+                                                                                <i class="bi bi-calendar3 me-1"
+                                                                                    style="color: #79481D;"></i>
+                                                                                {{ $visita->created_at->translatedFormat('l j F Y') }}
+                                                                            </small>
+                                                                        </div>
+
+                                                                        <p class="text-muted small mb-2 text-truncate-3"
+                                                                            style="font-style: italic; line-height: 1.4; font-size: 0.75rem; min-height: 48px; max-height: 48px; overflow: hidden;">
+                                                                            "{{ $visita->comentarios }}"
+                                                                        </p>
+
+                                                                        <div class="d-flex justify-content-between align-items-center">
+                                                                            @if($visita->ubicacion_evidencia)
+                                                                                <span
+                                                                                    class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-2 py-1 rounded-pill"
+                                                                                    style="font-size: 0.65rem;">
+                                                                                    <i class="bi bi-geo-alt-fill me-1"></i>Con Ubicación
+                                                                                </span>
+                                                                            @else
+                                                                                <span
+                                                                                    class="badge bg-secondary bg-opacity-10 text-muted border border-opacity-10 px-2 py-1 rounded-pill"
+                                                                                    style="font-size: 0.65rem;">
+                                                                                    <i class="bi bi-geo-alt me-1"></i>Sin Ubicación
+                                                                                </span>
+                                                                            @endif
+
+                                                                            <span class="text-muted" style="font-size: 0.65rem;">
+                                                                                <i
+                                                                                    class="bi bi-clock me-1"></i>{{ $visita->created_at->format('h:i A') }}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @empty
+                                                                <div class="carousel-item active">
+                                                                    <div class="p-3 text-center border rounded-4 shadow-sm"
+                                                                        style="background: rgba(121, 72, 29, 0.01); border-color: rgba(121, 72, 29, 0.05) !important;">
+                                                                        <i
+                                                                            class="bi bi-chat-left-text text-muted fs-3 mb-2 d-block"></i>
+                                                                        <span class="small text-muted d-block fw-bold">Sin visitas
+                                                                            registradas</span>
+                                                                        <span class="x-small text-muted d-block"
+                                                                            style="font-size: 0.65rem;">Las visitas registradas
+                                                                            aparecerán aquí.</span>
+                                                                    </div>
+                                                                </div>
+                                                            @endforelse
+                                                        </div>
+                                                    </div>
+
+                                                    @if($visitas->count() > 1)
+                                                        <!-- Botones de navegación minimalistas en los costados -->
+                                                        <button class="btn-carousel-side btn-carousel-left" type="button"
+                                                            data-bs-target="#visitasCarousel" data-bs-slide="prev" id="btnVisitaPrev"
+                                                            disabled>
+                                                            <i class="bi bi-chevron-left"></i>
+                                                        </button>
+                                                        <button class="btn-carousel-side btn-carousel-right" type="button"
+                                                            data-bs-target="#visitasCarousel" data-bs-slide="next" id="btnVisitaNext">
+                                                            <i class="bi bi-chevron-right"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+
+                                                <div class="d-grid gap-2 px-2 mt-3"
+                                                    style="border-color: rgba(0,0,0,0.05) !important;">
+                                                    <button type="button" class="btn btn-primary btn-sm shadow-sm py-2"
+                                                        style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important; border: none !important;"
+                                                        data-bs-toggle="modal" data-bs-target="#registrarVisitaModal">
+                                                        <i class="bi bi-plus-circle me-1"></i> Registrar visita
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         @endif
 
@@ -1019,6 +1152,66 @@
                                             </div>
                                         @endif
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Visitas Registradas (Solo visible para Administradores) -->
+                            <div class="card mb-4">
+                                <div class="card-header bg-white">
+                                    <h5 class="card-title mb-0">
+                                        <i class="bi bi-geo-alt-fill me-2" style="color: #79481D;"></i>Visitas Registradas
+                                    </h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    @if($visitas->count() > 0)
+                                        <div class="list-group list-group-flush" style="max-height: 380px; overflow-y: auto;">
+                                            @foreach($visitas as $visita)
+                                                @php
+                                                    $coords = $visita->coordinates;
+                                                @endphp
+                                                <button type="button"
+                                                    class="list-group-item list-group-item-action d-flex align-items-center py-3 border-0 border-bottom show-visita-detail-btn"
+                                                    data-bs-toggle="modal" data-bs-target="#detalleVisitaModal"
+                                                    data-username="{{ $visita->user->name ?? 'Gestor' }}"
+                                                    data-date="{{ $visita->created_at->translatedFormat('l j \d\e F \d\e Y') }}"
+                                                    data-time="{{ $visita->created_at->format('h:i A') }}"
+                                                    data-ago="{{ $visita->created_at->diffForHumans() }}"
+                                                    data-comments="{{ $visita->comentarios }}" data-lat="{{ $coords['lat'] ?? '' }}"
+                                                    data-lng="{{ $coords['lng'] ?? '' }}">
+
+                                                    <div class="text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                                                        style="width: 36px; height: 36px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important; box-shadow: 0 2px 5px rgba(121, 72, 29, 0.1); flex-shrink: 0;">
+                                                        {{ strtoupper(substr($visita->user->name ?? 'U', 0, 1)) }}
+                                                    </div>
+
+                                                    <div class="flex-grow-1 min-w-0 text-start">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <span class="fw-bold text-dark text-truncate"
+                                                                style="font-size: 0.85rem; max-width: 140px;">
+                                                                {{ $visita->user->name ?? 'Gestor' }}
+                                                            </span>
+                                                            <span class="text-muted fw-semibold"
+                                                                style="font-size: 0.7rem; flex-shrink: 0;">
+                                                                {{ $visita->created_at->diffForHumans() }}
+                                                            </span>
+                                                        </div>
+                                                        <p class="text-muted mb-0 text-truncate" style="font-size: 0.75rem;">
+                                                            {{ $visita->comentarios }}
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="ms-2">
+                                                        <i class="bi bi-chevron-right text-muted small"></i>
+                                                    </div>
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <div class="text-center py-4">
+                                            <i class="bi bi-chat-left-text text-muted fs-4 mb-2 d-block"></i>
+                                            <span class="small text-muted d-block fw-bold">Sin visitas registradas</span>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -1421,6 +1614,183 @@
         </div>
     </div>
 
+    <!-- Modal para Detalle de Visita -->
+    <div class="modal fade modal-modern-shalom" id="detalleVisitaModal" tabindex="-1"
+        aria-labelledby="detalleVisitaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header text-white">
+                    <h5 class="modal-title d-flex align-items-center" id="detalleVisitaModalLabel">
+                        Detalle de Visita
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Gestor / Usuario -->
+                    <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                        <div id="modal-visita-avatar"
+                            class="text-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                            style="width: 48px; height: 48px; font-size: 1.2rem; font-weight: bold; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important; box-shadow: 0 2px 8px rgba(121, 72, 29, 0.15); flex-shrink: 0;">
+                            U
+                        </div>
+                        <div>
+                            <span class="text-muted d-block small fw-bold text-uppercase"
+                                style="font-size: 0.65rem; letter-spacing: 0.5px; color: #79481D !important;">Usuario que
+                                Visitó</span>
+                            <h6 id="modal-visita-usuario" class="fw-bold mb-0 text-dark" style="font-size: 1.05rem;">-</h6>
+                            <span id="modal-visita-tiempo" class="text-muted small fw-semibold d-block mt-1"
+                                style="font-size: 0.8rem;">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Fecha y Hora -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 bg-light border-0 shadow-sm d-flex align-items-center h-100">
+                                <div class="bg-white rounded-circle p-2 me-3 shadow-xs">
+                                    <i class="bi bi-calendar3 text-primary" style="color: #79481D !important;"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted d-block small"
+                                        style="font-size: 0.65rem; text-transform: uppercase;">Fecha</span>
+                                    <span id="modal-visita-fecha" class="fw-bold small text-dark d-block"
+                                        style="font-size: 0.8rem; line-height: 1.2;">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 bg-light border-0 shadow-sm d-flex align-items-center h-100">
+                                <div class="bg-white rounded-circle p-2 me-3 shadow-xs">
+                                    <i class="bi bi-clock text-success"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted d-block small"
+                                        style="font-size: 0.65rem; text-transform: uppercase;">Hora</span>
+                                    <span id="modal-visita-hora" class="fw-bold small text-dark d-block"
+                                        style="font-size: 0.8rem;">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comentarios -->
+                    <div class="mb-4">
+                        <span class="text-muted d-block small fw-bold text-uppercase mb-2"
+                            style="font-size: 0.65rem; letter-spacing: 0.5px; color: #79481D !important;">Comentarios de
+                            Gestión</span>
+                        <div class="p-3 rounded-4 text-start border shadow-xs"
+                            style="background: #fdfaf2; border-color: rgba(225, 178, 64, 0.15) !important; border-left: 4px solid #E1B240 !important;">
+                            <p id="modal-visita-comentarios" class="text-muted small mb-0"
+                                style="font-style: italic; line-height: 1.5; font-size: 0.85rem; white-space: pre-line;">
+                                "-"
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Geolocalización -->
+                    <div id="modal-visita-geo-container" class="d-none">
+                        <span class="text-muted d-block small fw-bold text-uppercase mb-2"
+                            style="font-size: 0.65rem; letter-spacing: 0.5px; color: #79481D !important;">Evidencia
+                            Geográfica</span>
+                        <div id="modal-visita-geo-status" class="location-card-modern shadow-xs mb-3"
+                            style="border: 1px solid rgba(225, 178, 64, 0.15) !important; border-left: 4px solid #E1B240 !important; background: #fdfaf2; border-radius: 14px; padding: 16px;">
+                            <div class="d-flex align-items-center justify-content-between w-100">
+                                <div class="d-flex align-items-center">
+                                    <div class="location-icon-glass me-3"
+                                        style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                                        <i class="bi bi-geo-alt-fill fs-6 text-white"></i>
+                                    </div>
+                                    <div>
+                                        <span class="small fw-bold d-block mb-1"
+                                            style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #79481D;">Ubicación
+                                            de Visita</span>
+                                        <span class="small fw-bold lh-1" id="modal-visita-direccion"
+                                            style="color: #2d3748; font-size: 0.75rem; display: block;">
+                                            <div class="spinner-border spinner-border-sm x-small" role="status"></div>
+                                            <span class="ms-1 text-muted">Resolviendo dirección...</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <a id="modal-visita-mapa-btn" href="#" target="_blank"
+                                class="btn btn-primary shadow-sm py-2.5 d-flex align-items-center justify-content-center"
+                                style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important; border: none !important; border-radius: 12px; font-weight: bold; font-size: 0.9rem;">
+                                <i class="bi bi-map me-2"></i> Ver en Google Maps
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Registrar Visita -->
+    <div class="modal fade modal-modern-shalom" id="registrarVisitaModal" tabindex="-1"
+        aria-labelledby="registrarVisitaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header text-white">
+                    <h5 class="modal-title d-flex align-items-center" id="registrarVisitaModalLabel">
+                        Registrar Visita
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white opacity-75" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form action="{{ route('visitas.store') }}" method="POST" id="visitaForm">
+                    @csrf
+                    <input type="hidden" name="contrato_id" value="{{ $contrato->id }}">
+                    <input type="hidden" name="user_id" value="{{ Auth::id() }}">
+                    <input type="hidden" name="ubicacion_evidencia" id="ubicacion_evidencia">
+
+                    <div class="modal-body">
+                        <div id="locationStatus"
+                            class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-4 rounded-4 py-3">
+                            <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                            <span class="small fw-bold">Obteniendo ubicación para evidencia...</span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="visita_comentarios" class="form-label">Comentarios de Gestión</label>
+                            <textarea class="form-control" name="comentarios" id="visita_comentarios" rows="4"
+                                placeholder="Escribe aquí los detalles de la visita..." required></textarea>
+                            <div class="form-text mt-2 x-small text-muted italic">
+                                <i class="bi bi-info-circle me-1"></i> Por favor, sé descriptivo en tus comentarios.
+                            </div>
+                        </div>
+
+                        <div id="locationAlert" class="alert alert-warning border-0 shadow-sm rounded-4 small d-none py-3">
+                            <div class="d-flex align-items-start">
+                                <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <span id="locationAlertText" class="fw-bold">No se pudo obtener la ubicación.</span>
+                                    <br>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-bold mt-1"
+                                        id="btnRetryLocation">
+                                        <i class="bi bi-arrow-clockwise me-1"></i> Reintentar obtener ubicación
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pb-4 px-4 justify-content-between">
+                        <button type="button" class="btn btn-light-modern" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-1"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-gradient-shalom" id="btnGuardarVisita" disabled>
+                            <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Registro
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <style>
         .hover-card {
             transition: all 0.3s ease;
@@ -1707,124 +2077,596 @@
             border-radius: 0.25rem;
             font-size: 0.875em;
         }
+
+        /* Estilos personalizados para el carousel de visitas */
+
+        .btn-carousel-side {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .btn-carousel-side:hover:not(:disabled) {
+            background-color: #e2e8f0;
+            color: #79481D;
+            transform: translateY(-50%) scale(1.08);
+            box-shadow: 0 3px 6px rgba(121, 72, 29, 0.12);
+        }
+
+        .btn-carousel-side:active:not(:disabled) {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .btn-carousel-side:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background-color: #f8f9fa;
+            border-color: rgba(0, 0, 0, 0.04);
+            color: #cbd5e1;
+            box-shadow: none;
+        }
+
+        .btn-carousel-left {
+            left: 2px;
+        }
+
+        .btn-carousel-right {
+            right: 2px;
+        }
+
+        .text-truncate-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Estilo moderno para ubicación, limpio, elegante y altamente distinguible del header */
+        .location-card-modern {
+            background: #fdfaf2 !important;
+            /* Soft cream/amber brand background */
+            color: #2d3748 !important;
+            /* High contrast dark text */
+            border: 1px solid rgba(225, 178, 64, 0.18) !important;
+            border-left: 5px solid #E1B240 !important;
+            /* Solid elegant gold left border */
+            border-radius: 14px !important;
+            padding: 1.1rem 1.25rem !important;
+            box-shadow: 0 4px 15px rgba(121, 72, 29, 0.05) !important;
+            transition: all 0.3s ease;
+        }
+
+        .location-icon-glass {
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(121, 72, 29, 0.15);
+        }
+
+        .btn-map-modern {
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 10px !important;
+            padding: 8px 12px !important;
+            min-width: 80px;
+            transition: all 0.25s ease !important;
+            text-decoration: none !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(121, 72, 29, 0.25);
+        }
+
+        .btn-map-modern:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 14px rgba(121, 72, 29, 0.35) !important;
+            filter: brightness(1.08);
+            color: white !important;
+        }
+
+        .btn-map-modern i {
+            font-size: 1.1rem !important;
+            color: white !important;
+            margin-bottom: 2px !important;
+        }
+
+        .btn-map-modern span {
+            font-size: 0.65rem !important;
+            font-weight: 800 !important;
+            color: white !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        /* Modal Moderno SHALOM */
+        .modal-modern-shalom .modal-content {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-modern-shalom .modal-header {
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%) !important;
+            border-bottom: none !important;
+            padding: 1.5rem 1.75rem !important;
+            position: relative;
+            border-radius: 20px 20px 0 0 !important;
+            /* Perfect rounded corners at the top */
+        }
+
+        /* Estilo premium con micro-animación para el botón cerrar del modal */
+        .modal-modern-shalom .modal-header .btn-close {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            border-radius: 50% !important;
+            padding: 0.75rem !important;
+            margin: -0.5rem -0.5rem -0.5rem auto !important;
+            transition: all 0.2s ease !important;
+            opacity: 0.9 !important;
+        }
+
+        .modal-modern-shalom .modal-header .btn-close:hover {
+            background-color: rgba(255, 255, 255, 0.3) !important;
+            transform: rotate(90deg) !important;
+            opacity: 1 !important;
+        }
+
+        .modal-modern-shalom .modal-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-modern-shalom .modal-title {
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 1.05rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-modern-shalom .modal-body {
+            padding: 2rem 1.75rem;
+        }
+
+        .modal-modern-shalom .form-label {
+            color: #79481D;
+            font-weight: 800;
+            margin-bottom: 0.6rem;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-modern-shalom .form-control {
+            border-radius: 14px;
+            border: 2px solid #edf2f7;
+            padding: 0.9rem 1.1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #fcfcfc;
+            font-size: 0.95rem;
+        }
+
+        .modal-modern-shalom .form-control:focus {
+            border-color: #E1B240;
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(225, 178, 64, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .btn-gradient-shalom {
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+            color: white !important;
+            border: none !important;
+            border-radius: 14px !important;
+            padding: 12px 28px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            font-size: 0.85rem !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 6px 15px rgba(121, 72, 29, 0.3) !important;
+        }
+
+        .btn-gradient-shalom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(121, 72, 29, 0.4) !important;
+            filter: brightness(1.1);
+        }
+
+        .btn-gradient-shalom:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-light-modern {
+            background: #f1f5f9;
+            color: #64748b;
+            border: none;
+            border-radius: 14px;
+            padding: 12px 28px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-light-modern:hover {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .show-visita-detail-btn {
+            transition: all 0.2s ease-in-out !important;
+        }
+
+        .show-visita-detail-btn:hover {
+            background-color: #fdfaf2 !important;
+            transform: translateX(4px);
+            border-left: 3px solid #E1B240 !important;
+        }
     </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Lógica para el contador y botones del carousel de visitas (sin loop)
+            const visitasCarousel = document.getElementById('visitasCarousel');
+            if (visitasCarousel) {
+                const totalVisitas = {{ $visitas->count() }};
+                const counter = document.getElementById('visitaCounter');
+                const btnPrev = document.getElementById('btnVisitaPrev');
+                const btnNext = document.getElementById('btnVisitaNext');
+
+                visitasCarousel.addEventListener('slide.bs.carousel', function (event) {
+                    const step = event.to;
+
+                    // Actualizar contador
+                    if (counter) {
+                        counter.textContent = `${step + 1} de ${totalVisitas}`;
+                    }
+
+                    // Habilitar/Deshabilitar botones según el paso (sin loop)
+                    if (btnPrev) {
+                        btnPrev.disabled = (step === 0);
+                    }
+                    if (btnNext) {
+                        btnNext.disabled = (step === totalVisitas - 1);
+                    }
+                });
+            }
+
+            // Lógica para observaciones (solo si los elementos existen)
+            const textarea = document.getElementById('observacionesTextarea');
+            const form = document.getElementById('observacionesForm');
             const resetBtn = document.getElementById('resetObservacionesBtn');
             const guardarBtn = document.getElementById('guardarObservacionesBtn');
             const observacionesLoading = document.getElementById('observacionesLoading');
-            const form = document.getElementById('observacionesForm');
-            const textarea = document.getElementById('observacionesTextarea');
             const caracteresRestantes = document.getElementById('caracteresRestantes');
 
-            let originalValue = textarea.value;
+            if (textarea && form) {
+                let originalValue = textarea.value;
 
-            // Función para mostrar estado de carga
-            function showLoading() {
-                form.style.display = 'none';
-                observacionesLoading.style.display = 'block';
-            }
+                function showLoading() {
+                    form.style.display = 'none';
+                    observacionesLoading.style.display = 'block';
+                }
 
-            // Función para ocultar estado de carga
-            function hideLoading() {
-                form.style.display = 'block';
-                observacionesLoading.style.display = 'none';
-            }
+                function hideLoading() {
+                    form.style.display = 'block';
+                    observacionesLoading.style.display = 'none';
+                }
 
-            // Función para mostrar mensaje
-            function showMessage(message, type = 'success') {
-                // Remover mensajes anteriores
-                const existingAlerts = form.querySelectorAll('.alert');
-                existingAlerts.forEach(alert => alert.remove());
+                function showMessage(message, type = 'success') {
+                    const existingAlerts = form.querySelectorAll('.alert');
+                    existingAlerts.forEach(alert => alert.remove());
 
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-2`;
-                const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
-                alertDiv.innerHTML = `
-                                                                                                                                                                                        <i class="bi ${icon} me-2"></i>${message}
-                                                                                                                                                                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                                                                                                                                                                    `;
-                form.appendChild(alertDiv);
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-2`;
+                    const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
+                    alertDiv.innerHTML = `
+                                                                                                                                                                        <i class="bi ${icon} me-2"></i>${message}
+                                                                                                                                                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                                                                                                                                    `;
+                    form.appendChild(alertDiv);
 
-                // Remover alerta después de unos segundos
-                const timeout = type === 'success' ? 3000 : 5000;
-                setTimeout(() => {
-                    if (alertDiv.parentNode) {
-                        alertDiv.remove();
+                    const timeout = type === 'success' ? 3000 : 5000;
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) alertDiv.remove();
+                    }, timeout);
+                }
+
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', function () {
+                        textarea.value = originalValue;
+                        updateCharacterCounter();
+                    });
+                }
+
+                function updateCharacterCounter() {
+                    if (!caracteresRestantes) return;
+                    const remaining = 1000 - textarea.value.length;
+                    if (remaining < 0) {
+                        caracteresRestantes.textContent = `Excedido por ${Math.abs(remaining)} caracteres`;
+                        caracteresRestantes.classList.add('text-danger');
+                        caracteresRestantes.classList.remove('text-muted');
+                        if (guardarBtn) guardarBtn.disabled = true;
+                    } else {
+                        caracteresRestantes.textContent = `${remaining} caracteres restantes`;
+                        caracteresRestantes.classList.remove('text-danger');
+                        caracteresRestantes.classList.add('text-muted');
+                        if (guardarBtn) guardarBtn.disabled = false;
                     }
-                }, timeout);
+                }
+
+                textarea.addEventListener('input', updateCharacterCounter);
+                updateCharacterCounter();
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const formData = new FormData();
+                    formData.append('_token', document.querySelector('input[name="_token"]').value);
+                    formData.append('_method', 'PATCH');
+                    formData.append('observaciones', textarea.value);
+
+                    showLoading();
+
+                    fetch('{{ route("contratos.updateObservaciones", $contrato->id) }}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            hideLoading();
+                            if (data.success) {
+                                showMessage(data.message, 'success');
+                                originalValue = textarea.value;
+                            } else {
+                                showMessage(data.message || 'Error al actualizar las observaciones', 'danger');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            hideLoading();
+                            showMessage('Error al actualizar las observaciones. Por favor, inténtelo de nuevo.', 'danger');
+                        });
+                });
             }
 
-            // Evento click en botón restaurar
-            resetBtn.addEventListener('click', function () {
-                textarea.value = originalValue;
-                updateCharacterCounter();
-            });
+            // Lógica para el modal de visitas
+            const registrarVisitaModal = document.getElementById('registrarVisitaModal');
+            if (registrarVisitaModal) {
+                registrarVisitaModal.addEventListener('show.bs.modal', function () {
+                    const locationInput = document.getElementById('ubicacion_evidencia');
+                    if (locationInput) locationInput.value = '';
+                    obtenerUbicacion();
+                });
 
-            // Función para actualizar contador de caracteres
-            function updateCharacterCounter() {
-                const remaining = 1000 - textarea.value.length;
-                if (remaining < 0) {
-                    caracteresRestantes.textContent = `Excedido por ${Math.abs(remaining)} caracteres`;
-                    caracteresRestantes.classList.add('text-danger');
-                    caracteresRestantes.classList.remove('text-muted');
-                    guardarBtn.disabled = true;
-                } else {
-                    caracteresRestantes.textContent = `${remaining} caracteres restantes`;
-                    caracteresRestantes.classList.remove('text-danger');
-                    caracteresRestantes.classList.add('text-muted');
-                    guardarBtn.disabled = false;
+                // Lógica para reintentar obtener ubicación
+                const btnRetryLocation = document.getElementById('btnRetryLocation');
+                if (btnRetryLocation) {
+                    btnRetryLocation.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        obtenerUbicacion();
+                    });
+                }
+
+                function obtenerUbicacion() {
+                    const locationStatus = document.getElementById('locationStatus');
+                    const locationInput = document.getElementById('ubicacion_evidencia');
+                    const locationAlert = document.getElementById('locationAlert');
+                    const locationAlertText = document.getElementById('locationAlertText');
+                    const btnGuardar = document.getElementById('btnGuardarVisita');
+
+                    // Deshabilitar botón de guardar por defecto hasta obtener ubicación exitosa
+                    if (btnGuardar) btnGuardar.disabled = true;
+
+                    if (locationStatus) {
+                        locationStatus.classList.remove('d-none', 'alert-success', 'alert-danger', 'location-card-modern');
+                        locationStatus.classList.add('alert-info', 'd-flex', 'align-items-center');
+                        locationStatus.innerHTML = '<div class="spinner-border spinner-border-sm me-3" role="status"></div><span class="small">Obteniendo ubicación actual para evidencia...</span>';
+                    }
+                    if (locationAlert) locationAlert.classList.add('d-none');
+
+                    if ("geolocation" in navigator) {
+                        navigator.geolocation.getCurrentPosition(function (position) {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            if (locationInput) locationInput.value = `POINT(${lng} ${lat})`;
+
+                            // Habilitar botón de guardar tras lectura exitosa
+                            if (btnGuardar) btnGuardar.disabled = false;
+
+                            if (locationStatus) {
+                                locationStatus.classList.remove('alert-info', 'alert-success', 'alert-danger', 'd-flex', 'align-items-center');
+                                locationStatus.classList.add('location-card-modern');
+                                locationStatus.innerHTML = `
+                                                                                            <div class="d-flex align-items-center justify-content-between w-100">
+                                                                                                <div class="d-flex align-items-center">
+                                                                                                    <div class="location-icon-glass me-3">
+                                                                                                        <i class="bi bi-geo-alt-fill fs-5 text-white"></i>
+                                                                                                    </div>
+                                                                                                    <div>
+                                                                                                        <span class="small fw-bold d-block mb-1" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #79481D;">Ubicación detectada</span>
+                                                                                                        <span class="small fw-bold lh-1" id="resolvedAddress" style="color: #2d3748;">
+                                                                                                            <div class="spinner-border spinner-border-sm x-small" role="status"></div> 
+                                                                                                            <span class="ms-1 text-muted">Resolviendo dirección...</span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                                <div class="ms-2">
+                                                                                                    <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn-map-modern">
+                                                                                                        <i class="bi bi-map"></i>
+                                                                                                        <span>Ver mapa</span>
+                                                                                                    </a>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        `;
+                            }
+
+                            // Reverse Geocoding con Nominatim (OpenStreetMap) - Gratis y sin API Key
+                            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                                headers: { 'Accept-Language': 'es' }
+                            })
+                                .then(response => response.json())
+                                .then(data => {
+                                    const resolvedAddress = document.getElementById('resolvedAddress');
+                                    if (resolvedAddress && data.display_name) {
+                                        const addr = data.address;
+                                        const street = addr.road || addr.pedestrian || addr.path || '';
+                                        const houseNumber = addr.house_number || '';
+                                        const neighborhood = addr.neighbourhood || addr.suburb || '';
+
+                                        let shortAddress = '';
+                                        if (street) shortAddress += street;
+                                        if (houseNumber) shortAddress += ' #' + houseNumber;
+                                        if (neighborhood) shortAddress += ', ' + neighborhood;
+
+                                        resolvedAddress.innerText = shortAddress || data.display_name.split(',').slice(0, 3).join(',');
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error("Error en reverse geocoding:", err);
+                                    const resolvedAddress = document.getElementById('resolvedAddress');
+                                    if (resolvedAddress) resolvedAddress.innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                                });
+                        }, function (error) {
+                            console.error("Error obteniendo ubicación:", error);
+
+                            // Asegurar que el botón se mantiene deshabilitado en caso de error
+                            if (btnGuardar) btnGuardar.disabled = true;
+
+                            if (locationStatus) locationStatus.classList.add('d-none');
+                            if (locationAlert) {
+                                locationAlert.classList.remove('d-none');
+                                let msg = 'No se pudo obtener la ubicación. ';
+                                if (error.code === 1) {
+                                    msg = 'Permiso denegado. Por favor, habilita la ubicación en tu navegador para este sitio. ';
+                                } else if (error.code === 2) {
+                                    msg = 'Ubicación no disponible en este momento. ';
+                                } else if (error.code === 3) {
+                                    msg = 'Tiempo de espera agotado. ';
+                                }
+                                if (locationAlertText) locationAlertText.innerHTML = msg + '<br><small class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i> La evidencia de ubicación geográfica es obligatoria para poder guardar el registro de la visita.</small>';
+                            }
+                        }, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        });
+                    } else {
+                        // Geolocation no soportada
+                        if (btnGuardar) btnGuardar.disabled = true;
+                        if (locationStatus) locationStatus.classList.add('d-none');
+                        if (locationAlert) {
+                            locationAlert.classList.remove('d-none');
+                            if (locationAlertText) locationAlertText.innerHTML = 'Geolocalización no soportada por el navegador.<br><small class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i> La evidencia de ubicación geográfica es obligatoria para poder guardar el registro de la visita.</small>';
+                        }
+                    }
                 }
             }
 
-            // Contador de caracteres en tiempo real
-            textarea.addEventListener('input', updateCharacterCounter);
+            // Lógica para el modal de detalle de visita
+            const detalleVisitaModal = document.getElementById('detalleVisitaModal');
+            if (detalleVisitaModal) {
+                const populateVisitaData = function (button) {
+                    if (!button) return;
 
-            // Inicializar contador de caracteres
-            updateCharacterCounter();
+                    const username = button.getAttribute('data-username') || 'Gestor';
+                    const date = button.getAttribute('data-date') || '-';
+                    const time = button.getAttribute('data-time') || '-';
+                    const ago = button.getAttribute('data-ago') || '-';
+                    const comments = button.getAttribute('data-comments') || '';
+                    const lat = button.getAttribute('data-lat') || '';
+                    const lng = button.getAttribute('data-lng') || '';
 
-            // Evento submit del formulario
-            form.addEventListener('submit', function (e) {
-                e.preventDefault();
+                    // Llenar campos básicos
+                    const avatarEl = document.getElementById('modal-visita-avatar');
+                    const usuarioEl = document.getElementById('modal-visita-usuario');
+                    const fechaEl = document.getElementById('modal-visita-fecha');
+                    const horaEl = document.getElementById('modal-visita-hora');
+                    const tiempoEl = document.getElementById('modal-visita-tiempo');
+                    const comentariosEl = document.getElementById('modal-visita-comentarios');
 
-                const formData = new FormData();
-                formData.append('_token', document.querySelector('input[name="_token"]').value);
-                formData.append('_method', 'PATCH');
-                formData.append('observaciones', textarea.value);
+                    if (usuarioEl) usuarioEl.textContent = username;
+                    if (avatarEl) avatarEl.textContent = username.substring(0, 1).toUpperCase();
+                    if (fechaEl) fechaEl.textContent = date;
+                    if (horaEl) horaEl.textContent = time;
+                    if (tiempoEl) tiempoEl.textContent = ago;
+                    if (comentariosEl) comentariosEl.textContent = comments ? `"${comments}"` : 'Sin comentarios';
 
-                showLoading();
+                    // Llenar geolocalización si existe
+                    const geoContainer = document.getElementById('modal-visita-geo-container');
+                    const mapBtn = document.getElementById('modal-visita-mapa-btn');
+                    const resolvedAddress = document.getElementById('modal-visita-direccion');
 
-                fetch('{{ route("contratos.updateObservaciones", $contrato->id) }}', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        hideLoading();
+                    if (geoContainer) {
+                        if (lat && lng) {
+                            geoContainer.classList.remove('d-none');
+                            if (mapBtn) mapBtn.href = `https://www.google.com/maps?q=${lat},${lng}`;
+                            if (resolvedAddress) {
+                                resolvedAddress.innerHTML = '<div class="spinner-border spinner-border-sm x-small text-warning" role="status"></div> <span class="ms-1 text-muted small">Resolviendo dirección...</span>';
 
-                        if (data.success) {
-                            showMessage(data.message, 'success');
-                            // Actualizar valor original
-                            originalValue = textarea.value;
+                                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                                    headers: { 'Accept-Language': 'es' }
+                                })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data && data.display_name) {
+                                            resolvedAddress.innerHTML = `<span class="small fw-semibold" style="color: #2d3748;">${data.display_name}</span>`;
+                                        } else {
+                                            resolvedAddress.textContent = `Coordenadas: ${lat}, ${lng}`;
+                                        }
+                                    })
+                                    .catch(err => {
+                                        console.error(err);
+                                        resolvedAddress.textContent = `Coordenadas: ${lat}, ${lng}`;
+                                    });
+                            }
                         } else {
-                            showMessage(data.message || 'Error al actualizar las observaciones', 'danger');
+                            geoContainer.classList.add('d-none');
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        hideLoading();
-                        showMessage('Error al actualizar las observaciones. Por favor, inténtelo de nuevo.', 'danger');
+                    }
+                };
+
+                // 1. Escuchar por evento de Bootstrap (standard)
+                detalleVisitaModal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget || document.querySelector('.show-visita-detail-btn');
+                    populateVisitaData(button);
+                });
+
+                // 2. Escuchar clics directos (failsafe)
+                document.querySelectorAll('.show-visita-detail-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        populateVisitaData(this);
                     });
-            });
+                });
+            }
         });
 
         // Función para imprimir PDF
@@ -1959,10 +2801,10 @@
                 const instructionsDiv = document.createElement('div');
                 instructionsDiv.className = 'alert alert-info alert-dismissible fade show mt-2 print-instructions';
                 instructionsDiv.innerHTML = `
-                                                                                                                                                                                    <i class="bi bi-info-circle me-2"></i>
-                                                                                                                                                                                    <strong>Ventana de impresión abierta:</strong> Si la impresión no inicia automáticamente, presiona <kbd>Ctrl+P</kbd> en la nueva ventana.
-                                                                                                                                                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                                                                    <i class="bi bi-info-circle me-2"></i>
+                                                                                                                                                                                                                                                                                                                                    <strong>Ventana de impresión abierta:</strong> Si la impresión no inicia automáticamente, presiona <kbd>Ctrl+P</kbd> en la nueva ventana.
+                                                                                                                                                                                                                                                                                                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                                                                                                                                                                                                                                                                                                `;
 
                 pdfContainer.appendChild(instructionsDiv);
 
@@ -2104,13 +2946,13 @@
             loadingDiv.className = 'position-absolute top-50 start-50 translate-middle bg-white p-3 rounded shadow-sm';
             loadingDiv.style.zIndex = '1000';
             loadingDiv.innerHTML = `
-                                                                                                                                                                                    <div class="text-center">
-                                                                                                                                                                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                                                                                                                                                                            <span class="visually-hidden">Subiendo...</span>
-                                                                                                                                                                                        </div>
-                                                                                                                                                                                        <div class="mt-2 text-muted small">Subiendo documento...</div>
-                                                                                                                                                                                    </div>
-                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                                                                    <div class="text-center">
+                                                                                                                                                                                                                                                                                                                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                                                                                                                                                                                                                                                                                                            <span class="visually-hidden">Subiendo...</span>
+                                                                                                                                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                                                                                                                                        <div class="mt-2 text-muted small">Subiendo documento...</div>
+                                                                                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                                                                                `;
 
             // Asegurar que el contenedor tenga posición relativa
             const currentPosition = window.getComputedStyle(container).position;
@@ -2173,9 +3015,9 @@
             alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-2 document-alert`;
             const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
             alertDiv.innerHTML = `
-                                                                                                                                                                                    <i class="bi ${icon} me-2"></i>${message}
-                                                                                                                                                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                                                                                                                                                                `;
+                                                                                                                                                                                                                                                                                                                                    <i class="bi ${icon} me-2"></i>${message}
+                                                                                                                                                                                                                                                                                                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                                                                                                                                                                                                                                                                                                `;
 
             cardBody.appendChild(alertDiv);
 
@@ -2202,14 +3044,14 @@
             const originalContent = modalBody.innerHTML;
 
             modalBody.innerHTML = `
-                                                                                                                                                                                <div class="text-center py-4">
-                                                                                                                                                                                    <div class="spinner-border text-primary mb-3" role="status">
-                                                                                                                                                                                        <span class="visually-hidden">Procesando...</span>
-                                                                                                                                                                                    </div>
-                                                                                                                                                                                    <h6>Procesando ${action.toLowerCase()}...</h6>
-                                                                                                                                                                                    <p class="text-muted">Por favor espera un momento.</p>
-                                                                                                                                                                                </div>
-                                                                                                                                                                            `;
+                                                                                                                                                                                                                                                                                                                                <div class="text-center py-4">
+                                                                                                                                                                                                                                                                                                                                    <div class="spinner-border text-primary mb-3" role="status">
+                                                                                                                                                                                                                                                                                                                                        <span class="visually-hidden">Procesando...</span>
+                                                                                                                                                                                                                                                                                                                                    </div>
+                                                                                                                                                                                                                                                                                                                                    <h6>Procesando ${action.toLowerCase()}...</h6>
+                                                                                                                                                                                                                                                                                                                                    <p class="text-muted">Por favor espera un momento.</p>
+                                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                            `;
 
             // Deshabilitar botones del modal
             const modalButtons = modal.querySelectorAll('.modal-footer .btn');

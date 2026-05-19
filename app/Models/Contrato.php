@@ -248,7 +248,11 @@ class Contrato extends Model
     public function getSaldoComisionesAttribute()
     {
         // La bonificación cuenta como pago para el saldo del cliente, pero NO es dinero real para comisiones.
-        $dineroReal = max(0, $this->total_pagado - ($this->monto_bonificacion ?? 0));
+        // Sumamos solo los pagos que NO sean de tipo bonificación.
+        $dineroReal = max(0, $this->pagos()
+            ->where('estado', 'hecho')
+            ->whereNotIn('tipo_pago', ['bonificación', 'bonificacion'])
+            ->sum('monto'));
         
         return max(0, $dineroReal - $this->comisiones_pagadas);
     }

@@ -148,9 +148,11 @@ class ContratoController extends Controller
         $data['monto_bonificacion'] = $data['monto_bonificacion'] ?? 0;
         $data['monto_cuota'] = $data['monto_cuota'] ?? 0;
 
-        // Obtener el precio del paquete seleccionado
-        $paquete = \App\Models\Paquete::find($data['paquete_id']);
-        $data['monto_total'] = $paquete ? $paquete->precio : 0;
+        // Obtener el precio del paquete seleccionado si no se especificó un precio personalizado
+        if (!isset($data['monto_total']) || $data['monto_total'] <= 0) {
+            $paquete = \App\Models\Paquete::find($data['paquete_id']);
+            $data['monto_total'] = $paquete ? $paquete->precio : 0;
+        }
         $montoTotal = $data['monto_total'];
         $montoInicial = $data['monto_inicial'];
         $montoBonificacion = $data['monto_bonificacion'];
@@ -485,8 +487,10 @@ class ContratoController extends Controller
         $data['monto_bonificacion'] = $data['monto_bonificacion'] ?? 0;
         $data['monto_cuota'] = $data['monto_cuota'] ?? 0;
 
-        // Si el paquete fue actualizado, obtener el precio del nuevo paquete
-        if (isset($data['paquete_id']) && $data['paquete_id'] != $contrato->paquete_id) {
+        // Usar el monto_total enviado si existe y es válido. Si no, y el paquete cambió, obtener el precio del nuevo paquete
+        if (isset($data['monto_total']) && $data['monto_total'] > 0) {
+            // Se conserva el monto personalizado enviado
+        } elseif (isset($data['paquete_id']) && $data['paquete_id'] != $contrato->paquete_id) {
             $paquete = \App\Models\Paquete::find($data['paquete_id']);
             $data['monto_total'] = $paquete ? $paquete->precio : 0;
         }

@@ -87,11 +87,10 @@
                                 </div>
                                 <small class="text-muted">
                                     <i class="bi bi-currency-dollar me-1"></i>
-                                    ${{ number_format($contrato->paquete->precio, 2) }}
+                                    ${{ number_format($contrato->monto_total, 2) }}
                                 </small>
                             </div>
                         </td>
-                        <td>
                         <td>
                             @php
                                 $estadoCuenta = $contrato->estado_cuenta;

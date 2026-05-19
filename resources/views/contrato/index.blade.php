@@ -178,7 +178,7 @@
                                                                                 </small>
                                                                                 <small class="text-muted">
                                                                                     <i class="fa fa-dollar-sign"></i>
-                                                                                    {{ number_format($contrato->paquete->precio, 2) }}
+                                                                                    {{ number_format($contrato->monto_total, 2) }}
                                                                                 </small>
                                                                             </td>
                                                                             <td>

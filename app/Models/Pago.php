@@ -35,7 +35,8 @@ class Pago extends Model
         'cuota' => 'Cuota',
         'parcialidad' => 'Parcialidad',
         'inicial' => 'Pago Inicial',
-        'bonificación' => 'Bonificación'
+        'bonificación' => 'Bonificación',
+        'bonificacion' => 'Bonificación'
     ];
 
 

@@ -22,6 +22,10 @@ class ContratoRequest extends FormRequest
         // Limpiar campos de moneda antes de la validación
         $cleanedData = [];
 
+        if ($this->has('monto_total')) {
+            $cleanedData['monto_total'] = $this->cleanMoneyField($this->input('monto_total'));
+        }
+
         if ($this->has('monto_inicial')) {
             $cleanedData['monto_inicial'] = $this->cleanMoneyField($this->input('monto_inicial'));
         }
@@ -76,6 +80,7 @@ class ContratoRequest extends FormRequest
             'paquete_id' => 'required|exists:paquetes,id',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'monto_total' => 'nullable|numeric|min:0',
             'monto_inicial' => 'nullable|numeric|min:0',
             'monto_bonificacion' => 'nullable|numeric|min:0',
             'monto_cuota' => 'nullable|numeric|min:0',

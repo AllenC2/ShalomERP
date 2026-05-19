@@ -89,7 +89,7 @@
                             <input type="text" name="monto_total"
                                 class="form-control @error('monto_total') is-invalid @enderror"
                                 value="{{ old('monto_total', isset($contrato) ? '$' . number_format($contrato->monto_total, 2, '.', ',') : '') }}"
-                                id="monto_total" disabled placeholder="$0.00">
+                                id="monto_total" placeholder="$0.00">
                             @error('monto_total')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
@@ -646,6 +646,18 @@
     });
 
     document.getElementById('monto_total').addEventListener('input', calcularPagos);
+    document.getElementById('monto_total').addEventListener('blur', function () {
+        formatearCampoMoneda(this);
+    });
+    document.getElementById('monto_total').addEventListener('focus', function () {
+        if (this.value) {
+            // Quitar formato para editar libremente
+            const valorLimpio = this.value.replace(/[$,]/g, '');
+            if (!isNaN(parseFloat(valorLimpio))) {
+                this.value = valorLimpio;
+            }
+        }
+    });
     document.getElementById('fecha_inicio').addEventListener('change', calcularPagos);
 
     // Función para formatear campos de moneda
@@ -705,7 +717,7 @@
 
     // Aplicar formato inicial a los campos de moneda al cargar la página (solo si tienen valor)
     window.addEventListener('DOMContentLoaded', function () {
-        const camposMoneda = ['monto_inicial', 'monto_bonificacion', 'monto_cuota'];
+        const camposMoneda = ['monto_inicial', 'monto_bonificacion', 'monto_cuota', 'monto_total'];
         camposMoneda.forEach(function (campoId) {
             const campo = document.getElementById(campoId);
             if (campo && campo.value && campo.value.trim() !== '') {

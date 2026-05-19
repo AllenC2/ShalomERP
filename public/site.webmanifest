@@ -1,0 +1,22 @@
+{
+    "name": "Shalom ERP",
+    "short_name": "ShalomERP",
+    "description": "Sistema integral de gestión empresarial para la administración de clientes, contratos, cobranza y reportes financieros.",
+    "icons": [
+        {
+            "src": "/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#79481D",
+    "background_color": "#140b05",
+    "start_url": "/home",
+    "display": "standalone",
+    "orientation": "any"
+}

@@ -5,7 +5,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Laravel</title>
+    @include('partials.seo', [
+        'title' => 'Shalom ERP | Sistema Integral de Gestión Empresarial',
+        'description' => 'Shalom ERP es la plataforma definitiva para la gestión de clientes, contratos, cobranza, comisiones y administración financiera de forma ágil y profesional.',
+        'robots' => 'index, follow'
+    ])
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

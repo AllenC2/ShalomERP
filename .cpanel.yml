@@ -2,13 +2,13 @@
 deployment:
   tasks:
     # 1. Definir la ruta de destino en tu cPanel (reemplaza 'tu_usuario_cpanel' por tu usuario real)
-    - export DEPLOYPATH=/home/tu_usuario_cpanel/public_html/shalom-erp/
+    - export DEPLOYPATH=/home/gulqqlkuts/public_html/shalom-erp/
     
     # 2. Copiar todos los archivos al directorio de producción
     - /bin/cp -R * $DEPLOYPATH
     
     # 3. Dar permisos correctos a la carpeta de almacenamiento de Laravel
-    - /bin/chmod -R 775 $DEPLOYPATH/storage $DEPLOYPATH/bootstrap/cache
+    - /bin/chmod -R 755 $DEPLOYPATH/storage $DEPLOYPATH/bootstrap/cache
     
     # 4. Correr migraciones en producción de forma segura y automática
     - cd $DEPLOYPATH && php artisan migrate --force

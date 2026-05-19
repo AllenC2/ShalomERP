@@ -1,2 +1,15 @@
+# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+
+# Allow indexing of the public landing view and the login portal
+Allow: /
+Allow: /login
+
+# Prevent search engine indexing of private management and administrative panels
+Disallow: /home
+Disallow: /clientes
+Disallow: /contratos
+Disallow: /empleados
+Disallow: /ajustes
+Disallow: /auditoria
+Disallow: /logout

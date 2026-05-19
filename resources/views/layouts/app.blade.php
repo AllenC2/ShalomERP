@@ -8,11 +8,10 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="{{ asset('shalom_ico.svg') }}">
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    @include('partials.seo', [
+        'title' => isset($title) ? $title . ' - ' . config('app.name', 'Shalom ERP') : config('app.name', 'Shalom ERP'),
+        'robots' => 'noindex, nofollow'
+    ])
 
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.bunny.net">

@@ -790,7 +790,8 @@
                                                     $mesNombre = ucfirst($fechaPago->monthName);
                                                     $fechaFormateada = $fechaPago->format('d') . ' de ' . $mesNombre . ' de ' . $fechaPago->format('Y');
                                                     $esRetrasado = pagoEstaRetrasado($pago->fecha_pago, $pago->estado);
-                                                    $esPagoEspecial = in_array(strtolower($pago->tipo_pago ?? ''), ['inicial', 'bonificación']);
+                                                    $esPagoEspecial = strtolower($pago->tipo_pago ?? '') == 'inicial';
+                                                    $esBonificacion = in_array(strtolower($pago->tipo_pago ?? ''), ['bonificación', 'bonificacion']);
                                                     $esParcialidad = strtolower($pago->tipo_pago ?? '') == 'parcialidad';
 
                                                     // Determinar si está en período de tolerancia (vencido pero dentro del margen)
@@ -803,7 +804,7 @@
 
                                                     // Determinar color del borde
                                                     $colorBorde = 'border-light';
-                                                    if ($esPagoEspecial && $pago->estado == 'hecho') {
+                                                    if (($esPagoEspecial || $esBonificacion) && $pago->estado == 'hecho') {
                                                         $colorBorde = 'border-info';
                                                     } elseif ($esParcialidad && $pago->estado == 'hecho') {
                                                         $colorBorde = 'border-success-light';
@@ -819,7 +820,7 @@
 
                                                     // Determinar color del badge
                                                     $colorBadge = 'secondary';
-                                                    if ($esPagoEspecial && $pago->estado == 'hecho') {
+                                                    if (($esPagoEspecial || $esBonificacion) && $pago->estado == 'hecho') {
                                                         $colorBadge = 'info';
                                                     } elseif ($esParcialidad && $pago->estado == 'hecho') {
                                                         $colorBadge = 'success-light';
@@ -917,11 +918,13 @@
                                                             <div class="card-body">
                                                                 <div class="d-flex justify-content-between">
                                                                     <div>
-                                                                        @if(in_array(strtolower($pago->tipo_pago ?? ''), ['inicial', 'bonificación']))
-                                                                            <span
-                                                                                class="text-{{ str_replace(['text-dark', ' text-dark'], '', $colorBadge) }}"
-                                                                                style="font-size: 1.8em;">
-                                                                                {{ ucfirst($pago->tipo_pago) }}
+                                                                        @if(strtolower($pago->tipo_pago ?? '') == 'inicial')
+                                                                            <span class="text-info" style="font-size: 1.8em;">
+                                                                                Inicial
+                                                                            </span>
+                                                                        @elseif(strtolower($pago->tipo_pago ?? '') == 'bonificación' || strtolower($pago->tipo_pago ?? '') == 'bonificacion')
+                                                                            <span class="text-primary" style="font-size: 1.8em;">
+                                                                                Bonificación
                                                                             </span>
                                                                         @else
                                                                             <span
@@ -930,14 +933,6 @@
                                                                                 Recibo de Pago
                                                                             </span>
                                                                         @endif
-                                                                        <br>
-                                                                        <span class="badge bg-secondary">
-                                                                            Folio #{{ $pago->id }}
-                                                                        </span>
-                                                                        <span class="badge bg-{{ $colorBadge }}">
-                                                                            {{ $esRetrasado ? 'Retrasado' : ($enTolerancia ? ($diasGraciaRestantes > 0 ? 'En gracia por ' . $diasGraciaRestantes . ' días más' : 'Último día de gracia') : ucfirst($pago->estado)) }}
-                                                                        </span>
-
                                                                     </div>
                                                                     <div class="text-end">
                                                                         <p class="fw-bold mb-0 mt-1" style="font-size: 1.8em;">

@@ -248,11 +248,11 @@
                                                                 $montoRestante = $comisionPadre->monto - $totalParcialidades;
                                                             @endphp
                                                             @if($montoRestante > 0)
-                                                                <option value="{{ $comisionPadre->id }}" 
-                                                                        data-monto-restante="{{ $montoRestante }}"
+                                                                <option value="{{ $comisionPadre->id }}"
+                                                                        data-monto-restante="{{ $comisionPadre->monto }}"
                                                                         data-empleado="{{ $comisionPadre->empleado->nombre ?? 'N/A' }} {{ $comisionPadre->empleado->apellido ?? '' }}">
                                                                     {{ strtoupper($comisionPadre->tipo_comision) }} - {{ $comisionPadre->empleado->nombre ?? 'N/A' }}
-                                                                    (Restante: ${{ number_format($montoRestante, 2) }})
+                                                                    (Total: ${{ number_format($comisionPadre->monto, 2) }})
                                                                 </option>
                                                             @endif
                                                         @endforeach
@@ -264,8 +264,8 @@
                                                     </label>
                                                     <div class="input-group input-group-sm">
                                                         <span class="input-group-text">$</span>
-                                                        <input type="number" class="form-control" id="monto" name="monto" 
-                                                               step="0.01" min="0.01" placeholder="0.00" required>
+                                                        <input type="number" class="form-control" id="monto" name="monto"
+                                                               step="0.01" min="0.01" max="{{ $contrato->saldo_comisiones }}" placeholder="0.00" required>
                                                     </div>
                                                 </div>
                                             </div>
@@ -956,6 +956,7 @@
 <script>
 // Variables globales para los gráficos
 let estadosChart = null;
+const saldoDisponible = {{ $contrato->saldo_comisiones }};
 
 class ComisionesRealTime {
     constructor() {
@@ -1639,24 +1640,25 @@ function initializeParcialidadForm() {
     // Manejar cambio en el selector de comisión padre
     selectComisionPadre.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        
+
         if (this.value) {
             const montoRestante = parseFloat(selectedOption.getAttribute('data-monto-restante'));
             const empleado = selectedOption.getAttribute('data-empleado');
-            
+
             empleadoInfo.textContent = empleado;
             montoRestanteInfo.textContent = montoRestante.toLocaleString('es-ES', { minimumFractionDigits: 2 });
-            
-            // Establecer el máximo para el input de monto con el valor exacto
-            inputMonto.setAttribute('max', montoRestante.toFixed(2));
-            
-            // Establecer automáticamente el monto máximo restante exacto
-            inputMonto.value = montoRestante.toFixed(2);
-            
+
+            // Establecer el máximo para el input de monto con el saldo disponible global
+            inputMonto.setAttribute('max', saldoDisponible.toFixed(2));
+
+            // Establecer automáticamente el monto máximo restante exacto (limitado por saldo disponible)
+            const montoMaximo = Math.min(montoRestante, saldoDisponible);
+            inputMonto.value = montoMaximo.toFixed(2);
+
             infoComisionPadre.style.display = 'block';
         } else {
             infoComisionPadre.style.display = 'none';
-            inputMonto.removeAttribute('max');
+            inputMonto.setAttribute('max', saldoDisponible.toFixed(2));
             inputMonto.value = '';
         }
     });

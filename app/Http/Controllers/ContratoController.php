@@ -735,25 +735,13 @@ class ContratoController extends Controller
                 ], 400);
             }
 
-            // Verificar que el monto no exceda el monto restante de la comisión padre
-            $totalParcialidadesExistentes = $comisionPadre->parcialidades()->sum('monto');
-            $montoRestante = $comisionPadre->monto - $totalParcialidadesExistentes;
-
-            // Usar bccomp para comparación precisa de decimales (tolerancia de 0.01)
-            if (bccomp($request->monto, $montoRestante, 2) > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "El monto no puede exceder el monto restante de $" . number_format($montoRestante, 2)
-                ], 400);
-            }
-
             // Validar que hay saldo disponible en el contrato
             $contrato = $comisionPadre->contrato;
             $saldoDisponible = $contrato->saldo_comisiones;
             if (bccomp($request->monto, $saldoDisponible, 2) > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Saldo insuficiente. El saldo disponible para comisiones es de $" . number_format($saldoDisponible, 2)
+                    'message' => "El monto no puede exceder el saldo disponible de $" . number_format($saldoDisponible, 2)
                 ], 400);
             }
 

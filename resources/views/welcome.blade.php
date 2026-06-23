@@ -1793,7 +1793,7 @@
     </div>
 
     <div class="text-center mt-3">
-        <small class="text-muted">Version 1.7 @imallen.dev</small>
+        <small class="text-muted">Version 1.7.2 @imallen.dev</small>
     </div>
     </div>
 </body>

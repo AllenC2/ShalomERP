@@ -17,9 +17,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Confiar en el proxy de nginx (gateway Docker)
+        $middleware->trustProxies(at: '172.18.0.1');
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'empleado.index.access' => \App\Http\Middleware\EmpleadoContratoAccess::class,
+        ]);
+        
+        // Aplicar middleware de sesión dinámica al principio de las rutas web
+        $middleware->web(prepend: [
+            \App\Http\Middleware\DynamicSessionConfig::class,
         ]);
         
         // Aplicar middleware de registro público a todas las rutas web

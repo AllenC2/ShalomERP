@@ -230,6 +230,12 @@
                                         {{ Str::limit($cliente->nombre . ' ' . $cliente->apellido, 20) }}
                                     </span>
                                 </div>
+                                @if($pago->contrato)
+                                    <div class="ticket-row">
+                                        <span class="ticket-label">Contrato:</span>
+                                        <span class="ticket-value">{{ $pago->contrato->paquete->nombre ?? 'N/A' }}#{{ $pago->contrato->id }}</span>
+                                    </div>
+                                @endif
                             @endif
 
                             <div class="ticket-divider"></div>

@@ -483,10 +483,24 @@ class ComisioneController extends Controller
         $fechaFin = \Carbon\Carbon::parse($request->fecha_fin)->endOfDay();
         $incluirPendientes = $request->has('incluir_pendientes');
 
-        $comisiones = Comisione::where('empleado_id', $empleado->id)
-            ->whereBetween('fecha_comision', [$fechaInicio, $fechaFin])
-            ->orderBy('fecha_comision', 'asc')
-            ->get();
+        $tipoComision = $request->input('tipo_comision');
+
+        $comisionesQuery = Comisione::where('empleado_id', $empleado->id)
+            ->whereBetween('fecha_comision', [$fechaInicio, $fechaFin]);
+
+        if ($tipoComision) {
+            $comisionesQuery->where(function ($query) use ($tipoComision) {
+                $query->where('tipo_comision', $tipoComision)
+                      ->orWhere(function ($subQuery) use ($tipoComision) {
+                          $subQuery->where('tipo_comision', 'PARCIALIDAD')
+                                   ->whereHas('comisionPadre', function ($q) use ($tipoComision) {
+                                       $q->where('tipo_comision', $tipoComision);
+                                   });
+                      });
+            });
+        }
+
+        $comisiones = $comisionesQuery->orderBy('fecha_comision', 'asc')->get();
 
         $comisionesPagadas = $comisiones->filter(function($comision) {
             return in_array(ucfirst(strtolower($comision->estado)), ['Pagada', 'Entregada', 'Hecho']);

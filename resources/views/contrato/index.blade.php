@@ -50,7 +50,7 @@
                                         style="border-radius: 12px;">
                                         <i class="bi bi-funnel-fill me-1"></i>
                                         Filtros
-                                        @if(request('vendedor_id') || request('fecha') || (request()->has('estado') && request('estado') != 'activo'))
+                                        @if(request('vendedor_id') || request('fecha') || request('tipo_comision') || (request()->has('estado') && request('estado') != 'activo'))
                                             <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">!</span>
                                         @endif
                                     </button>
@@ -59,9 +59,9 @@
 
                             <!-- Filtros adicionales (inicialmente ocultos) -->
                             <div id="moreFilters"
-                                class="row g-3 align-items-center mb-4 mt-3 p-4 bg-light rounded-4 {{ (request('vendedor_id') || request('fecha') || (request()->has('estado') && request('estado') != 'activo')) ? '' : 'd-none' }}"
+                                class="row g-3 align-items-center mb-4 mt-3 p-4 bg-light rounded-4 {{ (request('vendedor_id') || request('fecha') || request('tipo_comision') || (request()->has('estado') && request('estado') != 'activo')) ? '' : 'd-none' }}"
                                 style="border: 1px dashed #dee2e6;">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted mb-1">Fecha de registro</label>
                                     <div class="input-group shadow-sm">
                                         <span class="input-group-text bg-white border-end-0"><i
@@ -70,8 +70,8 @@
                                             value="{{ request('fecha') }}">
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted mb-1">Estado del contrato</label>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted mb-1">Estado</label>
                                     <select name="estado" id="filterEstado" class="form-select shadow-sm">
                                         <option value="">Todos los estados</option>
                                         <option value="activo" {{ request('estado', 'activo') == 'activo' ? 'selected' : '' }}>Solo Activos</option>
@@ -83,15 +83,28 @@
                                             Suspendidos</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label small fw-bold text-muted mb-1">Vendedor asignado</label>
                                     <select name="vendedor_id" id="filterVendedor" class="form-select shadow-sm">
-                                        <option value="">Todos los vendedores</option>
+                                        <option value="">Todos</option>
                                         @foreach($vendedores as $vendedor)
                                             <option value="{{ $vendedor->id }}" {{ request('vendedor_id') == $vendedor->id ? 'selected' : '' }}>
                                                 {{ $vendedor->nombre }} {{ $vendedor->apellido }}
                                             </option>
                                         @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted mb-1">Tipo de comisión</label>
+                                    <select name="tipo_comision" id="filterTipoComision" class="form-select shadow-sm">
+                                        <option value="">Todos los tipos</option>
+                                        @isset($tiposComision)
+                                            @foreach($tiposComision as $tipo)
+                                                <option value="{{ $tipo }}" {{ request('tipo_comision') == $tipo ? 'selected' : '' }}>
+                                                    {{ ucfirst($tipo) }}
+                                                </option>
+                                            @endforeach
+                                        @endisset
                                     </select>
                                 </div>
                                 <div class="col-12 mt-2 d-flex align-items-center justify-content-between">
@@ -102,7 +115,7 @@
                                 </div>
                             </div>
 
-                            @if(request('search') || request('vendedor_id') || request('fecha') || (request()->has('estado') && request('estado') != 'activo'))
+                            @if(request('search') || request('vendedor_id') || request('fecha') || request('tipo_comision') || (request()->has('estado') && request('estado') != 'activo'))
                                 <div class="mt-2 text-end">
                                     <button type="button" id="clearSearch"
                                         class="btn btn-link btn-sm p-0 text-decoration-none text-muted">
@@ -721,6 +734,7 @@
             const filterFecha = document.getElementById('filterFecha');
             const filterVendedor = document.getElementById('filterVendedor');
             const filterEstado = document.getElementById('filterEstado');
+            const filterTipoComision = document.getElementById('filterTipoComision');
             const toggleMoreFilters = document.getElementById('toggleMoreFilters');
             const moreFiltersRow = document.getElementById('moreFilters');
             const contractsContainer = document.getElementById('contractsTableContainer');
@@ -760,10 +774,12 @@
                     const fechaValue = filterFecha.value;
                     const vendedorValue = filterVendedor.value;
                     const estadoValue = filterEstado.value;
+                    const tipoComisionValue = filterTipoComision ? filterTipoComision.value : '';
 
                     if (searchValue) url.searchParams.set('search', searchValue);
                     if (fechaValue) url.searchParams.set('fecha', fechaValue);
                     if (vendedorValue) url.searchParams.set('vendedor_id', vendedorValue);
+                    if (tipoComisionValue) url.searchParams.set('tipo_comision', tipoComisionValue);
 
                     // Siempre enviar el estado para que el controlador sepa que fue una elección del usuario
                     // y no aplique el filtro por defecto de 'activos'
@@ -804,6 +820,7 @@
             filterFecha.addEventListener('change', () => performSearch(true));
             filterVendedor.addEventListener('change', () => performSearch(true));
             filterEstado.addEventListener('change', () => performSearch(true));
+            if (filterTipoComision) filterTipoComision.addEventListener('change', () => performSearch(true));
 
             // Función para limpiar búsqueda
             function clearSearch() {
@@ -811,6 +828,7 @@
                 filterFecha.value = '';
                 filterVendedor.value = '';
                 filterEstado.value = 'activo';
+                if (filterTipoComision) filterTipoComision.value = '';
                 performSearch(true);
             }
 
@@ -853,11 +871,13 @@
                         const fechaValue = filterFecha.value;
                         const vendedorValue = filterVendedor.value;
                         const estadoValue = filterEstado.value;
+                        const tipoComisionValue = filterTipoComision ? filterTipoComision.value : '';
 
                         if (searchValue) url.searchParams.set('search', searchValue);
                         if (fechaValue) url.searchParams.set('fecha', fechaValue);
                         if (vendedorValue) url.searchParams.set('vendedor_id', vendedorValue);
                         if (estadoValue) url.searchParams.set('estado', estadoValue);
+                        if (tipoComisionValue) url.searchParams.set('tipo_comision', tipoComisionValue);
 
                         // Mostrar spinner
                         loadingSpinner.classList.remove('d-none');

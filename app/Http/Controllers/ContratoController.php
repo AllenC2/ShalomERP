@@ -26,6 +26,7 @@ class ContratoController extends Controller
         $vendedorId = $request->input('vendedor_id');
         $fecha = $request->input('fecha');
         $estado = $request->input('estado'); // Reemplaza la lógica anterior de solo_activos
+        $tipoComision = $request->input('tipo_comision');
 
         $contratosQuery = Contrato::with(['cliente', 'paquete', 'pagos']);
 
@@ -45,6 +46,13 @@ class ContratoController extends Controller
         if ($vendedorId) {
             $contratosQuery->whereHas('comisiones', function($q) use ($vendedorId) {
                 $q->where('empleado_id', $vendedorId);
+            });
+        }
+
+        // Filtro por Tipo de Comisión
+        if ($tipoComision) {
+            $contratosQuery->whereHas('comisiones', function($q) use ($tipoComision) {
+                $q->where('tipo_comision', $tipoComision);
             });
         }
 
@@ -82,8 +90,9 @@ class ContratoController extends Controller
         }
 
         $vendedores = \App\Models\Empleado::all();
+        $tiposComision = \App\Models\Comisione::select('tipo_comision')->distinct()->whereNotNull('tipo_comision')->where('tipo_comision', '!=', '')->pluck('tipo_comision');
 
-        return view('contrato.index', compact('contratos', 'vendedores'))
+        return view('contrato.index', compact('contratos', 'vendedores', 'tiposComision'))
             ->with('i', ($request->input('page', 1) - 1) * $contratos->perPage());
     }
 

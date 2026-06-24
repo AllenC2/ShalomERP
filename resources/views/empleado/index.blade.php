@@ -151,7 +151,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
-                <form action="{{ route('comisiones.reciboConsolidado') }}" method="GET" target="_blank">
+                <form action="{{ route('comisiones.reciboConsolidado') }}" method="GET" target="_blank" onsubmit="setTimeout(() => $('#reciboConsolidadoModal').modal('hide'), 100)">
                     <div class="modal-body p-4">
 
                         <div class="mb-3">
@@ -171,15 +171,19 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio</label>
-                                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required
-                                        max="{{ date('Y-m-d') }}">
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required max="{{ date('Y-m-d') }}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('fecha_inicio').value = '{{ date('Y-m-d') }}'">Hoy</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="fecha_fin" class="form-label fw-bold">Fecha Fin</label>
-                                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required
-                                        value="{{ date('Y-m-d') }}">
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ date('Y-m-d') }}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('fecha_fin').value = '{{ date('Y-m-d') }}'">Hoy</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -192,12 +196,19 @@
                                     sección de comisiones pendientes</label>
                             </div>
                         </div>
+
+                        <div class="mb-3">
+                            <label for="tipo_comision" class="form-label fw-bold">Tipo de Comisión</label>
+                            <select class="form-select" id="tipo_comision" name="tipo_comision">
+                                <option value="">Todas las comisiones</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="modal-footer border-0 bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             <i class="bi bi-x-lg me-1"></i>Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" onclick="$('#reciboConsolidadoModal').modal('hide')">
+                        <button type="submit" class="btn btn-primary">
                             <i class="bi bi-printer me-1"></i>Generar Recibo
                         </button>
                     </div>
@@ -205,6 +216,71 @@
             </div>
         </div>
     </div>
+    @php
+        $comisionesPorEmpleadoData = \App\Models\Comisione::select('empleado_id', 'tipo_comision', 'estado')
+            ->whereNotNull('tipo_comision')
+            ->where('tipo_comision', '!=', '')
+            ->where('tipo_comision', '!=', 'PARCIALIDAD')
+            ->get()
+            ->groupBy('empleado_id')
+            ->map(function($comisiones) {
+                $pagadas = $comisiones->filter(function($c) {
+                    return in_array(ucfirst(strtolower($c->estado)), ['Pagada', 'Entregada', 'Hecho']);
+                })->pluck('tipo_comision')->unique()->values();
+
+                $todas = $comisiones->pluck('tipo_comision')->unique()->values();
+
+                return [
+                    'pagadas' => $pagadas,
+                    'todas' => $todas
+                ];
+            });
+    @endphp
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const comisionesPorEmpleado = {!! json_encode($comisionesPorEmpleadoData) !!};
+
+        const empleadoSelect = document.getElementById('empleado_id');
+        const tipoComisionSelect = document.getElementById('tipo_comision');
+        const incluirPendientesSwitch = document.getElementById('incluir_pendientes');
+
+        function updateTipos() {
+            if (!empleadoSelect || !tipoComisionSelect) return;
+            const empleadoId = empleadoSelect.value;
+            const data = comisionesPorEmpleado[empleadoId];
+            let tipos = [];
+            
+            if (data) {
+                if (incluirPendientesSwitch && incluirPendientesSwitch.checked) {
+                    tipos = data.todas;
+                } else {
+                    tipos = data.pagadas;
+                }
+            }
+            
+            const currentValue = tipoComisionSelect.value;
+            
+            // Limpiar opciones actuales
+            tipoComisionSelect.innerHTML = '<option value="">Todas las comisiones</option>';
+            
+            // Agregar las nuevas opciones
+            tipos.forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo;
+                option.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+                if (tipo === currentValue) option.selected = true;
+                tipoComisionSelect.appendChild(option);
+            });
+        }
+
+        if (empleadoSelect && tipoComisionSelect) {
+            $('#empleado_id').on('change', updateTipos);
+            if (incluirPendientesSwitch) {
+                incluirPendientesSwitch.addEventListener('change', updateTipos);
+            }
+        }
+    });
+    </script>
 @endsection
 
 <style>

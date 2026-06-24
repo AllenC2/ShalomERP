@@ -199,6 +199,23 @@
     margin-top: 15px;
 }
 
+.btn-outline-gold {
+    color: #79481D;
+    border-color: #E1B240;
+    background: transparent;
+}
+.btn-check:checked + .btn-outline-gold {
+    background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+    color: white;
+    border-color: #79481D;
+    box-shadow: inset 0 3px 5px rgba(0,0,0,0.125);
+}
+.btn-outline-gold:hover {
+    color: #79481D;
+    background-color: rgba(225, 178, 64, 0.1);
+    border-color: #E1B240;
+}
+
 #controlesPaginacion .btn-outline-secondary {
     border-color: #79481D;
     color: #79481D;
@@ -485,12 +502,22 @@
                             <small class="text-muted"><span id="contadorContratos">{{ $empleadoContratos->count() }}</span> contratos activos</small>
                         </div>
                         <div class="mt-2">
+                            <div class="btn-group w-100 mb-2" role="group" aria-label="Filtro de búsqueda">
+                                <input type="radio" class="btn-check" name="tipoBusqueda" id="busquedaCliente" value="cliente" autocomplete="off" checked>
+                                <label class="btn btn-outline-gold btn-sm" for="busquedaCliente">Cliente</label>
+
+                                <input type="radio" class="btn-check" name="tipoBusqueda" id="busquedaContrato" value="contrato" autocomplete="off">
+                                <label class="btn btn-outline-gold btn-sm" for="busquedaContrato">Folio</label>
+
+                                <input type="radio" class="btn-check" name="tipoBusqueda" id="busquedaDomicilio" value="domicilio" autocomplete="off">
+                                <label class="btn btn-outline-gold btn-sm" for="busquedaDomicilio">Domicilio</label>
+                            </div>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-light border-end-0">
                                     <i class="bi bi-search text-muted"></i>
                                 </span>
                                 <input type="text" id="buscadorContratos" class="form-control border-start-0" 
-                                       placeholder="Buscar por cliente, contrato o domicilio..."
+                                       placeholder="Buscar por nombre del cliente..."
                                        style="box-shadow: none;">
                             </div>
                         </div>
@@ -983,24 +1010,37 @@
             // Inicializar paginación
             actualizarPaginacion();
 
-            buscador.addEventListener('input', function(e) {
-                const termino = e.target.value.toLowerCase().trim();
-                contratosFiltrados = [];
+            const radiosBusqueda = document.querySelectorAll('input[name="tipoBusqueda"]');
+            
+            const quitarAcentos = (str) => {
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            };
 
-                console.log('Buscando:', termino);
+            function ejecutarBusqueda() {
+                const termino = quitarAcentos(buscador.value.toLowerCase().trim());
+                const tipoBusqueda = document.querySelector('input[name="tipoBusqueda"]:checked').value;
+                
+                contratosFiltrados = [];
+                console.log('Buscando:', termino, 'Tipo:', tipoBusqueda);
 
                 contratos.forEach((contrato, index) => {
-                    const cliente = (contrato.getAttribute('data-cliente') || '').toLowerCase();
-                    const contratoId = (contrato.getAttribute('data-contrato-id') || '').toLowerCase();
-                    const domicilio = (contrato.getAttribute('data-domicilio') || '').toLowerCase();
+                    const cliente = quitarAcentos((contrato.getAttribute('data-cliente') || '').toLowerCase());
+                    const contratoId = quitarAcentos((contrato.getAttribute('data-contrato-id') || '').toLowerCase());
+                    const domicilio = quitarAcentos((contrato.getAttribute('data-domicilio') || '').toLowerCase());
 
-                    // Buscar en: nombre del cliente, ID del contrato, y domicilio
-                    const coincideCliente = cliente.includes(termino);
-                    const coincideId = contratoId.includes(termino);
-                    const coincideDomicilio = domicilio.includes(termino);
-                    const coincide = coincideCliente || coincideId || coincideDomicilio;
+                    let coincide = false;
+                    
+                    if (termino === '') {
+                        coincide = true;
+                    } else if (tipoBusqueda === 'cliente') {
+                        coincide = cliente.includes(termino);
+                    } else if (tipoBusqueda === 'contrato') {
+                        coincide = contratoId.includes(termino);
+                    } else if (tipoBusqueda === 'domicilio') {
+                        coincide = domicilio.includes(termino);
+                    }
 
-                    if (termino === '' || coincide) {
+                    if (coincide) {
                         contratosFiltrados.push(contrato);
                     }
                 });
@@ -1008,8 +1048,21 @@
                 // Reiniciar paginación cuando se busca
                 paginaActualContratos = 1;
                 actualizarPaginacion();
-
                 console.log('Contratos filtrados:', contratosFiltrados.length);
+            }
+
+            buscador.addEventListener('input', ejecutarBusqueda);
+            
+            radiosBusqueda.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    let placeholder = "Buscar...";
+                    if (this.value === 'cliente') placeholder = "Buscar por nombre del cliente...";
+                    else if (this.value === 'contrato') placeholder = "Buscar por folio de contrato...";
+                    else if (this.value === 'domicilio') placeholder = "Buscar por domicilio...";
+                    buscador.placeholder = placeholder;
+                    
+                    ejecutarBusqueda();
+                });
             });
 
             // Limpiar búsqueda con Escape

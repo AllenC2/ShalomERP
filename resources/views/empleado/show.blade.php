@@ -548,7 +548,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
-                <form action="{{ route('comisiones.reciboConsolidado') }}" method="GET" target="_blank">
+                <form action="{{ route('comisiones.reciboConsolidado') }}" method="GET" target="_blank" onsubmit="setTimeout(() => $('#reciboConsolidadoModal').modal('hide'), 100)">
                     <div class="modal-body p-4">
                         <input type="hidden" name="empleado_id" value="{{ $empleado->id }}">
                         
@@ -561,18 +561,37 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="fecha_inicio" class="form-label fw-bold">Fecha de Inicio</label>
-                                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required
-                                        max="{{ date('Y-m-d') }}">
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required max="{{ date('Y-m-d') }}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('fecha_inicio').value = '{{ date('Y-m-d') }}'">Hoy</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="fecha_fin" class="form-label fw-bold">Fecha Fin</label>
-                                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required
-                                        value="{{ date('Y-m-d') }}">
+                                    <div class="input-group">
+                                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ date('Y-m-d') }}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('fecha_fin').value = '{{ date('Y-m-d') }}'">Hoy</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        @php 
+                            $comisionesEmp = \App\Models\Comisione::where('empleado_id', $empleado->id)
+                                ->select('tipo_comision', 'estado')
+                                ->whereNotNull('tipo_comision')
+                                ->where('tipo_comision', '!=', '')
+                                ->where('tipo_comision', '!=', 'PARCIALIDAD')
+                                ->get();
+
+                            $tiposPagadasEmp = $comisionesEmp->filter(function($c) {
+                                return in_array(ucfirst(strtolower($c->estado)), ['Pagada', 'Entregada', 'Hecho']);
+                            })->pluck('tipo_comision')->unique()->values();
+
+                            $tiposTodasEmp = $comisionesEmp->pluck('tipo_comision')->unique()->values();
+                        @endphp
 
                         <div class="mb-3">
                             <div class="form-check form-switch">
@@ -582,12 +601,49 @@
                                     sección de comisiones pendientes</label>
                             </div>
                         </div>
+
+                        <div class="mb-3">
+                            <label for="tipo_comision" class="form-label fw-bold">Tipo de Comisión</label>
+                            <select class="form-select" id="tipo_comision" name="tipo_comision">
+                                <option value="">Todas las comisiones</option>
+                                @foreach($tiposPagadasEmp as $tipo)
+                                    <option value="{{ $tipo }}">{{ ucfirst($tipo) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const tiposPagadasEmp = {!! json_encode($tiposPagadasEmp) !!};
+                            const tiposTodasEmp = {!! json_encode($tiposTodasEmp) !!};
+                            
+                            const tipoComisionSelect = document.getElementById('tipo_comision');
+                            const incluirPendientesSwitch = document.getElementById('incluir_pendientes');
+                            
+                            if (tipoComisionSelect && incluirPendientesSwitch) {
+                                incluirPendientesSwitch.addEventListener('change', function() {
+                                    let tipos = this.checked ? tiposTodasEmp : tiposPagadasEmp;
+                                    const currentValue = tipoComisionSelect.value;
+                                    
+                                    tipoComisionSelect.innerHTML = '<option value="">Todas las comisiones</option>';
+                                    
+                                    tipos.forEach(tipo => {
+                                        const option = document.createElement('option');
+                                        option.value = tipo;
+                                        option.textContent = tipo.charAt(0).toUpperCase() + tipo.slice(1);
+                                        if (tipo === currentValue) option.selected = true;
+                                        tipoComisionSelect.appendChild(option);
+                                    });
+                                });
+                            }
+                        });
+                        </script>
                     </div>
                     <div class="modal-footer border-0 bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             <i class="bi bi-x-lg me-1"></i>Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary" onclick="$('#reciboConsolidadoModal').modal('hide')">
+                        <button type="submit" class="btn btn-primary">
                             <i class="bi bi-printer me-1"></i>Generar Recibo
                         </button>
                     </div>

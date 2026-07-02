@@ -47,6 +47,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('comisiones/{id}/update-empleado', [App\Http\Controllers\ComisioneController::class, 'updateEmpleado'])->name('comisiones.updateEmpleado');
 
     // Rutas de paquetes y porcentajes
+    Route::post('paquetes/actualizar-prioridades', [App\Http\Controllers\PaqueteController::class, 'actualizarPrioridadesGlobales'])->name('paquetes.actualizar_prioridades');
     Route::resource('paquetes', App\Http\Controllers\PaqueteController::class);
     Route::resource('porcentajes', App\Http\Controllers\PorcentajeController::class)->except([
         'index',
@@ -90,10 +91,10 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     Route::patch('contratos/{contrato}/documento', [App\Http\Controllers\ContratoController::class, 'updateDocumento'])->name('contratos.updateDocumento');
     Route::get('contratos/{id}/comisiones', [App\Http\Controllers\ContratoController::class, 'comisiones'])->name('contratos.comisiones');
     Route::get('contratos/{id}/estado', [App\Http\Controllers\ContratoController::class, 'estado'])->name('contratos.estado');
-    Route::post('contratos/crear-parcialidad', [App\Http\Controllers\ContratoController::class, 'crearParcialidad'])->name('contratos.crearParcialidad');
 
     // Rutas de pagos
     Route::resource('pagos', App\Http\Controllers\PagoController::class);
+    Route::get('pagos/{pago}/ticket', [App\Http\Controllers\PagoController::class, 'ticket'])->name('pagos.ticket');
     Route::patch('pagos/{id}/toggle-estado', [PagoController::class, 'toggleEstado'])->name('pagos.toggleEstado');
     Route::patch('pagos/{id}/metodo-pago', [PagoController::class, 'updateMetodoPago'])->name('pagos.updateMetodoPago');
     Route::post('pagos/{id}/deshacer', [PagoController::class, 'deshacerPago'])->name('pagos.deshacer');
@@ -102,6 +103,8 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     Route::delete('pagos/{id}/delete-documento', [PagoController::class, 'deleteDocumento'])->name('pagos.deleteDocumento');
     Route::post('pagos/verificar-liquidacion-parcialidad', [PagoController::class, 'verificarLiquidacionParcialidad'])->name('pagos.verificarLiquidacionParcialidad');
     Route::get('pagos/buscar-contratos', [PagoController::class, 'buscarContratos'])->name('pagos.buscarContratos');
+    Route::get('pagos/{contrato_id}/revertir-comisiones', [PagoController::class, 'revertirComisiones'])->name('pagos.revertir_comisiones');
+    Route::post('pagos/{contrato_id}/revertir-comisiones', [PagoController::class, 'procesarReversionComisiones'])->name('pagos.procesar_reversion_comisiones');
 
     // Ruta alternativa para pagos
     Route::get('pagos_alt', [PagoController::class, 'index'])->name('pagos_alt.index');

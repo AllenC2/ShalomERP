@@ -89,6 +89,9 @@ class PagoController extends Controller
         // Actualizar contrato si está relacionado
         if ($pago->contrato) {
             $pago->contrato->actualizarProximaFechaPago();
+            if ($pago->estado === 'hecho') {
+                $pago->contrato->distribuirComisiones();
+            }
         }
 
         return redirect()->route('pagos.show', $pago->id)
@@ -106,6 +109,25 @@ class PagoController extends Controller
         $infoEmpresa = \App\Models\Ajuste::obtenerInfoEmpresa();
 
         return view('pago.show', compact('pago', 'infoEmpresa'));
+    }
+
+    /**
+     * Display a 58mm ticket for the specified resource.
+     *
+     * @param  int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function ticket($id)
+    {
+        $pago = Pago::with(['contrato.cliente'])->find($id);
+        if (!$pago) {
+            abort(404);
+        }
+        
+        $empresa = \App\Models\Ajuste::obtenerInfoEmpresa();
+        $cliente = $pago->contrato ? $pago->contrato->cliente : null;
+        
+        return view('pago.ticket', compact('pago', 'empresa', 'cliente'));
     }
 
     /**
@@ -144,6 +166,9 @@ class PagoController extends Controller
         // Actualizar contrato
         if ($pago->contrato) {
             $pago->contrato->actualizarProximaFechaPago();
+            if ($pago->estado === 'hecho') {
+                $pago->contrato->distribuirComisiones();
+            }
         }
 
         return Redirect::route('pagos.show', $pago->id)
@@ -163,8 +188,139 @@ class PagoController extends Controller
             $contrato->actualizarProximaFechaPago();
         }
 
-        return Redirect::route('pagos.index')
-            ->with('success', 'Pago eliminado correctamente.');
+        return Redirect::route('pagos.revertir_comisiones', ['contrato_id' => $contratoId])
+            ->with('warning', 'Pago eliminado. Revisa si es necesario ajustar las comisiones.');
+    }
+
+    public function deshacerPago(Request $request, $id)
+    {
+        try {
+            $pago = Pago::findOrFail($id);
+            $montoPago = $pago->monto;
+            $contrato = $pago->contrato;
+
+            // 1. Eliminar el pago
+            $pago->delete();
+
+            // 2. Si el usuario marcó el checkbox de revertir comisiones
+            if ($request->boolean('revertir_comisiones')) {
+                // Obtenemos todas las parcialidades de comisiones de este contrato
+                // Ordenadas de la más reciente y de la de MENOR prioridad (orden DESC) hacia la mayor
+                $parcialidades = \App\Models\Comisione::where('contrato_id', $contrato->id)
+                    ->where('tipo_comision', 'PARCIALIDAD')
+                    ->orderBy('created_at', 'desc')
+                    ->orderBy('orden', 'desc') // CRÍTICO: Revertimos desde la menos prioritaria
+                    ->get();
+
+                $montoARevertir = $montoPago;
+
+                foreach ($parcialidades as $parcialidad) {
+                    if ($montoARevertir <= 0.009) break;
+
+                    $padreId = $parcialidad->comision_padre_id;
+                    $padre = $padreId ? \App\Models\Comisione::find($padreId) : null;
+
+                    if ($parcialidad->monto <= $montoARevertir) {
+                        // El monto a revertir cubre toda esta parcialidad
+                        $montoARevertir -= $parcialidad->monto;
+                        $parcialidad->delete();
+                        
+                        // Actualizamos el padre a Pendiente
+                        if ($padre && $padre->estado === 'Pagada') {
+                            $padre->update(['estado' => 'Pendiente']);
+                        }
+                    } else {
+                        // El monto a revertir solo reduce una parte de esta parcialidad
+                        $nuevoMonto = $parcialidad->monto - $montoARevertir;
+                        $parcialidad->update(['monto' => $nuevoMonto]);
+                        $montoARevertir = 0;
+                        
+                        // El padre pasa a Pendiente porque ya no está completamente pagado
+                        if ($padre && $padre->estado === 'Pagada') {
+                            $padre->update(['estado' => 'Pendiente']);
+                        }
+                    }
+                }
+            }
+
+            // 3. Actualizar fechas del contrato
+            if ($contrato) {
+                $contrato->actualizarProximaFechaPago();
+            }
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Pago anulado y comisiones actualizadas exitosamente.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al deshacer el pago: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function revertirComisiones($contrato_id)
+    {
+        $contrato = Contrato::findOrFail($contrato_id);
+        
+        // Obtener comisiones y sus parcialidades
+        $comisiones = $contrato->comisiones()
+            ->whereNull('comision_padre_id')
+            ->where('tipo_comision', 'NOT LIKE', 'Fija - %')
+            ->with(['parcialidades' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            }])
+            ->orderBy('orden', 'asc')
+            ->get();
+
+        $saldoDisponible = $contrato->saldo_disponible_para_comisiones_tradicionales;
+        $totalPagado = $contrato->comisiones()
+            ->where('tipo_comision', 'PARCIALIDAD')
+            ->where('estado', 'Pagada')
+            ->sum('monto');
+            
+        $diferencia = $totalPagado - $saldoDisponible;
+
+        return view('pago.revertir_comisiones', compact('contrato', 'comisiones', 'saldoDisponible', 'totalPagado', 'diferencia'));
+    }
+
+    public function procesarReversionComisiones(Request $request, $contrato_id)
+    {
+        $request->validate([
+            'parcialidad_id' => 'required|exists:comisiones,id',
+            'monto' => 'required|numeric|min:0'
+        ]);
+
+        $parcialidad = \App\Models\Comisione::where('id', $request->parcialidad_id)
+            ->where('contrato_id', $contrato_id)
+            ->where('tipo_comision', 'PARCIALIDAD')
+            ->firstOrFail();
+
+        $nuevoMonto = $request->monto;
+
+        if ($nuevoMonto == 0) {
+            $padreId = $parcialidad->comision_padre_id;
+            $parcialidad->delete();
+        } else {
+            $padreId = $parcialidad->comision_padre_id;
+            $parcialidad->update(['monto' => $nuevoMonto]);
+        }
+
+        // Actualizar el estado de la comisión padre
+        if ($padreId) {
+            $comisionPadre = \App\Models\Comisione::find($padreId);
+            if ($comisionPadre) {
+                $totalPagado = $comisionPadre->parcialidades()->sum('monto');
+                if (bccomp($totalPagado, $comisionPadre->monto, 2) < 0) {
+                    $comisionPadre->update(['estado' => 'Pendiente']);
+                } else {
+                    $comisionPadre->update(['estado' => 'Pagada']);
+                }
+            }
+        }
+
+        return redirect()->back()->with('success', 'Parcialidad actualizada correctamente.');
     }
 
     /**

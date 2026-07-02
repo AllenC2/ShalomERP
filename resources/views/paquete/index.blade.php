@@ -20,6 +20,9 @@
                         </div>
                     </div>
                     <div class="header-actions">
+                        <button type="button" class="btn me-2" data-bs-toggle="modal" data-bs-target="#prioridadesModal" style="background: white; color: #6c757d; border: 2px solid #e2e8f0;">
+                            <i class="bi bi-sort-down me-2"></i>{{ __('Configurar Prioridades') }}
+                        </button>
                         <a href="{{ route('paquetes.create') }}" class="btn">
                             <i class="bi bi-plus-lg me-2"></i>{{ __('Crear Nuevo') }}
                         </a>
@@ -93,7 +96,7 @@
                                                         
                                                         @if($paquete->porcentajes && $paquete->porcentajes->count() > 0)
                                                             <div class="porcentajes-container">
-                                                                @foreach($paquete->porcentajes as $porcentaje)
+                                                                @foreach($paquete->porcentajes->sortBy('orden') as $porcentaje)
                                                                     <div class="porcentaje-item mb-2 p-2 rounded shadow-sm" 
                                                                         style="background: white; border-left: 3px solid {{ $porcentaje->tipo_porcentaje == 'vendedor' ? '#2196f3' : ($porcentaje->tipo_porcentaje == 'supervisor' ? '#ff9800' : 'linear-gradient(135deg, #E1B240 0%, #79481D 100%)') }};">
                                                                         <div class="d-flex justify-content-between align-items-center">
@@ -149,6 +152,49 @@
                     <div class="mt-4">
                         {!! $paquetes->withQueryString()->links() !!}
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Prioridades Globales -->
+    <div class="modal fade" id="prioridadesModal" tabindex="-1" aria-labelledby="prioridadesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="prioridadesModalLabel"><i class="bi bi-sort-down-alt me-2 text-primary"></i>Prioridad de Comisiones en General</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-4">
+                        Arrastra los tipos de comisión para establecer el orden de prioridad para <strong>todos los paquetes</strong> al mismo tiempo. Los paquetes que no tengan configurado alguno de estos porcentajes simplemente lo ignorarán y seguirán con el siguiente en la lista.
+                    </p>
+                    <form id="formPrioridadesGlobales" action="{{ route('paquetes.actualizar_prioridades') }}" method="POST">
+                        @csrf
+                        <div id="lista-prioridades-globales" class="list-group">
+                            @if(isset($tiposPorcentajeUnicos) && $tiposPorcentajeUnicos->count() > 0)
+                                @foreach($tiposPorcentajeUnicos as $tipo)
+                                    <div class="list-group-item d-flex align-items-center bg-light border mb-2 rounded shadow-sm" style="cursor: grab;">
+                                        <i class="bi bi-grip-vertical text-muted me-3 fs-5 drag-handle"></i>
+                                        <div class="fw-semibold text-dark">{{ strtoupper($tipo) }}</div>
+                                        <input type="hidden" name="tipos_porcentaje[]" value="{{ $tipo }}">
+                                    </div>
+                                @endforeach
+                            @else
+                                <div class="text-center py-4">
+                                    <span class="text-muted">No hay tipos de comisión registrados en los paquetes actuales.</span>
+                                </div>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    @if(isset($tiposPorcentajeUnicos) && $tiposPorcentajeUnicos->count() > 0)
+                        <button type="submit" form="formPrioridadesGlobales" class="btn text-white px-4" style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border: none;">
+                            <i class="bi bi-save me-2"></i>Cambiar Prioridades para Todos
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -220,4 +266,26 @@
         box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
     }
 </style>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const el = document.getElementById('lista-prioridades-globales');
+        if (el && typeof Sortable !== 'undefined') {
+            new Sortable(el, {
+                animation: 150,
+                ghostClass: 'bg-white',
+                handle: '.drag-handle',
+                onStart: function (evt) {
+                    evt.item.style.opacity = '0.7';
+                },
+                onEnd: function (evt) {
+                    evt.item.style.opacity = '1';
+                }
+            });
+        }
+    });
+</script>
+@endpush
 @endsection

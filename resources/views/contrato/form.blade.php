@@ -60,16 +60,21 @@
 
                     <div class="form-group">
                         <label for="paquete_id" class="form-label">Paquete</label>
-                        <select name="paquete_id" class="form-control @error('paquete_id') is-invalid @enderror"
-                            id="paquete_id" required>
-                            <option value="">Seleccionar paquete</option>
-                            @foreach ($paquetes as $id => $name)
-                                <option value="{{ $id }}" {{ old('paquete_id', $contrato?->paquete_id) == $id ? 'selected' : '' }}>
-                                    {{ $name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('paquete_id')<div class="error-text">{{ $message }}</div>@enderror
+                        @if(isset($contrato) && $contrato->exists)
+                            <input type="text" class="form-control bg-light text-muted" value="{{ $paquetes[$contrato->paquete_id] ?? 'N/A' }}" readonly style="cursor: not-allowed;" onclick="mostrarModalPaqueteBloqueado()">
+                            <input type="hidden" name="paquete_id" value="{{ $contrato->paquete_id }}">
+                        @else
+                            <select name="paquete_id" class="form-control @error('paquete_id') is-invalid @enderror"
+                                id="paquete_id" required>
+                                <option value="">Seleccionar paquete</option>
+                                @foreach ($paquetes as $id => $name)
+                                    <option value="{{ $id }}" {{ old('paquete_id', $contrato?->paquete_id) == $id ? 'selected' : '' }}>
+                                        {{ $name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('paquete_id')<div class="error-text">{{ $message }}</div>@enderror
+                        @endif
                     </div>
 
                     <div class="form-row">
@@ -473,6 +478,45 @@
     </div>
 </div>
 </div>
+
+@if(isset($contrato) && $contrato->exists)
+<!-- Modal para paquete bloqueado -->
+<div class="modal fade" id="paqueteBloqueadoModal" tabindex="-1" aria-labelledby="paqueteBloqueadoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title" id="paqueteBloqueadoModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Cambio de Paquete No Permitido
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="bi bi-shield-lock text-warning" style="font-size: 3rem;"></i>
+                </div>
+                <h6 class="fw-bold mb-3">No es posible cambiar el paquete de un contrato existente.</h6>
+                <p class="text-muted mb-3">Modificar el paquete puede corromper los datos financieros, el historial de pagos y las comisiones ya generadas.</p>
+                <div class="p-3 bg-light rounded text-start">
+                    <p class="mb-0 text-dark"><i class="bi bi-lightbulb text-primary me-2"></i><strong>Sugerencia:</strong> Si el cliente requiere un paquete diferente, debe cancelar o finalizar este contrato y crear uno <strong>nuevo</strong>.</p>
+                </div>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function mostrarModalPaqueteBloqueado() {
+    const modalEl = document.getElementById('paqueteBloqueadoModal');
+    if(modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+</script>
+@endif
 
 <script>
     function calcularPagos() {
@@ -1473,27 +1517,22 @@
 
     /* Comisiones minimalistas con layout mejorado */
     #comisiones_container {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
     }
 
     #comisiones_container .form-group {
         background: #f6f8fa;
         border: 1px solid #d1d9e0;
         border-radius: 6px;
-        padding: 16px;
+        padding: 12px 16px;
         margin-bottom: 0;
-        /* Remove margin as grid gap handles spacing */
         display: flex;
-        flex-direction: column;
-        /* Stack vertically in the grid cell */
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        height: 100%;
-        /* Ensure equal height */
+        gap: 16px;
     }
 
     /* Estilos para el acordeón */
@@ -1596,24 +1635,7 @@
         width: 100%;
     }
 
-    /* Responsive para comisiones */
-    @media (max-width: 992px) {
-        #comisiones_container {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
 
-    @media (max-width: 576px) {
-        #comisiones_container {
-            grid-template-columns: 1fr;
-        }
-
-        #comisiones_container .form-group {
-            flex-direction: row;
-            /* Keep row layout on mobile but stacked in grid */
-            align-items: center;
-        }
-    }
 
     /* Estilos para el select con búsqueda */
     .searchable-select-container {
@@ -1853,7 +1875,7 @@
                 container.innerHTML = '';
 
                 if (data.porcentajes.length > 0) {
-                    data.porcentajes.forEach(porcentaje => {
+                    data.porcentajes.forEach((porcentaje, index) => {
                         const div = document.createElement('div');
                         div.className = 'form-group';
 
@@ -1863,11 +1885,16 @@
                             comisionExistente[porcentaje.tipo_porcentaje].empleado_id : '';
 
                         div.innerHTML = `
-                            <div class="comision-info">
-                                <div class="comision-title">${porcentaje.tipo_porcentaje}</div>
-                                <div class="comision-percentage">${porcentaje.cantidad_porcentaje}% de comisión</div>
+                            <div class="d-flex align-items-center flex-grow-1">
+                                <div class="me-3 d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle fw-bold shadow-sm" style="min-width: 28px; height: 28px; font-size: 0.85rem;">
+                                    ${porcentaje.orden || (index + 1)}
+                                </div>
+                                <div class="comision-info">
+                                    <div class="comision-title">${porcentaje.tipo_porcentaje}</div>
+                                    <div class="comision-percentage">${porcentaje.modo_comision === 'monto' ? '$' + parseFloat(porcentaje.monto_fijo).toFixed(2) : porcentaje.cantidad_porcentaje + '% de comisión'}</div>
+                                </div>
                             </div>
-                            <div class="comision-select-container">
+                            <div class="comision-select-container" style="min-width: 250px;">
                                 <select name="comisiones[${porcentaje.id}]" class="form-control" id="comision_${porcentaje.id}" required>
                                     <option value="">Asignar</option>
                                     ${Object.entries(data.empleados).map(([id, nombre]) =>

@@ -10,7 +10,8 @@ class Visita extends Model
         'contrato_id',
         'user_id',
         'comentarios',
-        'ubicacion_evidencia'
+        'ubicacion_evidencia',
+        'adeudo_momento'
     ];
 
     /**

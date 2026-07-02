@@ -285,9 +285,9 @@
                         <a href="{{ url()->previous() }}" class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-arrow-left me-1"></i> Regresar
                         </a>
-                        <button class="btn btn-secondary" onclick="window.print()">
-                            <i class="fas fa-print me-1"></i> Imprimir Ticket
-                        </button>
+                        <a href="{{ route('pagos.ticket', $pago->id) }}" target="_blank" class="btn btn-secondary">
+                            <i class="bi bi-printer me-1"></i>Imprimir Ticket
+                        </a>
                     </div>
 
                     <!-- Panel de Cliente -->
@@ -442,7 +442,7 @@
                         @endif
 
                         <!-- Acciones Peligrosas -->
-                        @if(strtolower($pago->estado) === 'hecho')
+                        @if(strtolower($pago->estado) === 'hecho' && !in_array(strtolower($pago->tipo_pago), ['inicial', 'bonificacion', 'bonificación']))
                             <div class="card border border-seconda ry shadow-sm mb-3">
                                 <div class="card-body">
                                     <h6 class="text-warning fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>Correcciones
@@ -516,6 +516,18 @@
                                         <div class="fw-bold text-danger" id="nuevoSaldo"></div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-check form-switch p-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded d-flex align-items-center">
+                                <input class="form-check-input flex-shrink-0 ms-0 me-3" type="checkbox" id="revertirComisiones" checked style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                                <label class="form-check-label mb-0" for="revertirComisiones" style="cursor: pointer;">
+                                    <strong>Revertir Comisiones Automáticamente</strong>
+                                    <div class="text-muted small mt-1">
+                                        Restará este monto de las comisiones repartidas siguiendo el orden inverso de prioridad (no afectará las comisiones "Fijas").
+                                    </div>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -1083,7 +1095,10 @@
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                                 'Accept': 'application/json'
-                            }
+                            },
+                            body: JSON.stringify({
+                                revertir_comisiones: document.getElementById('revertirComisiones').checked
+                            })
                         })
                             .then(response => {
                                 if (!response.ok) {

@@ -563,7 +563,7 @@
                 </button>
                 
                 @if($comisione->tipo_comision === 'PARCIALIDAD')
-                    <button onclick="confirmarEliminacionParcialidad({{ $comisione->id }})" class="btn btn-danger btn-lg px-4 py-2">
+                    <button onclick="confirmarEliminacionParcialidad({{ $comisione->id }})" class="btn btn-danger btn-lg px-4 py-2 d-none">
                         <i class="bi bi-trash me-2"></i>
                         Eliminar Parcialidad
                     </button>

@@ -115,13 +115,14 @@
                                                 <h6 class="text-muted text-center small fw-bold mb-3 text-uppercase">Resumen
                                                     Financiero</h6>
 
-                                                <div class="row g-2 mb-3 text-center">
-                                                    @foreach($paquete->porcentajes as $porcentaje)
-                                                        <div class="col-6 mb-1">
-                                                            <div class="p-1 bg-secondary bg-opacity-10 rounded">
-                                                                <small class="text-muted d-block"
-                                                                    style="font-size: 0.7em;">{{ ucfirst($porcentaje->tipo_porcentaje) }}</small>
-                                                                <span class="fw-bold" style="font-size: 0.9em;">
+                                                <div class="row g-2 mb-3">
+                                                    @foreach($paquete->porcentajes->sortBy('orden') as $porcentaje)
+                                                        <div class="col-12 mb-1">
+                                                            <div class="p-2 bg-secondary bg-opacity-10 rounded d-flex justify-content-between align-items-center">
+                                                                <span class="text-muted fw-semibold" style="font-size: 0.8em;">
+                                                                    {{ ucfirst($porcentaje->tipo_porcentaje) }}
+                                                                </span>
+                                                                <span class="fw-bold text-dark" style="font-size: 0.9em;">
                                                                     @if($porcentaje->modo_comision === 'monto')
                                                                         ${{ number_format($porcentaje->monto_fijo, 2) }}
                                                                     @else

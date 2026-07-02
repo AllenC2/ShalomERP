@@ -53,7 +53,7 @@
                         </button>
                     </div>
                     
-                    <div id="porcentajes-container" class="form-row">
+                    <div id="porcentajes-container" class="porcentajes-list">
                         @php
                             $porcentajesOld = old('porcentajes');
                             if ($porcentajesOld) {
@@ -65,40 +65,50 @@
                         @endphp
 
                         @if($porcentajesData->count() > 0)
-                            @foreach($porcentajesData as $index => $porcentaje)
+                            @foreach($porcentajesData->sortBy('orden') as $index => $porcentaje)
                                 <div class="porcentaje-row">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                        <span class="badge bg-secondary priority-badge">Prioridad {{ $loop->iteration }}</span>
+                                        <i class="fas fa-grip-vertical drag-handle text-muted" style="cursor: grab; font-size: 1.2rem;"></i>
+                                    </div>
                                     <div class="porcentaje-content">
-                                        <div class="form-group">
-                                            <label class="form-label">Tipo de Comisión</label>
-                                            <input type="text" name="porcentajes[{{ $index }}][tipo_porcentaje]" 
-                                                   class="form-control @error('porcentajes.'.$index.'.tipo_porcentaje') is-invalid @enderror" 
-                                                   value="{{ $porcentaje->tipo_porcentaje }}" 
-                                                   placeholder="Ej: Vendedor, Supervisor, etc.">
-                                            @error('porcentajes.'.$index.'.tipo_porcentaje')<div class="error-text">{{ $message }}</div>@enderror
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label class="form-label">Cantidad</label>
-                                            <div class="input-group">
-                                                <input type="hidden" name="porcentajes[{{ $index }}][modo_comision]" class="modo-comision-input" value="{{ $porcentaje->modo_comision ?? 'porcentaje' }}">
-                                                <button type="button" class="btn btn-outline-secondary toggle-modo-btn" title="Click para cambiar entre % y $">
-                                                    <i class="fas {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'porcentaje') ? 'fa-percentage' : 'fa-dollar-sign' }}"></i>
-                                                </button>
-                                                
-                                                {{-- Input de Porcentaje --}}
-                                                <input type="number" step="0.01" name="porcentajes[{{ $index }}][cantidad_porcentaje]" 
-                                                       class="form-control valor-porcentaje-input {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'monto') ? 'd-none' : '' }}" 
-                                                       value="{{ $porcentaje->cantidad_porcentaje ?? '' }}" 
-                                                       placeholder="0.00 %" min="0" max="100">
-                                                
-                                                {{-- Input de Monto Fijo --}}
-                                                <input type="number" step="0.01" name="porcentajes[{{ $index }}][monto_fijo]" 
-                                                       class="form-control valor-monto-input {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'porcentaje') ? 'd-none' : '' }}" 
-                                                       value="{{ $porcentaje->monto_fijo ?? '' }}" 
-                                                       placeholder="$ 0.00">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label class="form-label">Tipo de Comisión</label>
+                                                    <input type="text" name="porcentajes[{{ $index }}][tipo_porcentaje]" 
+                                                           class="form-control @error('porcentajes.'.$index.'.tipo_porcentaje') is-invalid @enderror" 
+                                                           value="{{ $porcentaje->tipo_porcentaje }}" 
+                                                           placeholder="Ej: Vendedor, Supervisor, etc.">
+                                                    @error('porcentajes.'.$index.'.tipo_porcentaje')<div class="error-text">{{ $message }}</div>@enderror
+                                                </div>
                                             </div>
-                                            @error('porcentajes.'.$index.'.cantidad_porcentaje')<div class="error-text">{{ $message }}</div>@enderror
-                                            @error('porcentajes.'.$index.'.monto_fijo')<div class="error-text">{{ $message }}</div>@enderror
+
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label class="form-label">Cantidad</label>
+                                                    <div class="input-group">
+                                                        <input type="hidden" name="porcentajes[{{ $index }}][modo_comision]" class="modo-comision-input" value="{{ $porcentaje->modo_comision ?? 'porcentaje' }}">
+                                                        <button type="button" class="btn btn-outline-secondary toggle-modo-btn" title="Click para cambiar entre % y $">
+                                                            <i class="fas {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'porcentaje') ? 'fa-percentage' : 'fa-dollar-sign' }}"></i>
+                                                        </button>
+                                                        
+                                                        {{-- Input de Porcentaje --}}
+                                                        <input type="number" step="0.01" name="porcentajes[{{ $index }}][cantidad_porcentaje]" 
+                                                               class="form-control valor-porcentaje-input {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'monto') ? 'd-none' : '' }}" 
+                                                               value="{{ $porcentaje->cantidad_porcentaje ?? '' }}" 
+                                                               placeholder="0.00 %" min="0" max="100">
+                                                        
+                                                        {{-- Input de Monto Fijo --}}
+                                                        <input type="number" step="0.01" name="porcentajes[{{ $index }}][monto_fijo]" 
+                                                               class="form-control valor-monto-input {{ (($porcentaje->modo_comision ?? 'porcentaje') == 'porcentaje') ? 'd-none' : '' }}" 
+                                                               value="{{ $porcentaje->monto_fijo ?? '' }}" 
+                                                               placeholder="$ 0.00">
+                                                    </div>
+                                                    @error('porcentajes.'.$index.'.cantidad_porcentaje')<div class="error-text">{{ $message }}</div>@enderror
+                                                    @error('porcentajes.'.$index.'.monto_fijo')<div class="error-text">{{ $message }}</div>@enderror
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div class="form-group">
@@ -229,23 +239,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const newRow = document.createElement('div');
         newRow.className = 'porcentaje-row';
         newRow.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <span class="badge bg-secondary priority-badge">Prioridad ${document.querySelectorAll('.porcentaje-row').length + 1}</span>
+                <i class="fas fa-grip-vertical drag-handle text-muted" style="cursor: grab; font-size: 1.2rem;"></i>
+            </div>
             <div class="porcentaje-content">
-                <div class="form-group">
-                    <label class="form-label">Tipo de Comisión</label>
-                    <input type="text" name="porcentajes[${porcentajeIndex}][tipo_porcentaje]" 
-                           class="form-control" placeholder="Ej: Vendedor, Supervisor, etc.">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Monto</label>
-                    <div class="input-group">
-                        <input type="hidden" name="porcentajes[${porcentajeIndex}][modo_comision]" class="modo-comision-input" value="porcentaje">
-                        <button type="button" class="btn btn-outline-secondary toggle-modo-btn" title="Click para cambiar entre % y $">
-                            <i class="fas fa-percentage"></i>
-                        </button>
-                        <input type="number" step="0.01" name="porcentajes[${porcentajeIndex}][cantidad_porcentaje]" 
-                               class="form-control valor-porcentaje-input" placeholder="0.00" min="0" max="100">
-                        <input type="number" step="0.01" name="porcentajes[${porcentajeIndex}][monto_fijo]" 
-                               class="form-control valor-monto-input d-none" placeholder="0.00">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Tipo de Comisión</label>
+                            <input type="text" name="porcentajes[${porcentajeIndex}][tipo_porcentaje]" 
+                                   class="form-control" placeholder="Ej: Vendedor, Supervisor, etc.">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Monto</label>
+                            <div class="input-group">
+                                <input type="hidden" name="porcentajes[${porcentajeIndex}][modo_comision]" class="modo-comision-input" value="porcentaje">
+                                <button type="button" class="btn btn-outline-secondary toggle-modo-btn" title="Click para cambiar entre % y $">
+                                    <i class="fas fa-percentage"></i>
+                                </button>
+                                <input type="number" step="0.01" name="porcentajes[${porcentajeIndex}][cantidad_porcentaje]" 
+                                       class="form-control valor-porcentaje-input" placeholder="0.00" min="0" max="100">
+                                <input type="number" step="0.01" name="porcentajes[${porcentajeIndex}][monto_fijo]" 
+                                       class="form-control valor-monto-input d-none" placeholder="0.00">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -320,6 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 row.remove();
                 actualizarMontoRestante();
+                actualizarIndices();
                 
                 // Si no quedan porcentajes, mostrar el estado vacío
                 if (container.children.length === 0) {
@@ -408,6 +429,50 @@ function formatearMoneda(valor) {
     return '$' + parseFloat(valor).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
+    });
+}
+
+// Añadir CDN de SortableJS
+if (!window.Sortable) {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js';
+    script.onload = function() {
+        initSortable();
+    };
+    document.head.appendChild(script);
+} else {
+    initSortable();
+}
+
+function initSortable() {
+    const container = document.getElementById('porcentajes-container');
+    if (container) {
+        new Sortable(container, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                actualizarIndices();
+            }
+        });
+    }
+}
+
+function actualizarIndices() {
+    const rows = document.querySelectorAll('.porcentaje-row');
+    rows.forEach((row, index) => {
+        // Actualizar nombres de inputs
+        row.querySelectorAll('input, select').forEach(input => {
+            const name = input.getAttribute('name');
+            if (name) {
+                input.setAttribute('name', name.replace(/porcentajes\[\d+\]/, `porcentajes[${index}]`));
+            }
+        });
+        // Actualizar badge visual de prioridad
+        const priorityBadge = row.querySelector('.priority-badge');
+        if (priorityBadge) {
+            priorityBadge.textContent = 'Prioridad ' + (index + 1);
+        }
     });
 }
 </script>
@@ -766,5 +831,10 @@ function formatearMoneda(valor) {
 
     .porcentaje-row {
         animation: slideIn 0.3s ease;
+    }
+    
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #f0f0f0;
     }
 </style>

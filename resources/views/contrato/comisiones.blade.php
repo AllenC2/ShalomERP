@@ -30,7 +30,7 @@
                     <!-- Gráficos de análisis de comisiones -->
                     <div class="row mb-4">
                         <!-- Tarjeta combinada: Resumen del Contrato y Estado de Comisiones -->
-                        <div class="col-md-8">
+                        <div class="col-md-12">
                             <div class="card bg-white border-0 shadow-sm modern-card">
                                 <div class="card-body">
                                     <div class="row">
@@ -75,27 +75,63 @@
                                                                 </small>
                                                             </div>
 
-                                                            <!-- Resumen financiero -->
-                                                            <div class="mt-3 p-2 bg-white bg-opacity-50 rounded border">
-                                                                <div class="row text-center">
-                                                                    <div class="col-12 mb-3">
-                                                                        <small class="text-muted fw-bold">Información del Contrato</small>
-                                                                    </div>
+                                                            <div class="row align-items-stretch mt-3">
+                                                                <div class="col-12 col-xl-6 mb-3 mb-xl-0">
+                                                                    <!-- Resumen financiero -->
+                                                                    <div class="p-2 bg-white bg-opacity-50 rounded border h-100">
+                                                                        <div class="row text-center">
+                                                                            <div class="col-12 mb-3">
+                                                                                <small class="text-muted fw-bold">Información del Contrato</small>
+                                                                            </div>
 
-                                                                    <!-- Primera fila: Fechas de inicio y fin -->
-                                                                    <div class="col-6 mb-2">
-                                                                        <small class="text-muted d-block">Fecha Inicio</small>
-                                                                        <small class="fw-bold text-primary">
-                                                                            {{ $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d M Y') : 'No definida' }}
-                                                                        </small>
-                                                                    </div>
-                                                                    <div class="col-6 mb-2">
-                                                                        <small class="text-muted d-block">Fecha Fin</small>
-                                                                        <small class="fw-bold text-primary">
-                                                                            {{ $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin)->translatedFormat('d M Y') : 'Indefinida' }}
-                                                                        </small>
+                                                                            <!-- Primera fila: Fechas de inicio y fin -->
+                                                                            <div class="col-6 mb-2">
+                                                                                <small class="text-muted d-block">Fecha Inicio</small>
+                                                                                <small class="fw-bold text-primary">
+                                                                                    {{ $contrato->fecha_inicio ? \Carbon\Carbon::parse($contrato->fecha_inicio)->translatedFormat('d M Y') : 'No definida' }}
+                                                                                </small>
+                                                                            </div>
+                                                                            <div class="col-6 mb-2">
+                                                                                <small class="text-muted d-block">Fecha Fin</small>
+                                                                                <small class="fw-bold text-primary">
+                                                                                    {{ $contrato->fecha_fin ? \Carbon\Carbon::parse($contrato->fecha_fin)->translatedFormat('d M Y') : 'Indefinida' }}
+                                                                                </small>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
+
+                                                                @if($contrato->paquete && $contrato->paquete->porcentajes->count() > 0)
+                                                                    <div class="col-12 col-xl-6">
+                                                                        <!-- Resumen de Comisiones del Paquete -->
+                                                                        <div class="p-2 bg-white bg-opacity-50 rounded border h-100">
+                                                                            <div class="row">
+                                                                                <div class="col-12 mb-2 text-center">
+                                                                                    <small class="text-muted fw-bold">Orden de Comisiones del Paquete</small>
+                                                                                </div>
+                                                                                <div class="col-12">
+                                                                                    <div class="d-flex flex-column gap-2">
+                                                                                        @foreach($contrato->paquete->porcentajes->sortBy('orden') as $porcentaje)
+                                                                                            <div class="d-flex align-items-center bg-light p-2 rounded border-start border-3" style="border-left-color: #79481D !important;">
+                                                                                                <div class="me-2 d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle fw-bold" style="width: 24px; height: 24px; font-size: 0.75rem;">
+                                                                                                    {{ $porcentaje->orden ?? $loop->iteration }}
+                                                                                                </div>
+                                                                                                <div class="flex-grow-1">
+                                                                                                    <span class="d-block text-dark fw-semibold" style="font-size: 0.85rem;">{{ ucfirst($porcentaje->tipo_porcentaje) }}</span>
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <span class="badge bg-secondary" style="font-size: 0.75rem;">
+                                                                                                        {{ $porcentaje->modo_comision === 'monto' ? '$' . number_format($porcentaje->monto_fijo, 2) : $porcentaje->cantidad_porcentaje . '%' }}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        @endforeach
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
                                                             </div>
 
                                                             @if($contrato->observaciones)
@@ -221,89 +257,6 @@
                             </div>
                         </div>
 
-                        <!-- Tarjeta 3: Form de Parcialidad pagada de la comision -->
-                        <div class="col-md-4">
-                            <div class="card bg-white border-0 shadow-sm modern-card">
-                                <div class="card-header border-0 bg-white d-flex justify-content-between align-items-center">
-                                    <h6 class="text-muted text-uppercase small fw-bold mt-2 mb-0">
-                                        <i class="bi bi-file-text me-2"></i>Pago de comisiones
-                                    </h6>
-                                    <span class="badge bg-primary">Saldo disponible: ${{ number_format($contrato->saldo_comisiones, 2) }}</span>
-                                </div>
-                                <div class="card-body">
-                                    @if($comisionesPadre->count() > 0)
-                                        <form id="formParcialidad">
-                                            @csrf
-                                            <!-- Selector de comisión padre y monto en la misma fila -->
-                                            <div class="row mb-3">
-                                                <div class="col-7">
-                                                    <label for="comision_padre_id" class="form-label">
-                                                        <small class="text-muted">Comisión</small>
-                                                    </label>
-                                                    <select class="form-select form-select-sm" id="comision_padre_id" name="comision_padre_id" required>
-                                                        <option value="">Seleccionar comisión...</option>
-                                                        @foreach($comisionesPadre as $comisionPadre)
-                                                            @php
-                                                                $totalParcialidades = $comisionPadre->parcialidades->sum('monto');
-                                                                $montoRestante = $comisionPadre->monto - $totalParcialidades;
-                                                            @endphp
-                                                            @if($montoRestante > 0)
-                                                                <option value="{{ $comisionPadre->id }}"
-                                                                        data-monto-restante="{{ $comisionPadre->monto }}"
-                                                                        data-empleado="{{ $comisionPadre->empleado->nombre ?? 'N/A' }} {{ $comisionPadre->empleado->apellido ?? '' }}">
-                                                                    {{ strtoupper($comisionPadre->tipo_comision) }} - {{ $comisionPadre->empleado->nombre ?? 'N/A' }}
-                                                                    (Total: ${{ number_format($comisionPadre->monto, 2) }})
-                                                                </option>
-                                                            @endif
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div class="col-5">
-                                                    <label for="monto" class="form-label">
-                                                        <small class="text-muted">Monto Parcialidad:</small>
-                                                    </label>
-                                                    <div class="input-group input-group-sm">
-                                                        <span class="input-group-text">$</span>
-                                                        <input type="number" class="form-control" id="monto" name="monto"
-                                                               step="0.01" min="0.01" max="{{ $contrato->saldo_comisiones }}" placeholder="0.00" required>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Información de la comisión seleccionada -->
-                                            <div id="infoComisionPadre" class="mb-3" style="display: none;">
-                                                    <small style="display: none;">
-                                                        <strong></strong> <span id="empleadoInfo"></span><br>
-                                                        <strong></strong> <span id="montoRestanteInfo"></span>
-                                                    </small>
-                                            </div>
-
-                                            <!-- Observaciones -->
-                                            <div class="mb-3">
-                                                <label for="observaciones" class="form-label">
-                                                    <small class="text-muted">Observaciones:</small>
-                                                </label>
-                                                <textarea class="form-control form-control-sm" id="observaciones" name="observaciones" 
-                                                          rows="2" placeholder="Observaciones adicionales (opcional)"></textarea>
-                                            </div>
-
-                                            <!-- Botón de envío -->
-                                            <div class="d-grid">
-                                                <button type="submit" class="btn btn-primary btn-sm" id="btnCrearParcialidad">
-                                                    <i class="bi bi-plus-circle me-1"></i>Registrar Parcialidad
-                                                </button>
-                                            </div>
-                                        </form>
-                                    @else
-                                        <div class="text-center py-3">
-                                            <i class="bi bi-exclamation-circle fs-2 text-muted mb-2"></i>
-                                            <p class="text-muted mb-0">No hay comisiones padre disponibles</p>
-                                            <small class="text-muted">Las parcialidades se crean desde comisiones principales</small>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     
                     <div class="table-responsive">
@@ -1551,7 +1504,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.comisionesRealTime = new ComisionesRealTime();
     initializeCharts();
     initializeTooltips();
-    initializeParcialidadForm();
     initializeCambiarEmpleadoModal();
 });
 
@@ -1626,93 +1578,6 @@ function initEstadosChart() {
     });
 }
 
-// Función para inicializar el formulario de parcialidades
-function initializeParcialidadForm() {
-    const formParcialidad = document.getElementById('formParcialidad');
-    const selectComisionPadre = document.getElementById('comision_padre_id');
-    const infoComisionPadre = document.getElementById('infoComisionPadre');
-    const empleadoInfo = document.getElementById('empleadoInfo');
-    const montoRestanteInfo = document.getElementById('montoRestanteInfo');
-    const inputMonto = document.getElementById('monto');
-
-    if (!formParcialidad) return;
-
-    // Manejar cambio en el selector de comisión padre
-    selectComisionPadre.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-
-        if (this.value) {
-            const montoRestante = parseFloat(selectedOption.getAttribute('data-monto-restante'));
-            const empleado = selectedOption.getAttribute('data-empleado');
-
-            empleadoInfo.textContent = empleado;
-            montoRestanteInfo.textContent = montoRestante.toLocaleString('es-ES', { minimumFractionDigits: 2 });
-
-            // Establecer el máximo para el input de monto con el saldo disponible global
-            inputMonto.setAttribute('max', saldoDisponible.toFixed(2));
-
-            // Establecer automáticamente el monto máximo restante exacto (limitado por saldo disponible)
-            const montoMaximo = Math.min(montoRestante, saldoDisponible);
-            inputMonto.value = montoMaximo.toFixed(2);
-
-            infoComisionPadre.style.display = 'block';
-        } else {
-            infoComisionPadre.style.display = 'none';
-            inputMonto.setAttribute('max', saldoDisponible.toFixed(2));
-            inputMonto.value = '';
-        }
-    });
-
-    // Manejar envío del formulario
-    formParcialidad.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const btnSubmit = document.getElementById('btnCrearParcialidad');
-        const originalText = btnSubmit.innerHTML;
-        
-        // Deshabilitar botón y mostrar loading
-        btnSubmit.disabled = true;
-        btnSubmit.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Creando...';
-        
-        fetch('{{ route("contratos.crearParcialidad") }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Mostrar mensaje de éxito
-                showNotification('Parcialidad creada exitosamente', 'success');
-                
-                // Limpiar formulario
-                formParcialidad.reset();
-                infoComisionPadre.style.display = 'none';
-                inputMonto.removeAttribute('max');
-                
-                // Recargar la página para mostrar la nueva parcialidad
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                showNotification(data.message || 'Error al crear la parcialidad', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('Error al procesar la solicitud', 'error');
-        })
-        .finally(() => {
-            // Restaurar botón
-            btnSubmit.disabled = false;
-            btnSubmit.innerHTML = originalText;
-        });
-    });
-}
 
 // Función para mostrar notificaciones
 function showNotification(message, type = 'info') {

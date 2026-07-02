@@ -39,9 +39,20 @@ class ClienteController extends Controller
             }
         ]);
 
-        $clientes = $clientes->paginate();
+        $sort_by = $request->input('sort_by', 'created_at');
+        $sort_dir = $request->input('sort_dir', 'desc');
 
-        return view('cliente.index', compact('clientes'))
+        // Validar columnas para evitar SQL Injection
+        $columnasValidas = ['id', 'nombre', 'email', 'telefono', 'created_at'];
+        if (in_array($sort_by, $columnasValidas)) {
+            $clientes->orderBy($sort_by, $sort_dir === 'asc' ? 'asc' : 'desc');
+        } else {
+            $clientes->orderBy('created_at', 'desc');
+        }
+
+        $clientes = $clientes->paginate()->appends($request->all());
+
+        return view('cliente.index', compact('clientes', 'sort_by', 'sort_dir', 'busqueda'))
             ->with('i', ($request->input('page', 1) - 1) * $clientes->perPage());
     }
 

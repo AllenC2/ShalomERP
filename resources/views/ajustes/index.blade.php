@@ -243,6 +243,23 @@
                             </div>
                         </button>
                     </div>
+
+                    <div class="col-md-6">
+                        <button type="button" class="config-btn-card text-decoration-none" data-bs-toggle="modal"
+                            data-bs-target="#notasVersionModal">
+                            <div class="config-card-icon"
+                                style="background: linear-gradient(90deg, #10b981 0%, #059669 100%);">
+                                <i class="bi bi-journal-text"></i>
+                            </div>
+                            <div class="config-card-content">
+                                <h6 class="config-card-title">Notas de la versión</h6>
+                                <p class="config-card-subtitle">Últimas actualizaciones del sistema</p>
+                            </div>
+                            <div class="config-card-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -2868,3 +2885,38 @@
         });
     </script>
 @endsection
+<!-- Modal de Notas de la versión -->
+<div class="modal fade" id="notasVersionModal" tabindex="-1" aria-labelledby="notasVersionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-light border-bottom-0 py-4 px-5">
+                <h5 class="modal-title fw-bold text-dark" id="notasVersionModalLabel">
+                    <i class="bi bi-journal-text me-2 text-success"></i>Notas de la versión
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-5 pt-3">
+                <div class="mb-4">
+                    <span class="badge bg-success mb-3 fs-6">Última actualización: Junio 2026</span>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Prioridad de Comisiones:</strong> Se desarrolló un nuevo sistema de prioridades que ordena y automatiza la distribución del pago de comisiones cada vez que un cliente realiza un abono.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Reversión de Comisiones Automática:</strong> Se programó la función <em>Deshacer Pago</em> con la capacidad de revertir y descontar automáticamente las comisiones repartidas siguiendo el orden inverso de su prioridad.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Pestañas de Búsqueda:</strong> Se implementó un sistema de pestañas en el buscador del portal de empleados para filtrar rápidamente por folio, cliente o domicilio.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Optimización de Tickets:</strong> Se mejoró la claridad de la información en el ticket y se redujo el peso del archivo para agilizar su envío a las impresoras de bolsillo.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Aviso por WhatsApp:</strong> Se agregó un botón para notificar rápidamente por WhatsApp a los clientes cuando se les visita en su domicilio para realizar un cobro.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Reporte de Comisiones:</strong> Se mejoró el generador de reportes de comisiones incorporando un nuevo filtro para separar por tipo de comisión y por empleado.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corrección de Bonificaciones:</strong> Se solucionó un error que marcaba erróneamente los pagos de tipo <em>Bonificación</em> como si fueran un <em>Pago Inicial</em>.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Mejora en Filtros de Contratos:</strong> Se refinaron y optimizaron los filtros de búsqueda general dentro de la sección de Contratos.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Ordenamiento de Tablas:</strong> Se habilitó el ordenamiento de datos (ascendente/descendente) al hacer clic directamente en los títulos de las columnas para las tablas de Clientes y Empleados.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Ajuste de Interfaz de Comisiones:</strong> Se ajustó el diseño de la vista de Comisiones del Contrato para mostrar la información principal y la lista de prioridades lado a lado.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corrección de IDs:</strong> Se corrigió la tabla principal de Clientes para que su primera columna muestre el ID real de la base de datos en lugar de un contador numérico secuencial.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Restricción de Botones:</strong> Se ocultó por seguridad el botón de <em>Deshacer Pago</em> en pagos iniciales y bonificaciones, así como el botón de borrar en el recibo de parcialidades.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top-0 py-3 px-5">
+                <button type="button" class="btn btn-primary px-4 py-2" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>

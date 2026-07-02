@@ -258,6 +258,95 @@ class Contrato extends Model
     }
 
     /**
+     * Calcula el saldo disponible específicamente para comisiones tradicionales,
+     * excluyendo los pagos iniciales y las bonificaciones.
+     * 
+     * @return float
+     */
+    public function getSaldoDisponibleParaComisionesTradicionalesAttribute()
+    {
+        $dineroCuotas = $this->pagos()
+            ->where('estado', 'hecho')
+            ->whereNotIn('tipo_pago', ['bonificación', 'bonificacion', 'inicial'])
+            ->sum('monto');
+            
+        $comisionesTradicionalesPagadas = $this->comisiones()
+            ->with('parcialidades')
+            ->whereNull('comision_padre_id')
+            ->where('tipo_comision', 'NOT LIKE', 'Fija - %')
+            ->get()
+            ->sum(function($comision) {
+                if (strtolower($comision->estado) === 'pagada') {
+                    return $comision->monto;
+                }
+                return $comision->parcialidades->where('estado', 'Pagada')->sum('monto');
+            });
+            
+        return max(0, $dineroCuotas - $comisionesTradicionalesPagadas);
+    }
+
+    /**
+     * Distribuye el saldo disponible en comisiones tradicionales de forma automática,
+     * respetando el orden de prioridad.
+     */
+    public function distribuirComisiones()
+    {
+        $saldoDisponible = $this->saldo_disponible_para_comisiones_tradicionales;
+        
+        if ($saldoDisponible <= 0.009) {
+            return;
+        }
+
+        // Obtener comisiones tradicionales pendientes ordenadas por prioridad (orden)
+        $comisionesPendientes = $this->comisiones()
+            ->whereNull('comision_padre_id')
+            ->where('tipo_comision', 'NOT LIKE', 'Fija - %')
+            ->where('estado', '!=', 'Pagada')
+            ->orderBy('orden', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        foreach ($comisionesPendientes as $comision) {
+            if ($saldoDisponible <= 0.009) {
+                break;
+            }
+
+            $totalParcialidades = $comision->parcialidades()->where('estado', 'Pagada')->sum('monto');
+            $montoFaltante = $comision->monto - $totalParcialidades;
+
+            if ($montoFaltante > 0.009) {
+                $montoAPagar = min($saldoDisponible, $montoFaltante);
+
+                // Crear parcialidad
+                \App\Models\Comisione::create([
+                    'contrato_id' => $comision->contrato_id,
+                    'empleado_id' => $comision->empleado_id,
+                    'comision_padre_id' => $comision->id,
+                    'fecha_comision' => now(),
+                    'nombre_paquete' => $comision->nombre_paquete,
+                    'porcentaje' => 0,
+                    'tipo_comision' => 'PARCIALIDAD',
+                    'monto' => $montoAPagar,
+                    'observaciones' => 'Pago automático de comisión',
+                    'estado' => 'Pagada',
+                    'orden' => $comision->orden
+                ]);
+
+                $saldoDisponible -= $montoAPagar;
+
+                // Si se paga completo (usando bccomp para precisión de 2 decimales)
+                $nuevoMontoFaltante = $montoFaltante - $montoAPagar;
+                if (bccomp($nuevoMontoFaltante, 0, 2) <= 0) {
+                    $comision->update([
+                        'estado' => 'Pagada',
+                        'fecha_comision' => now()
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
      * Calcula la siguiente cuota a pagar basada en el progreso del contrato
      * 
      * @return object|null Retorna un objeto similar a Pago con los datos calculados o null si el contrato está finalizado

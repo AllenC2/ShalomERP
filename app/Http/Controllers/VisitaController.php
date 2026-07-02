@@ -15,14 +15,17 @@ class VisitaController extends Controller
         $request->validate([
             'contrato_id' => 'required|exists:contratos,id',
             'user_id' => 'required|exists:users,id',
-            'comentarios' => 'required|string',
-            'ubicacion_evidencia' => 'nullable|string',
+            'comentarios' => 'nullable|string',
+            'ubicacion_evidencia' => 'required|string',
         ]);
+
+        $contrato = \App\Models\Contrato::findOrFail($request->contrato_id);
 
         $visita = new Visita();
         $visita->contrato_id = $request->contrato_id;
         $visita->user_id = $request->user_id;
         $visita->comentarios = $request->comentarios;
+        $visita->adeudo_momento = $contrato->saldo_pendiente;
         
         if ($request->ubicacion_evidencia) {
             // Usar DB::raw para el punto geográfico si se envía (formato POINT(lng lat))

@@ -52,9 +52,36 @@
                                 <table class="table table-hover align-middle mb-0 modern-table">
                                     <thead class="modern-header">
                                         <tr>
-                                            <th scope="col" class="ps-4">ID</th>
-                                            <th scope="col">Empleado</th>
-                                            <th scope="col">Información de Contacto</th>
+                                            <th scope="col" class="ps-4">
+                                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'id', 'sort_dir' => (!isset($sort_by) || $sort_by == 'id') && (!isset($sort_dir) || $sort_dir == 'asc') ? 'desc' : 'asc']) }}" class="text-decoration-none text-dark d-flex align-items-center">
+                                                    ID
+                                                    @if((isset($sort_by) && $sort_by == 'id') || !isset($sort_by))
+                                                        <i class="bi bi-sort-numeric-{{ (isset($sort_dir) && $sort_dir == 'asc') ? 'down' : 'up-alt' }} ms-1"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up ms-1 text-muted opacity-50" style="font-size: 0.8em;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th scope="col">
+                                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'nombre', 'sort_dir' => (isset($sort_by) && $sort_by == 'nombre' && isset($sort_dir) && $sort_dir == 'asc') ? 'desc' : 'asc']) }}" class="text-decoration-none text-dark d-flex align-items-center">
+                                                    Empleado
+                                                    @if(isset($sort_by) && $sort_by == 'nombre')
+                                                        <i class="bi bi-sort-alpha-{{ $sort_dir == 'asc' ? 'down' : 'up-alt' }} ms-1"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up ms-1 text-muted opacity-50" style="font-size: 0.8em;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th scope="col">
+                                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => 'telefono', 'sort_dir' => (isset($sort_by) && $sort_by == 'telefono' && isset($sort_dir) && $sort_dir == 'asc') ? 'desc' : 'asc']) }}" class="text-decoration-none text-dark d-flex align-items-center">
+                                                    Información de Contacto
+                                                    @if(isset($sort_by) && $sort_by == 'telefono')
+                                                        <i class="bi bi-sort-numeric-{{ $sort_dir == 'asc' ? 'down' : 'up-alt' }} ms-1"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up ms-1 text-muted opacity-50" style="font-size: 0.8em;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
                                             <th scope="col">Estado</th>
                                             <th scope="col" class="pe-4">Comisiones</th>
                                         </tr>

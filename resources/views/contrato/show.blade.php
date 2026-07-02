@@ -406,6 +406,8 @@
                                                                     </div>
                                                                 </div>
                                                             </div>
+
+
                                                         </div>
                                                     </div>
                                                 </div>
@@ -766,6 +768,70 @@
                                         </div>
                                     </div>
                                 @endif
+                            </div>
+                        @endif
+
+                        
+                        @if(Auth::check() && Auth::user()->role === 'empleado')
+                            <!-- Tarjeta de Registro de Visitas para Empleados -->
+                            <div class="card mb-4">
+                                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0"><i class="bi bi-geo-alt me-2" style="color: #79481D;"></i>Registro de Visitas</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-end mb-3">
+                                        <button type="button" class="btn btn-primary shadow-sm" style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important; border: none !important;" onclick="registrarVisitaConUbicacion()">
+                                            <i class="bi bi-whatsapp me-1"></i> Registrar Visita y Enviar Aviso
+                                        </button>
+                                    </div>
+                                    
+                                    <form id="form-registro-visita" action="{{ route('visitas.store') }}" method="POST" style="display: none;">
+                                        @csrf
+                                        <input type="hidden" name="contrato_id" value="{{ $contrato->id }}">
+                                        <input type="hidden" name="user_id" value="{{ Auth::id() }}">
+                                        <input type="hidden" name="ubicacion_evidencia" id="input_ubicacion_evidencia" value="">
+                                        <input type="hidden" name="comentarios" value="Visita registrada desde vista de contrato">
+                                    </form>
+
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Contrato</th>
+                                                    <th>Fecha</th>
+                                                    <th>Hora</th>
+                                                    <th>Locación</th>
+                                                    <th>Usuario</th>
+                                                    <th>Adeudo Momento</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @forelse($visitas as $visita)
+                                                    <tr>
+                                                        <td>#{{ $visita->contrato_id }}</td>
+                                                        <td>{{ $visita->created_at->format('d/m/Y') }}</td>
+                                                        <td>{{ $visita->created_at->format('H:i') }}</td>
+                                                        <td>
+                                                            @if($visita->coordinates)
+                                                                <a href="https://maps.google.com/?q={{ $visita->coordinates['lat'] }},{{ $visita->coordinates['lng'] }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                                    <i class="bi bi-map"></i> Ver Mapa
+                                                                </a>
+                                                            @else
+                                                                N/A
+                                                            @endif
+                                                        </td>
+                                                        <td>{{ $visita->user->name ?? 'N/A' }}</td>
+                                                        <td>${{ number_format($visita->adeudo_momento, 2) }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="6" class="text-center text-muted">No hay visitas registradas</td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         @endif
 
@@ -3164,6 +3230,74 @@
                     }
                 }
             });
+        
+        // Logica para Registrar Visita y WhatsApp
+        window.registrarVisitaConUbicacion = function() {
+            if (!navigator.geolocation) {
+                alert("Tu navegador no soporta geolocalización. Es necesario para registrar la visita.");
+                return;
+            }
+
+            // Show a loading indicator if desired, or just wait for location
+            alert("Por favor, permite el acceso a tu ubicación. La visita no se registrará sin ella.");
+
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                // Formato WKT POINT(lng lat)
+                document.getElementById('input_ubicacion_evidencia').value = `POINT(${lng} ${lat})`;
+
+                // Generar mensaje WhatsApp
+                const fecha = new Date();
+                const fechaStr = fecha.toLocaleDateString('es-MX');
+                const horaStr = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                
+                const clienteNombre = "{{ $contrato->cliente->nombre }} {{ $contrato->cliente->apellido }}";
+                const folio = "{{ $contrato->id }}";
+                const cobrador = "{{ Auth::check() ? Auth::user()->name : '' }}";
+                const telefono = "{{ $contrato->cliente->telefono }}";
+                
+                let text = `Estimado(a) ${clienteNombre}:\n\nHoy realizamos una visita a su domicilio para darle seguimiento a su plan de previsión Folio: ${folio}, con el fin de mantener sus beneficios al corriente.\nEn esta ocasión no fue posible localizarle.\nPara su comodidad, le pedimos comunicarse al 331 338 3886 3316079490 y así programar el mejor horario para atenderle.\nSu plan es una protección importante para usted y su familia, y en Funeraria Shalom estamos para servirle.\n\nDatos de la visita Cobrador: ${cobrador}\nFecha: ${fechaStr}\nHora: ${horaStr}\n\nAtentamente\nFuneraria Shalom`;
+                
+                let encodedText = encodeURIComponent(text);
+                let cleanPhone = telefono.replace(/\D/g,'');
+                if (cleanPhone.length > 0 && !cleanPhone.startsWith('52')) {
+                    cleanPhone = '52' + cleanPhone;
+                }
+                
+                let waUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`;
+                
+                // Abrir WhatsApp en nueva pestaña
+                window.open(waUrl, '_blank');
+
+                // Enviar formulario (esto recargará la página)
+                setTimeout(() => {
+                    document.getElementById('form-registro-visita').submit();
+                }, 500);
+
+            }, function(error) {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("Has denegado la solicitud de geolocalización. La visita no puede registrarse.");
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        alert("La información de ubicación no está disponible.");
+                        break;
+                    case error.TIMEOUT:
+                        alert("La solicitud para obtener la ubicación ha caducado.");
+                        break;
+                    default:
+                        alert("Un error desconocido ocurrió al obtener la ubicación.");
+                        break;
+                }
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        };
+
         });
     </script>
 

@@ -20,8 +20,61 @@ class PaqueteController extends Controller
     {
         $paquetes = Paquete::with('porcentajes')->withCount('contratos')->paginate();
 
-        return view('paquete.index', compact('paquetes'))
+        // Obtener todos los tipos de porcentaje únicos
+        $tiposPorcentajeDB = Porcentaje::select('tipo_porcentaje')
+            ->distinct()
+            ->pluck('tipo_porcentaje')
+            ->toArray();
+
+        // Obtener el orden guardado previamente
+        $prioridadesGuardadas = \App\Models\Ajuste::obtener('prioridades_comisiones_globales', []);
+
+        // Ordenar según el orden guardado
+        $tiposPorcentajeUnicos = collect($prioridadesGuardadas)->filter(function($tipo) use ($tiposPorcentajeDB) {
+            return in_array($tipo, $tiposPorcentajeDB);
+        });
+
+        // Agregar los tipos nuevos que no estén en el orden guardado
+        $nuevosTipos = array_diff($tiposPorcentajeDB, $prioridadesGuardadas);
+        foreach ($nuevosTipos as $nuevoTipo) {
+            $tiposPorcentajeUnicos->push($nuevoTipo);
+        }
+
+        return view('paquete.index', compact('paquetes', 'tiposPorcentajeUnicos'))
             ->with('i', ($request->input('page', 1) - 1) * $paquetes->perPage());
+    }
+
+    /**
+     * Actualizar las prioridades globalmente para todos los paquetes
+     */
+    public function actualizarPrioridadesGlobales(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'tipos_porcentaje' => 'required|array'
+        ]);
+
+        $tipos = $request->tipos_porcentaje; // Array de strings en el nuevo orden
+
+        DB::beginTransaction();
+        try {
+            foreach ($tipos as $index => $tipo) {
+                // El índice es 0-based, así que la prioridad es $index + 1
+                $prioridad = $index + 1;
+                Porcentaje::where('tipo_porcentaje', $tipo)->update(['orden' => $prioridad]);
+            }
+
+            // Guardar esta configuración para futuros usos
+            \App\Models\Ajuste::establecer('prioridades_comisiones_globales', $tipos, 'json', 'Orden global de prioridades para comisiones');
+
+            DB::commit();
+
+            return redirect()->route('paquetes.index')
+                ->with('success', 'Prioridades globales actualizadas correctamente.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('paquetes.index')
+                ->with('error', 'Ocurrió un error al actualizar las prioridades: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -47,6 +100,7 @@ class PaqueteController extends Controller
 
             // Crear los porcentajes asociados solo si existen
             if ($request->has('porcentajes') && is_array($request->porcentajes)) {
+                $orden = 1;
                 foreach ($request->porcentajes as $porcentajeData) {
                     $tipo = $porcentajeData['tipo_porcentaje'] ?? null;
                     $modo = $porcentajeData['modo_comision'] ?? 'porcentaje';
@@ -56,6 +110,7 @@ class PaqueteController extends Controller
                     // Asegurar valores por defecto para evitar errores de SQL (null en columnas no nulas)
                     $porcentajeData['cantidad_porcentaje'] = $cantP ?: 0;
                     $porcentajeData['monto_fijo'] = $montoF ?: 0;
+                    $porcentajeData['orden'] = $orden++;
 
                     // Verificar que tenga tipo y al menos uno de los valores
                     if (!empty($tipo) && (($modo === 'porcentaje' && $cantP !== null && $cantP !== '') || ($modo === 'monto' && $montoF !== null && $montoF !== ''))) {
@@ -116,6 +171,7 @@ class PaqueteController extends Controller
 
             // Crear los nuevos porcentajes solo si existen
             if ($request->has('porcentajes') && is_array($request->porcentajes)) {
+                $orden = 1;
                 foreach ($request->porcentajes as $porcentajeData) {
                     $tipo = $porcentajeData['tipo_porcentaje'] ?? null;
                     $modo = $porcentajeData['modo_comision'] ?? 'porcentaje';
@@ -125,6 +181,7 @@ class PaqueteController extends Controller
                     // Asegurar valores por defecto para evitar errores de SQL (null en columnas no nulas)
                     $porcentajeData['cantidad_porcentaje'] = $cantP ?: 0;
                     $porcentajeData['monto_fijo'] = $montoF ?: 0;
+                    $porcentajeData['orden'] = $orden++;
 
                     if (!empty($tipo) && (($modo === 'porcentaje' && $cantP !== null && $cantP !== '') || ($modo === 'monto' && $montoF !== null && $montoF !== ''))) {
                         $porcentajeData['paquete_id'] = $paquete->id;

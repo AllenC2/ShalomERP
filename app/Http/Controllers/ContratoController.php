@@ -28,6 +28,15 @@ class ContratoController extends Controller
         $estado = $request->input('estado'); // Reemplaza la lógica anterior de solo_activos
         $tipoComision = $request->input('tipo_comision');
 
+        $sortBy = $request->input('sort_by', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        $validColumns = ['id', 'created_at', 'cliente_nombre', 'paquete_nombre'];
+        if (!in_array($sortBy, $validColumns)) {
+            $sortBy = 'created_at';
+        }
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
+
         $contratosQuery = Contrato::with(['cliente', 'paquete', 'pagos']);
 
         // Filtro por búsqueda general (Nombre, Domicilio o Folio)
@@ -73,7 +82,20 @@ class ContratoController extends Controller
             $contratosQuery->where('estado', 'activo');
         }
 
-        $contratos = $contratosQuery->latest()->paginate();
+        // Aplicar ordenamiento
+        if ($sortBy === 'cliente_nombre') {
+            $contratosQuery->join('clientes', 'contratos.cliente_id', '=', 'clientes.id')
+                ->select('contratos.*')
+                ->orderBy('clientes.nombre', $direction);
+        } elseif ($sortBy === 'paquete_nombre') {
+            $contratosQuery->join('paquetes', 'contratos.paquete_id', '=', 'paquetes.id')
+                ->select('contratos.*')
+                ->orderBy('paquetes.nombre', $direction);
+        } else {
+            $contratosQuery->orderBy("contratos.$sortBy", $direction);
+        }
+
+        $contratos = $contratosQuery->paginate();
 
         // Calcular porcentaje pagado para cada contrato
         foreach ($contratos as $contrato) {
@@ -253,7 +275,8 @@ class ContratoController extends Controller
                             'monto' => $montoComision,
                             'observaciones' => $descComision,
                             'documento' => 'No',
-                            'estado' => 'Pendiente'
+                            'estado' => 'Pendiente',
+                            'orden' => $porcentaje->orden ?? 0
                         ]);
                     }
                 }
@@ -562,7 +585,8 @@ class ContratoController extends Controller
                             'monto' => $montoComision,
                             'observaciones' => $descComision,
                             'documento' => 'No',
-                            'estado' => 'pendiente'
+                            'estado' => 'pendiente',
+                            'orden' => $porcentaje->orden ?? 0
                         ]);
                     }
                 }
@@ -631,7 +655,7 @@ class ContratoController extends Controller
      */
     public function getPorcentajesByPaquete($paquete_id)
     {
-        $porcentajes = \App\Models\Porcentaje::where('paquete_id', $paquete_id)->get();
+        $porcentajes = \App\Models\Porcentaje::where('paquete_id', $paquete_id)->orderBy('orden')->get();
         $empleados = \App\Models\Empleado::selectRaw("CONCAT(nombre, ' ', apellido) as nombre_completo, id")
             ->pluck('nombre_completo', 'id');
 
@@ -718,91 +742,6 @@ class ContratoController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al procesar el archivo: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Crear una parcialidad para una comisión padre
-     */
-    public function crearParcialidad(Request $request)
-    {
-        try {
-            $request->validate([
-                'comision_padre_id' => 'required|exists:comisiones,id',
-                'monto' => 'required|numeric|min:0.01',
-                'observaciones' => 'nullable|string|max:255'
-            ]);
-
-            $comisionPadre = Comisione::findOrFail($request->comision_padre_id);
-
-            // Verificar que sea una comisión padre (sin comision_padre_id)
-            if ($comisionPadre->comision_padre_id !== null) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo se pueden crear parcialidades de comisiones padre'
-                ], 400);
-            }
-
-            // Validar que hay saldo disponible en el contrato
-            $contrato = $comisionPadre->contrato;
-            $saldoDisponible = $contrato->saldo_comisiones;
-            if (bccomp($request->monto, $saldoDisponible, 2) > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "El monto no puede exceder el saldo disponible de $" . number_format($saldoDisponible, 2)
-                ], 400);
-            }
-
-            // Crear la parcialidad
-            $parcialidad = Comisione::create([
-                'contrato_id' => $comisionPadre->contrato_id,
-                'empleado_id' => $comisionPadre->empleado_id,
-                'comision_padre_id' => $comisionPadre->id,
-                'fecha_comision' => now(),
-                'nombre_paquete' => $comisionPadre->nombre_paquete,
-                'porcentaje' => 0, // Las parcialidades no tienen porcentaje
-                'tipo_comision' => 'PARCIALIDAD',
-                'monto' => $request->monto,
-                'observaciones' => $request->observaciones ?? 'Parcialidad de comisión #' . $comisionPadre->id,
-                'estado' => 'Pagada'
-            ]);
-
-            // Verificar si la comisión padre debe cambiar a "Pagada"
-            // Recalcular el total de parcialidades incluyendo la recién creada
-            $totalParcialidadesActualizado = $comisionPadre->parcialidades()->sum('monto');
-            $montoRestanteActualizado = $comisionPadre->monto - $totalParcialidadesActualizado;
-
-            // Si el monto restante es 0 o muy cercano a 0 (tolerancia de 0.01), marcar como pagada
-            if (bccomp($montoRestanteActualizado, 0, 2) <= 0) {
-                $comisionPadre->update([
-                    'estado' => 'Pagada',
-                    'fecha_comision' => now() // Actualizar fecha cuando se completa el pago
-                ]);
-
-                $message = 'Parcialidad creada exitosamente. La comisión padre se ha marcado como pagada al completarse totalmente.';
-            } else {
-                $message = 'Parcialidad creada exitosamente';
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'parcialidad' => $parcialidad->load('empleado'),
-                'comision_padre_actualizada' => $comisionPadre->fresh() // Devolver la comisión padre actualizada
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Datos inválidos',
-                'errors' => $e->validator->errors()
-            ], 422);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear la parcialidad: ' . $e->getMessage()
             ], 500);
         }
     }

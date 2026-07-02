@@ -39,7 +39,7 @@ class Comisione extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['contrato_id', 'empleado_id', 'comision_padre_id', 'fecha_comision', 'nombre_paquete', 'porcentaje', 'tipo_comision', 'monto', 'observaciones', 'documento', 'estado'];
+    protected $fillable = ['contrato_id', 'empleado_id', 'comision_padre_id', 'fecha_comision', 'nombre_paquete', 'porcentaje', 'tipo_comision', 'monto', 'observaciones', 'documento', 'estado', 'orden'];
 
     /**
      * The attributes that should be cast.

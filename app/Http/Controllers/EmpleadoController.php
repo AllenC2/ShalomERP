@@ -18,9 +18,22 @@ class EmpleadoController extends Controller
      */
     public function index(Request $request): View
     {
-        $empleados = Empleado::with('user')->paginate();
+        $sort_by = $request->input('sort_by', 'created_at');
+        $sort_dir = $request->input('sort_dir', 'desc');
 
-        return view('empleado.index', compact('empleados'))
+        $query = Empleado::with('user');
+
+        // Validar columnas para evitar SQL Injection
+        $columnasValidas = ['id', 'nombre', 'rol', 'telefono', 'created_at'];
+        if (in_array($sort_by, $columnasValidas)) {
+            $query->orderBy($sort_by, $sort_dir === 'asc' ? 'asc' : 'desc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $empleados = $query->paginate()->appends($request->all());
+
+        return view('empleado.index', compact('empleados', 'sort_by', 'sort_dir'))
             ->with('i', ($request->input('page', 1) - 1) * $empleados->perPage());
     }
 

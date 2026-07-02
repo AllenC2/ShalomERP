@@ -35,13 +35,45 @@
     }
 </style>
 
+@php
+    function sortUrl($column) {
+        $currentColumn = request('sort_by', 'created_at');
+        $currentDirection = request('direction', 'desc');
+        $direction = ($currentColumn === $column && $currentDirection === 'asc') ? 'desc' : 'asc';
+        return request()->fullUrlWithQuery(['sort_by' => $column, 'direction' => $direction]);
+    }
+    
+    function sortIcon($column) {
+        $currentColumn = request('sort_by', 'created_at');
+        $currentDirection = request('direction', 'desc');
+        if ($currentColumn !== $column) {
+            return '<i class="bi bi-arrow-down-up text-muted ms-1" style="font-size: 0.7em;"></i>';
+        }
+        return $currentDirection === 'asc' 
+            ? '<i class="bi bi-arrow-up text-primary fw-bold ms-1" style="font-size: 0.8em;"></i>' 
+            : '<i class="bi bi-arrow-down text-primary fw-bold ms-1" style="font-size: 0.8em;"></i>';
+    }
+@endphp
+
 <div class="table-responsive" id="tabla-contratos">
     <table class="table table-hover align-middle mb-0 modern-table">
         <thead class="modern-header">
             <tr>
-                <th scope="col" class="ps-4">ID</th>
-                <th scope="col">Cliente</th>
-                <th scope="col">Paquete</th>
+                <th scope="col" class="ps-4">
+                    <a href="{{ sortUrl('id') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                        ID {!! sortIcon('id') !!}
+                    </a>
+                </th>
+                <th scope="col">
+                    <a href="{{ sortUrl('cliente_nombre') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                        Cliente {!! sortIcon('cliente_nombre') !!}
+                    </a>
+                </th>
+                <th scope="col">
+                    <a href="{{ sortUrl('paquete_nombre') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                        Paquete {!! sortIcon('paquete_nombre') !!}
+                    </a>
+                </th>
                 <th scope="col">Progreso</th>
                 <th scope="col" class="pe-4">Cuotas Pendientes</th>
             </tr>

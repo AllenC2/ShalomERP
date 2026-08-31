@@ -10,7 +10,7 @@
             <div class="col-lg-10">
                 <!-- Header moderno -->
                 <div class="page-header px-4">
-                    <div class="header-content" style="">
+                    <div class="header-content">
                         <div class="header-icon">
                             <i class="bi bi-cash-stack"></i>
                         </div>
@@ -253,20 +253,6 @@
         .header-content {
             display: flex;
             align-items: center;
-        }
-
-        .header-icon {
-            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1.5rem;
-            font-size: 1.5rem;
-            box-shadow: 0 10px 30px rgba(225, 178, 64, 0.3);
         }
 
         .page-title {

@@ -55,6 +55,21 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         'create',
         'edit'
     ]);
+
+    // Rutas de rutas de distribución
+    Route::resource('rutas', App\Http\Controllers\RutaController::class);
+    Route::post('rutas/{ruta}/orden', [App\Http\Controllers\RutaController::class, 'actualizarOrden'])->name('rutas.actualizarOrden');
+    Route::post('rutas/{ruta}/paradas/{parada}/estado', [App\Http\Controllers\RutaController::class, 'actualizarEstadoParada'])->name('rutas.actualizarEstadoParada');
+    Route::post('rutas/geocodificar-cliente', [App\Http\Controllers\RutaController::class, 'geocodificarCliente'])->name('rutas.geocodificarCliente');
+    Route::post('rutas/contratos-empleado', [App\Http\Controllers\RutaController::class, 'contratosEmpleado'])->name('rutas.contratosEmpleado');
+    Route::put('rutas/{ruta}/ajax', [App\Http\Controllers\RutaController::class, 'updateAjax'])->name('rutas.updateAjax');
+    Route::post('rutas/{ruta}/toggle-cancel', [App\Http\Controllers\RutaController::class, 'toggleCancel'])->name('rutas.toggleCancel');
+    Route::post('rutas/reubicar-cliente', [App\Http\Controllers\RutaController::class, 'reubicarCliente'])->name('rutas.reubicarCliente');
+});
+
+// Rutas de lectura para empleados
+Route::middleware(['auth', 'role:admin,empleado'])->group(function () {
+    Route::get('rutas/{ruta}/datos', [App\Http\Controllers\RutaController::class, 'getRutaData'])->name('rutas.getRutaData');
 });
 
 // Ruta para servir PDFs de contratos - Accesible para cualquier usuario autenticado

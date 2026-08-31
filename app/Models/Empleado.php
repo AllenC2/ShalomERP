@@ -43,7 +43,7 @@ class Empleado extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['id', 'nombre', 'apellido', 'user_id', 'telefono', 'domicilio', 'estado'];
+    protected $fillable = ['id', 'nombre', 'apellido', 'user_id', 'telefono', 'domicilio', 'estado', 'latitud', 'longitud'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -69,5 +69,14 @@ class Empleado extends Model
         return $this->belongsToMany(\App\Models\Contrato::class, 'comisiones', 'empleado_id', 'contrato_id')
                     ->distinct();
     }
-    
+
+    public function rutas()
+    {
+        return $this->hasMany(Ruta::class, 'empleado_id');
+    }
+
+    public function getTieneCoordenadasAttribute()
+    {
+        return $this->latitud !== null && $this->longitud !== null;
+    }
 }

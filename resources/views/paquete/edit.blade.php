@@ -14,7 +14,7 @@
         <!-- Header moderno para edición -->
         <div class="page-header edit-header">
             <div class="header-content">
-                <div class="header-icon edit-icon">
+                <div class="header-icon">
                     <i class="bi bi-pencil-square"></i>
                 </div>
                 <div class="header-text">
@@ -93,24 +93,6 @@
         display: flex;
         align-items: center;
         gap: 20px;
-    }
-
-    .header-icon {
-        width: 64px;
-        height: 64px;
-        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.8rem;
-        box-shadow: 0 8px 16px rgba(225, 178, 64, 0.3);
-    }
-
-    .edit-icon {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
     }
 
     .page-title {

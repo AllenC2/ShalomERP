@@ -5,6 +5,7 @@
 @endsection
 
 @section('content')
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <div class="modern-container">
     <div class="page-wrapper">
         <!-- Header moderno -->
@@ -14,11 +15,11 @@
         </a>
         <div class="page-header">
             <div class="header-content px-4">
-                <div class="header-icon" style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); box-shadow: 0 8px 16px rgba(225, 178, 64, 0.3);">
+                <div class="header-icon">
                     <i class="bi bi-person-plus"></i>
                 </div>
                 <div class="header-text">
-                    <h1 class="page-title" style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    <h1 class="page-title">
                         {{ __('Registrar Empleado') }}
                     </h1>
                     <p class="page-subtitle">Complete la información para registrar un nuevo empleado</p>
@@ -49,20 +50,6 @@
     .header-content {
         display: flex;
         align-items: center;
-    }
-
-    .header-icon {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        width: 60px;
-        height: 60px;
-        border-radius: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 1.5rem;
-        font-size: 1.5rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
 
     .page-title {
@@ -119,11 +106,6 @@
             flex-direction: column;
             align-items: flex-start;
             text-align: left;
-        }
-
-        .header-icon {
-            margin-right: 0;
-            margin-bottom: 1rem;
         }
 
         .page-title {

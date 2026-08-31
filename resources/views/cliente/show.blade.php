@@ -5,6 +5,7 @@
 @endsection
 
 @push('styles')
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         .hover-card {
             transition: all 0.3s ease;
@@ -88,24 +89,6 @@
             gap: 1.5rem;
         }
 
-        .header-icon {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #0d6efd 0%, #00c6ff 100%);
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            box-shadow: 0 8px 16px rgba(13, 110, 253, 0.2);
-            transition: transform 0.3s ease;
-        }
-
-        .page-header:hover .header-icon {
-            transform: rotate(-5deg) scale(1.05);
-        }
-
         .page-title {
             font-size: 1.75rem;
             font-weight: 800;
@@ -178,6 +161,8 @@
 @endpush
 
 @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         function copyAddress() {
             const address = @json($cliente->domicilio_completo ?? 'Domicilio no disponible');
@@ -217,6 +202,166 @@
                 chevronIcon.classList.add('bi-chevron-down');
             });
         });
+
+        // ==================== MAPA DEL CLIENTE ====================
+        var clienteMap = null;
+        var relocateMap = null;
+        var relocateDebounce = null;
+        var clienteLat = {{ $cliente->latitud ?? 'null' }};
+        var clienteLng = {{ $cliente->longitud ?? 'null' }};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (clienteLat && clienteLng && document.getElementById('clienteMap')) {
+                clienteMap = L.map('clienteMap', { zoomControl: false, attributionControl: false, scrollWheelZoom: false, dragging: false }).setView([clienteLat, clienteLng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OSM', maxZoom: 19
+                }).addTo(clienteMap);
+                L.marker([clienteLat, clienteLng], {
+                    icon: L.divIcon({
+                        className: 'custom-marker',
+                        html: '<div style="background:#79481D;width:28px;height:28px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><i class="bi bi-geo-alt-fill" style="color:white;font-size:12px;"></i></div>',
+                        iconSize: [28, 28], iconAnchor: [14, 28]
+                    })
+                }).addTo(clienteMap);
+                setTimeout(function() { clienteMap.invalidateSize(); }, 300);
+            }
+
+            // Boton reubicar
+            var btnRelocate = document.getElementById('btnOpenRelocate');
+            if (btnRelocate) {
+                btnRelocate.addEventListener('click', function() {
+                    var lat = clienteLat || 20.67;
+                    var lng = clienteLng || -103.36;
+                    document.getElementById('relocateSearchInput').value = '';
+                    document.getElementById('relocateAddress').textContent = (clienteLat && clienteLng) ? 'Moviendo el mapa...' : 'Busca o mueve el mapa para asignar ubicación';
+                    document.getElementById('relocateCoords').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+                    var modal = new bootstrap.Modal(document.getElementById('relocateModal'));
+                    modal.show();
+                    setTimeout(function() { initRelocateMap(lat, lng); }, 400);
+                });
+            }
+
+            // Boton guardar
+            var btnConfirm = document.getElementById('btnConfirmRelocate');
+            if (btnConfirm) {
+                btnConfirm.addEventListener('click', confirmRelocate);
+            }
+
+            // Buscar
+            var searchBtn = document.getElementById('relocateSearchBtn');
+            if (searchBtn) searchBtn.addEventListener('click', searchRelocate);
+            var searchInput = document.getElementById('relocateSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { e.preventDefault(); searchRelocate(); }
+                });
+            }
+
+            // Al cerrar modal, destruir mapa
+            var relocateModalEl = document.getElementById('relocateModal');
+            if (relocateModalEl) {
+                relocateModalEl.addEventListener('hidden.bs.modal', function() {
+                    if (relocateMap) { relocateMap.remove(); relocateMap = null; }
+                });
+            }
+        });
+
+        function initRelocateMap(lat, lng) {
+            var mapEl = document.getElementById('relocateMap');
+            if (!mapEl) return;
+            if (relocateMap) {
+                relocateMap.setView([lat, lng], 17);
+                relocateMap.invalidateSize();
+                return;
+            }
+            relocateMap = L.map('relocateMap', { zoomControl: false, attributionControl: false }).setView([lat, lng], 17);
+            L.control.zoom({ position: 'topright' }).addTo(relocateMap);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OSM', maxZoom: 19
+            }).addTo(relocateMap);
+
+            relocateMap.on('moveend', function() {
+                var center = relocateMap.getCenter();
+                document.getElementById('relocateCoords').textContent = center.lat.toFixed(6) + ', ' + center.lng.toFixed(6);
+                clearTimeout(relocateDebounce);
+                relocateDebounce = setTimeout(function() {
+                    reverseGeocodeRelocate(center.lat, center.lng);
+                }, 600);
+            });
+
+            reverseGeocodeRelocate(lat, lng);
+        }
+
+        function reverseGeocodeRelocate(lat, lng) {
+            document.getElementById('relocateAddress').textContent = 'Buscando dirección...';
+            fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json&zoom=18&addressdetails=1&accept-language=es', {
+                headers: { 'User-Agent': 'ShalomERP/1.0' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                document.getElementById('relocateAddress').textContent = (data && data.display_name) ? data.display_name : 'Dirección no encontrada';
+            })
+            .catch(function() { document.getElementById('relocateAddress').textContent = 'Error al buscar dirección'; });
+        }
+
+        function searchRelocate() {
+            var query = document.getElementById('relocateSearchInput').value.trim();
+            if (!query) return;
+            document.getElementById('relocateAddress').textContent = 'Buscando...';
+            fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=1&countrycodes=mx&accept-language=es', {
+                headers: { 'User-Agent': 'ShalomERP/1.0' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    var lat = parseFloat(data[0].lat);
+                    var lng = parseFloat(data[0].lon);
+                    relocateMap.setView([lat, lng], 17, { animate: true });
+                    document.getElementById('relocateAddress').textContent = data[0].display_name;
+                    document.getElementById('relocateCoords').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+                } else {
+                    document.getElementById('relocateAddress').textContent = 'No se encontró la dirección';
+                }
+            })
+            .catch(function() { document.getElementById('relocateAddress').textContent = 'Error al buscar'; });
+        }
+
+        function confirmRelocate() {
+            if (!relocateMap) return;
+            var center = relocateMap.getCenter();
+            var lat = center.lat;
+            var lng = center.lng;
+            var csrf = document.querySelector('meta[name="csrf-token"]');
+            var btn = document.getElementById('btnConfirmRelocate');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '{{ route("rutas.reubicarCliente") }}', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrf ? csrf.content : '{{ csrf_token() }}');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        clienteLat = lat;
+                        clienteLng = lng;
+                        location.reload();
+                        return;
+                    }
+                }
+                alert('Error al reubicar.');
+                btn.disabled = false;
+                btn.textContent = 'Guardar';
+            };
+            xhr.onerror = function() {
+                alert('Error al reubicar.');
+                btn.disabled = false;
+                btn.textContent = 'Guardar';
+            };
+            xhr.send(JSON.stringify({ cliente_id: {{ $cliente->id }}, lat: lat, lng: lng }));
+        }
     </script>
 @endpush
 
@@ -669,6 +814,40 @@
                     
                 </div>
                 <div class="col-md-4">
+                    <!-- Tarjeta de Ubicación -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-0 pb-2 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0" style="color: #79481D;">
+                                <i class="bi bi-geo-alt me-2"></i>Ubicación
+                            </h6>
+                            @if($cliente->tiene_coordenadas)
+                                <button type="button" class="btn btn-sm fw-bold px-3 text-white" id="btnOpenRelocate" style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border: none; border-radius: 20px; font-size: 0.75rem;">
+                                    <i class="bi bi-crosshair me-1"></i>Reubicar
+                                </button>
+                            @endif
+                        </div>
+                        <div class="card-body p-0">
+                            @if($cliente->tiene_coordenadas)
+                                <div id="clienteMap" style="height: 220px; width: 100%; border-radius: 0 0 12px 12px;"></div>
+                                <div class="px-3 py-2 border-top">
+                                    <small class="text-muted">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ $cliente->domicilio_completo }}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted" id="clienteCoordsDisplay">{{ $cliente->latitud }}, {{ $cliente->longitud }}</small>
+                                </div>
+                            @else
+                                <div class="text-center py-4 px-3">
+                                    <i class="bi bi-geo-alt" style="font-size: 2rem; color: #E1B240; opacity: 0.5;"></i>
+                                    <p class="text-muted small mb-2 mt-2">Sin coordenadas registradas</p>
+                                    <button type="button" class="btn btn-sm fw-bold px-3 text-white" id="btnOpenRelocate" style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border: none; border-radius: 20px; font-size: 0.75rem;">
+                                        <i class="bi bi-crosshair me-1"></i>Asignar ubicación
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
                     <!-- Historial de contratos -->
                     <div class="card mb-4">
                         <div class="card-header bg-white">
@@ -769,17 +948,46 @@
                             </div>
                         </div>
                     </div>
-               
-                    
-
-                 
-                                
-
-
-                </div>
 
             </div>
 
         </div>
     </section>
+
+    <!-- Modal Reubicar Punto -->
+    <div class="modal fade" id="relocateModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-fullscreen-sm-down modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 overflow-hidden" style="border-radius: 16px;">
+                <div class="modal-header py-2 px-3 border-bottom" style="background: white;">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h6 class="modal-title fw-bold mb-0" style="color: #1c1c1e;">Reubicar punto</h6>
+                    <button type="button" class="btn btn-sm fw-bold px-3 text-white" id="btnConfirmRelocate" style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border: none; border-radius: 20px;">
+                        Guardar
+                    </button>
+                </div>
+                <div class="px-3 py-2 border-bottom bg-white">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="relocateSearchInput" class="form-control border-start-0" placeholder="Buscar dirección..." autocomplete="off">
+                        <button class="btn btn-outline-secondary" type="button" id="relocateSearchBtn">
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="relocateMap" style="flex: 1; width: 100%; min-height: 300px; background: #e9ecef; position: relative;">
+                    <div id="relocatePin" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); z-index: 1000; pointer-events: none;">
+                        <div style="width: 32px; height: 32px; background: #79481D; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>
+                        <div style="position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; background: rgba(0,0,0,0.15); border-radius: 50%; filter: blur(3px);"></div>
+                    </div>
+                </div>
+                <div class="px-3 py-2 border-top bg-white">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-geo-alt-fill" style="color: #79481D;"></i>
+                        <small class="text-muted flex-grow-1" id="relocateAddress" style="font-size: 0.78rem;">Moviendo el mapa...</small>
+                        <span class="badge bg-light text-dark" id="relocateCoords" style="font-size: 0.65rem;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection

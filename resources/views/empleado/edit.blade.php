@@ -5,6 +5,7 @@
 @endsection
 
 @section('content')
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <div class="modern-container">
     <div class="page-wrapper">
 
@@ -17,7 +18,7 @@
         </div>
         <div class="page-header edit-header">
             <div class="header-content px-4">
-                <div class="header-icon edit-icon">
+                <div class="header-icon">
                     <i class="bi bi-person-gear"></i>
                 </div>
                 <div class="header-text">
@@ -59,20 +60,6 @@
     .header-content {
         display: flex;
         align-items: center;
-    }
-
-    .header-icon {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        width: 60px;
-        height: 60px;
-        border-radius: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 1.5rem;
-        font-size: 1.5rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
 
     .page-title {
@@ -134,11 +121,6 @@
             flex-direction: column;
             align-items: flex-start;
             text-align: left;
-        }
-
-        .header-icon {
-            margin-right: 0;
-            margin-bottom: 1rem;
         }
 
         .page-title {

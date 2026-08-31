@@ -9,6 +9,7 @@ class Visita extends Model
     protected $fillable = [
         'contrato_id',
         'user_id',
+        'ruta_parada_id',
         'comentarios',
         'ubicacion_evidencia',
         'adeudo_momento'
@@ -28,6 +29,11 @@ class Visita extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function rutaParada()
+    {
+        return $this->belongsTo(RutaParada::class, 'ruta_parada_id');
     }
 
     /**

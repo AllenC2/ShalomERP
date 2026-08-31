@@ -235,8 +235,8 @@
                                 <i class="bi bi-currency-dollar"></i>
                             </div>
                             <div class="config-card-content">
-                                <h6 class="config-card-title">Comisiones Fijas</h6>
-                                <p class="config-card-subtitle">Configurar montos fijos de comisiones</p>
+                                <h6 class="config-card-title">Comision de Pago Inicial</h6>
+                                <p class="config-card-subtitle">Configurar comisiones por pagos iniciales</p>
                             </div>
                             <div class="config-card-arrow">
                                 <i class="bi bi-arrow-right"></i>
@@ -280,7 +280,7 @@
                                     <div class="card-header" style="background: #fff;">
                                         <div class="header-content">
                                             <div class="header-icon"
-                                                style="background: linear-gradient(90deg, #E1B240 0%, #79481D 100%); color:#fff;">
+                                                style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);">
                                                 <i class="bi bi-bank"></i>
                                             </div>
                                             <div class="header-text">
@@ -500,7 +500,7 @@
                                     <div class="card-header" style="background: #fff;">
                                         <div class="header-content">
                                             <div class="header-icon"
-                                                style="background: linear-gradient(90deg, #25D366 0%, #128C7E 100%); color:#fff;">
+                                                style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);">
                                                 <i class="bi bi-whatsapp"></i>
                                             </div>
                                             <div class="header-text">
@@ -633,7 +633,7 @@
                                     <div class="card-header" style="background: #fff;">
                                         <div class="header-content">
                                             <div class="header-icon"
-                                                style="background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%); color:#fff;">
+                                                style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
                                                 <i class="bi bi-person-plus-fill"></i>
                                             </div>
                                             <div class="header-text">
@@ -783,7 +783,7 @@
                                     <div class="card-header" style="background: #fff;">
                                         <div class="header-content">
                                             <div class="header-icon"
-                                                style="background: linear-gradient(90deg, #ff6b35 0%, #f7931e 100%); color:#fff;">
+                                                style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">
                                                 <i class="bi bi-clock-history"></i>
                                             </div>
                                             <div class="header-text">
@@ -957,11 +957,11 @@
                                     <div class="card-header" style="background: #fff;">
                                         <div class="header-content">
                                             <div class="header-icon"
-                                                style="background: linear-gradient(90deg, #8B5CF6 0%, #6D28D9 100%); color:#fff;">
+                                                style="background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);">
                                                 <i class="bi bi-currency-dollar"></i>
                                             </div>
                                             <div class="header-text">
-                                                <h4 class="card-title mb-1">Comisiones Fijas</h4>
+                                                <h4 class="card-title mb-1">Comision de Pago Inicial</h4>
                                                 <p class="card-subtitle text-muted mb-0">Configura el esquema de montos
                                                     fijos para la
                                                     reparticion del 100% del dinero recibido por pagos iniciales en el
@@ -1186,7 +1186,7 @@
                     </form>
                 </div>
             @endauth
-            <small class="text-muted">Version 1.7.2 @imallen.dev</small>
+            <small class="text-muted">Version 1.8.0 @imallen.dev</small>
 
         </div>
     </div>
@@ -2897,20 +2897,14 @@
             </div>
             <div class="modal-body p-5 pt-3">
                 <div class="mb-4">
-                    <span class="badge bg-success mb-3 fs-6">Última actualización: Junio 2026</span>
+                    <span class="badge bg-success mb-3 fs-6">Versión 1.8.0 · Agosto 2026</span>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Prioridad de Comisiones:</strong> Se desarrolló un nuevo sistema de prioridades que ordena y automatiza la distribución del pago de comisiones cada vez que un cliente realiza un abono.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Reversión de Comisiones Automática:</strong> Se programó la función <em>Deshacer Pago</em> con la capacidad de revertir y descontar automáticamente las comisiones repartidas siguiendo el orden inverso de su prioridad.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Pestañas de Búsqueda:</strong> Se implementó un sistema de pestañas en el buscador del portal de empleados para filtrar rápidamente por folio, cliente o domicilio.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Optimización de Tickets:</strong> Se mejoró la claridad de la información en el ticket y se redujo el peso del archivo para agilizar su envío a las impresoras de bolsillo.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Aviso por WhatsApp:</strong> Se agregó un botón para notificar rápidamente por WhatsApp a los clientes cuando se les visita en su domicilio para realizar un cobro.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Reporte de Comisiones:</strong> Se mejoró el generador de reportes de comisiones incorporando un nuevo filtro para separar por tipo de comisión y por empleado.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corrección de Bonificaciones:</strong> Se solucionó un error que marcaba erróneamente los pagos de tipo <em>Bonificación</em> como si fueran un <em>Pago Inicial</em>.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Mejora en Filtros de Contratos:</strong> Se refinaron y optimizaron los filtros de búsqueda general dentro de la sección de Contratos.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Ordenamiento de Tablas:</strong> Se habilitó el ordenamiento de datos (ascendente/descendente) al hacer clic directamente en los títulos de las columnas para las tablas de Clientes y Empleados.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Ajuste de Interfaz de Comisiones:</strong> Se ajustó el diseño de la vista de Comisiones del Contrato para mostrar la información principal y la lista de prioridades lado a lado.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corrección de IDs:</strong> Se corrigió la tabla principal de Clientes para que su primera columna muestre el ID real de la base de datos en lugar de un contador numérico secuencial.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Restricción de Botones:</strong> Se ocultó por seguridad el botón de <em>Deshacer Pago</em> en pagos iniciales y bonificaciones, así como el botón de borrar en el recibo de parcialidades.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corte semanal de comisiones:</strong> El recibo del asesor usa la fecha del abono del cliente (no el día en que se capturó en el sistema), para que los cobros en efectivo no se pasen a la semana siguiente (miércoles a martes).</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Recibo de comisiones:</strong> El reporte por rango de fechas ya no duplica contratos liquidados ni mezcla la comisión padre con sus parcialidades. El filtro “Todas las comisiones” respeta el período seleccionado.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corrección de fechas históricas:</strong> Se puede realinear de forma masiva las comisiones ya generadas con la fecha real del abono, para que los cortes anteriores queden consistentes.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Rutas de cobro:</strong> Nuevo módulo para armar, ordenar y dar seguimiento a las rutas de visita de cada asesor sobre el mapa.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Ubicación de clientes y empleados:</strong> Los domicilios se pueden geocodificar y guardar en coordenadas para ubicarlos en el mapa y en las rutas.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Panel de inicio:</strong> El inicio muestra información de rutas y cobranza del día junto con el resto de indicadores operativos.</li>
                     </ul>
                 </div>
             </div>

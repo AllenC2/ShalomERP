@@ -47,7 +47,9 @@ class Cliente extends Model
         'municipio',
         'estado',
         'codigo_postal',
-        'domicilio_completo'
+        'domicilio_completo',
+        'latitud',
+        'longitud',
     ];
 
     /**
@@ -112,5 +114,9 @@ class Cliente extends Model
         return $this->hasMany(\App\Models\Contrato::class, 'cliente_id', 'id')
                     ->where('estado', \App\Models\Contrato::ESTADO_ACTIVO);
     }
-    
+
+    public function getTieneCoordenadasAttribute()
+    {
+        return $this->latitud !== null && $this->longitud !== null;
+    }
 }

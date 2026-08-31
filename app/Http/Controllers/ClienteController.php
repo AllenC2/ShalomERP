@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\ClienteRequest;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Services\GeocodingService;
 
 class ClienteController extends Controller
 {
@@ -103,9 +104,23 @@ class ClienteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(ClienteRequest $request, Cliente $cliente): RedirectResponse
+    public function update(ClienteRequest $request, Cliente $cliente, GeocodingService $geocoding): RedirectResponse
     {
+        $domicilioAnterior = $cliente->domicilio_completo;
+
         $cliente->update($request->validated());
+
+        $nuevoDomicilio = $cliente->fresh()->domicilio_completo;
+
+        if ($nuevoDomicilio !== $domicilioAnterior) {
+            $coords = $geocoding->geocode($nuevoDomicilio);
+            if ($coords) {
+                $cliente->update([
+                    'latitud' => $coords['lat'],
+                    'longitud' => $coords['lng'],
+                ]);
+            }
+        }
 
         return Redirect::route('clientes.index')
             ->with('success', 'Cliente modificado correctamente.');

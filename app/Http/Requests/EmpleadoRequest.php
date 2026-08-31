@@ -26,6 +26,8 @@ class EmpleadoRequest extends FormRequest
             'apellido' => 'required|string|max:255',
             'telefono' => 'nullable|string|max:20',
             'domicilio' => 'nullable|string|max:500',
+            'latitud' => 'nullable|numeric|between:-90,90',
+            'longitud' => 'nullable|numeric|between:-180,180',
         ];
 
         // Reglas para el ID personalizado

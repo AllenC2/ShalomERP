@@ -7,6 +7,7 @@ use App\Models\Comisione;
 use App\Models\Contrato;
 use App\Models\Empleado;
 use App\Models\Pago;
+use App\Models\Ruta;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -121,7 +122,8 @@ class HomeController extends Controller
             'totalPagosDay' => $pagosPendientes->count() + $pagosHechos->count(),
             'empleadoContratos' => $this->getEmpleadoContratos(),
             'empleadoAgenda' => $this->getEmpleadoAgenda($weekOffset),
-            'empleadoPagosVencidos' => $this->getEmpleadoPagosVencidos()
+            'empleadoPagosVencidos' => $this->getEmpleadoPagosVencidos(),
+            'empleadoRutas' => $this->getEmpleadoRutas()
         ]);
     }
 
@@ -299,5 +301,29 @@ class HomeController extends Controller
                 'pagos_hechos_count' => $pagosHechos->count()
             ];
         });
+    }
+
+    /**
+     * Obtener rutas asignadas al empleado del usuario logueado
+     */
+    private function getEmpleadoRutas()
+    {
+        $user = Auth::user();
+
+        if ($user->role === 'admin') {
+            return collect();
+        }
+
+        $empleado = Empleado::where('user_id', $user->id)->first();
+
+        if (!$empleado) {
+            return collect();
+        }
+
+        return Ruta::with(['paradas.contrato.cliente', 'empleado'])
+            ->where('empleado_id', $empleado->id)
+            ->whereIn('estado', [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO])
+            ->orderBy('fecha', 'desc')
+            ->get();
     }
 }

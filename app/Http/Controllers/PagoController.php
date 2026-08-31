@@ -90,7 +90,7 @@ class PagoController extends Controller
         if ($pago->contrato) {
             $pago->contrato->actualizarProximaFechaPago();
             if ($pago->estado === 'hecho') {
-                $pago->contrato->distribuirComisiones();
+                $pago->contrato->distribuirComisiones($pago);
             }
         }
 
@@ -167,7 +167,7 @@ class PagoController extends Controller
         if ($pago->contrato) {
             $pago->contrato->actualizarProximaFechaPago();
             if ($pago->estado === 'hecho') {
-                $pago->contrato->distribuirComisiones();
+                $pago->contrato->distribuirComisiones($pago);
             }
         }
 

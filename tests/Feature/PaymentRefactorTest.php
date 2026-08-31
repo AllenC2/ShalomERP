@@ -76,7 +76,7 @@ class PaymentRefactorTest extends TestCase
             'observaciones' => 'First payment',
         ]);
 
-        $response->assertRedirect(route('contratos.show', $contrato->id));
+        $response->assertRedirect(route('pagos.show', Pago::first()->id));
 
         $contrato->refresh();
         $estadoCuenta = $contrato->estado_cuenta;

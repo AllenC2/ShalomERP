@@ -288,10 +288,14 @@ class Contrato extends Model
     /**
      * Distribuye el saldo disponible en comisiones tradicionales de forma automática,
      * respetando el orden de prioridad.
+     *
+     * La fecha de cada parcialidad es la del abono que la financia (corte semanal),
+     * no el instante de captura. La comisión padre no cambia de fecha al liquidarse.
      */
-    public function distribuirComisiones()
+    public function distribuirComisiones(?Pago $pago = null)
     {
         $saldoDisponible = $this->saldo_disponible_para_comisiones_tradicionales;
+        $fechaAbono = $pago?->fecha_pago ?? now();
         
         if ($saldoDisponible <= 0.009) {
             return;
@@ -317,12 +321,11 @@ class Contrato extends Model
             if ($montoFaltante > 0.009) {
                 $montoAPagar = min($saldoDisponible, $montoFaltante);
 
-                // Crear parcialidad
-                \App\Models\Comisione::create([
+                $payload = [
                     'contrato_id' => $comision->contrato_id,
                     'empleado_id' => $comision->empleado_id,
                     'comision_padre_id' => $comision->id,
-                    'fecha_comision' => now(),
+                    'fecha_comision' => $fechaAbono,
                     'nombre_paquete' => $comision->nombre_paquete,
                     'porcentaje' => 0,
                     'tipo_comision' => 'PARCIALIDAD',
@@ -330,7 +333,13 @@ class Contrato extends Model
                     'observaciones' => 'Pago automático de comisión',
                     'estado' => 'Pagada',
                     'orden' => $comision->orden
-                ]);
+                ];
+
+                if ($pago?->id && \Illuminate\Support\Facades\Schema::hasColumn('comisiones', 'pago_id')) {
+                    $payload['pago_id'] = $pago->id;
+                }
+
+                \App\Models\Comisione::create($payload);
 
                 $saldoDisponible -= $montoAPagar;
 
@@ -339,7 +348,6 @@ class Contrato extends Model
                 if (bccomp($nuevoMontoFaltante, 0, 2) <= 0) {
                     $comision->update([
                         'estado' => 'Pagada',
-                        'fecha_comision' => now()
                     ]);
                 }
             }

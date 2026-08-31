@@ -138,6 +138,8 @@ class EmpleadoController extends Controller
             $nuevoEmpleado->user_id = $empleado->user_id;
             $nuevoEmpleado->telefono = $request->telefono;
             $nuevoEmpleado->domicilio = $request->domicilio;
+            $nuevoEmpleado->latitud = $request->latitud;
+            $nuevoEmpleado->longitud = $request->longitud;
             $nuevoEmpleado->estado = $empleado->estado;
             $nuevoEmpleado->save();
 
@@ -159,6 +161,8 @@ class EmpleadoController extends Controller
                 'apellido' => $request->apellido,
                 'telefono' => $request->telefono,
                 'domicilio' => $request->domicilio,
+                'latitud' => $request->latitud,
+                'longitud' => $request->longitud,
             ]);
 
             // Actualizar datos del usuario asociado

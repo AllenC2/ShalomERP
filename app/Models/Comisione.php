@@ -39,7 +39,7 @@ class Comisione extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['contrato_id', 'empleado_id', 'comision_padre_id', 'fecha_comision', 'nombre_paquete', 'porcentaje', 'tipo_comision', 'monto', 'observaciones', 'documento', 'estado', 'orden'];
+    protected $fillable = ['contrato_id', 'empleado_id', 'comision_padre_id', 'pago_id', 'fecha_comision', 'nombre_paquete', 'porcentaje', 'tipo_comision', 'monto', 'observaciones', 'documento', 'estado', 'orden'];
 
     /**
      * The attributes that should be cast.
@@ -81,6 +81,11 @@ class Comisione extends Model
     public function parcialidades()
     {
         return $this->hasMany(\App\Models\Comisione::class, 'comision_padre_id', 'id');
+    }
+
+    public function pago()
+    {
+        return $this->belongsTo(\App\Models\Pago::class, 'pago_id', 'id');
     }
     
 }

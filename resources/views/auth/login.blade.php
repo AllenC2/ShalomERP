@@ -118,21 +118,6 @@
             justify-content: center;
         }
 
-        .header-icon {
-            background: linear-gradient(135deg, #79481D 0%, #8B5A2B 100%);
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1.5rem;
-            font-size: 1.5rem;
-            box-shadow: 0 10px 30px rgba(121, 72, 29, 0.3);
-            transition: all 0.3s ease;
-        }
-
         .login-card:hover .header-icon {
             transform: scale(1.05);
         }
@@ -268,13 +253,6 @@
                 font-size: 0.9rem !important;
             }
             
-            .header-icon {
-                font-size: 1.2rem !important;
-                width: 50px !important;
-                height: 50px !important;
-                margin-right: 1rem !important;
-            }
-
             .page-title {
                 font-size: 1.5rem !important;
             }
@@ -282,11 +260,6 @@
             .header-content {
                 flex-direction: column;
                 text-align: center;
-            }
-
-            .header-icon {
-                margin-right: 0 !important;
-                margin-bottom: 1rem !important;
             }
         }
     </style>

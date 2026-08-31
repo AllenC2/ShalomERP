@@ -16,7 +16,7 @@
         </div>
         <div class="page-header edit-header">
             <div class="header-content">
-                <div class="header-icon edit-icon">
+                <div class="header-icon">
                     <i class="bi bi-person-gear"></i>
                 </div>
                 <div class="header-text">
@@ -78,24 +78,6 @@
         display: flex;
         align-items: center;
         gap: 20px;
-    }
-
-    .header-icon {
-        width: 64px;
-        height: 64px;
-        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.8rem;
-        box-shadow: 0 8px 16px rgba(225, 178, 64, 0.3);
-    }
-
-    .edit-icon {
-        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
-        box-shadow: 0 8px 16px rgba(225, 178, 64, 0.3);
     }
 
     .page-title {

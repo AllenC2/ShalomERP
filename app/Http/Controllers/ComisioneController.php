@@ -195,16 +195,6 @@ class ComisioneController extends Controller
             }
 
             $comision->estado = $nuevoEstado;
-            
-            // Actualizar fecha_comision según el nuevo estado
-            if ($nuevoEstado === 'Pagada') {
-                // Si cambia a Pagada, actualizar fecha_comision a la fecha/hora actual
-                $comision->fecha_comision = now();
-            } else {
-                // Si cambia a Pendiente, regresar fecha_comision al created_at original
-                $comision->fecha_comision = $comision->created_at;
-            }
-            
             $comision->save();
             
             return response()->json([
@@ -485,44 +475,69 @@ class ComisioneController extends Controller
 
         $tipoComision = $request->input('tipo_comision');
 
-        $comisionesQuery = Comisione::where('empleado_id', $empleado->id)
-            ->whereBetween('fecha_comision', [$fechaInicio, $fechaFin]);
+        $estadosPagada = ['Pagada', 'Entregada', 'Hecho'];
+        $esPagada = function ($comision) use ($estadosPagada) {
+            return in_array(ucfirst(strtolower($comision->estado)), $estadosPagada);
+        };
+        $esFija = function ($comision) {
+            return str_starts_with((string) $comision->tipo_comision, 'Fija - ');
+        };
 
-        if ($tipoComision) {
-            $comisionesQuery->where(function ($query) use ($tipoComision) {
-                $query->where('tipo_comision', $tipoComision)
-                      ->orWhere(function ($subQuery) use ($tipoComision) {
-                          $subQuery->where('tipo_comision', 'PARCIALIDAD')
-                                   ->whereHas('comisionPadre', function ($q) use ($tipoComision) {
-                                       $q->where('tipo_comision', $tipoComision);
-                                   });
-                      });
-            });
-        }
-
-        $comisiones = $comisionesQuery->orderBy('fecha_comision', 'asc')->get();
-
-        $comisionesPagadas = $comisiones->filter(function($comision) {
-            return in_array(ucfirst(strtolower($comision->estado)), ['Pagada', 'Entregada', 'Hecho']);
-        });
-
-        $comisionesPendientes = $comisiones->filter(function($comision) {
-            return in_array(ucfirst(strtolower($comision->estado)), ['Pendiente', 'Generada']);
-        })->map(function($comision) {
-            $montoEstimado = $comision->monto;
-            
-            // Si es una comisión padre, restamos lo que ya se haya pagado en sus parcialidades
-            if (is_null($comision->comision_padre_id)) {
-                $pagadoEnParcialidades = $comision->parcialidades()->where('estado', 'Pagada')->sum('monto');
-                $montoEstimado -= $pagadoEnParcialidades;
+        $aplicarTipo = function ($query) use ($tipoComision) {
+            if (!$tipoComision) {
+                return;
             }
-            
-            // Asignamos propiedad temporal para la vista
-            $comision->monto_restante_calculado = max(0, $montoEstimado);
-            return $comision;
-        })->filter(function($comision) {
-            return $comision->monto_restante_calculado > 0;
-        });
+            $query->where(function ($q) use ($tipoComision) {
+                $q->where('tipo_comision', $tipoComision)
+                    ->orWhere(function ($subQuery) use ($tipoComision) {
+                        $subQuery->where('tipo_comision', 'PARCIALIDAD')
+                            ->whereHas('comisionPadre', function ($padre) use ($tipoComision) {
+                                $padre->where('tipo_comision', $tipoComision);
+                            });
+                    });
+            });
+        };
+
+        $pagadasQuery = Comisione::with(['contrato.cliente', 'comisionPadre'])
+            ->where('empleado_id', $empleado->id)
+            ->whereBetween('fecha_comision', [$fechaInicio, $fechaFin]);
+        $aplicarTipo($pagadasQuery);
+
+        $comisionesPagadas = $pagadasQuery->orderBy('fecha_comision', 'asc')->get()
+            ->filter(function ($comision) use ($esPagada, $esFija) {
+                if (!$esPagada($comision)) {
+                    return false;
+                }
+                return $comision->tipo_comision === 'PARCIALIDAD' || $esFija($comision);
+            })->values();
+
+        $comisionesPendientes = collect();
+        if ($incluirPendientes) {
+            $pendientesQuery = Comisione::with(['contrato.cliente', 'parcialidades'])
+                ->where('empleado_id', $empleado->id)
+                ->whereNull('comision_padre_id')
+                ->where(function ($q) {
+                    $q->whereNull('tipo_comision')
+                        ->orWhere('tipo_comision', 'NOT LIKE', 'Fija - %');
+                });
+
+            if ($tipoComision) {
+                $pendientesQuery->where('tipo_comision', $tipoComision);
+            }
+
+            $comisionesPendientes = $pendientesQuery->get()->map(function ($comision) {
+                $pagadoEnParcialidades = $comision->parcialidades->where('estado', 'Pagada')->sum('monto');
+                if (strtolower((string) $comision->estado) === 'pagada') {
+                    $montoEstimado = 0;
+                } else {
+                    $montoEstimado = $comision->monto - $pagadoEnParcialidades;
+                }
+                $comision->monto_restante_calculado = max(0, $montoEstimado);
+                return $comision;
+            })->filter(function ($comision) {
+                return $comision->monto_restante_calculado > 0.009;
+            })->values();
+        }
 
         $totalPagadas = $comisionesPagadas->sum('monto');
         $totalPendientes = $comisionesPendientes->sum('monto_restante_calculado');

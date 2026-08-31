@@ -128,6 +128,48 @@
             }
         }
     </style>
+
+    <style>
+        .header-icon {
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(225, 178, 64, 0.3);
+            flex-shrink: 0;
+        }
+        .header-icon-sm {
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            box-shadow: 0 6px 12px rgba(225, 178, 64, 0.3);
+            flex-shrink: 0;
+        }
+        .header-icon-xs {
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 8px rgba(225, 178, 64, 0.2);
+            flex-shrink: 0;
+        }
+    </style>
     @stack('styles')
 </head>
 
@@ -178,6 +220,10 @@
                                 <li>
                                     <a class="nav-link {{ request()->routeIs('empleados.*') ? 'active' : '' }}"
                                         href="{{ route('empleados.index') }}">{{ __('Empleados') }}</a>
+                                </li>
+                                <li>
+                                    <a class="nav-link {{ request()->routeIs('rutas.*') ? 'active' : '' }}"
+                                        href="{{ route('rutas.index') }}">{{ __('Rutas') }}</a>
                                 </li>
                                 <li>
                                     <a class="nav-link {{ request()->routeIs('ajustes.*') ? 'active' : '' }}"

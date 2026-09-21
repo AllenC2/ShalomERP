@@ -65,7 +65,9 @@ class RutaController extends Controller
             $request->fecha,
             $request->fecha_limite,
             $request->notas,
-            Auth::id()
+            Auth::id(),
+            true,
+            $request->input('punto_casa', 'inicio')
         );
 
         return redirect()->route('rutas.show', $ruta->id)
@@ -288,6 +290,7 @@ class RutaController extends Controller
             'empleado' => [
                 'latitud' => $empleado->latitud,
                 'longitud' => $empleado->longitud,
+                'domicilio' => $empleado->domicilio,
             ],
         ]);
     }
@@ -342,6 +345,7 @@ class RutaController extends Controller
                 'fecha_limite' => $ruta->fecha_limite->format('Y-m-d'),
                 'estado' => $ruta->estado,
                 'notas' => $ruta->notas,
+                'punto_casa' => $ruta->punto_casa ?? 'inicio',
                 'empleado_lat' => $ruta->empleado->latitud,
                 'empleado_lng' => $ruta->empleado->longitud,
             ],
@@ -375,6 +379,7 @@ class RutaController extends Controller
             'notas' => 'nullable|string',
             'paradas' => 'nullable|array',
             'paradas.*' => 'exists:ruta_paradas,id',
+            'punto_casa' => 'nullable|in:inicio,final,ambos',
         ]);
 
         $ruta = Ruta::findOrFail($id);
@@ -383,6 +388,7 @@ class RutaController extends Controller
             'fecha_limite' => $request->fecha_limite,
             'estado' => $request->estado,
             'notas' => $request->notas,
+            'punto_casa' => $request->input('punto_casa', $ruta->punto_casa ?? 'inicio'),
         ]);
 
         if ($request->has('paradas')) {

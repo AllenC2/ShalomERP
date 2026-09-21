@@ -8,6 +8,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
 <div class="container py-4" style="max-width: 1600px;">
     <div class="row justify-content-center">
@@ -191,8 +194,8 @@
 <!-- Modal Nueva Ruta (multi-paso) -->
 @if(auth()->user()->role === 'admin')
 <div class="modal fade" id="nuevaRutaModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
             <!-- Header -->
             <div class="modal-header border-bottom py-3 px-4" style="flex-direction: row; justify-content: space-between !important;">
                 <div class="d-flex align-items-center gap-3">
@@ -223,6 +226,7 @@
                 <input type="hidden" name="fecha" id="formFecha">
                 <input type="hidden" name="fecha_limite" id="formFechaLimite">
                 <input type="hidden" name="notas" id="formNotas">
+                <input type="hidden" name="punto_casa" id="formPuntoCasa" value="inicio">
 
                 <div class="modal-body p-0">
                     <!-- Paso 1 -->
@@ -232,30 +236,31 @@
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-person me-1"></i> Empleado
                             </label>
-                            <select id="selectEmpleado" class="form-select form-select-lg" required>
-                                <option value="">Seleccionar empleado...</option>
-                                @foreach($empleados as $empleado)
-                                    <option value="{{ $empleado->id }}">
-                                        {{ $empleado->nombre }} {{ $empleado->apellido }} ({{ $empleado->id }})
-                                    </option>
-                                @endforeach
-                            </select>
+                            <div class="empleado-combobox position-relative" id="empleadoCombobox">
+                                <input type="text" id="selectEmpleadoSearch" class="form-control form-control-lg" placeholder="Escribir para buscar empleado..." autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
+                                <ul class="empleado-combobox-list list-unstyled mb-0 shadow-sm" id="selectEmpleadoList" hidden>
+                                    @foreach($empleados as $empleado)
+                                        <li>
+                                            <button type="button" class="empleado-combobox-item" data-id="{{ $empleado->id }}" data-label="{{ $empleado->nombre }} {{ $empleado->apellido }} ({{ $empleado->id }})">
+                                                <i class="bi bi-person me-2"></i>{{ $empleado->nombre }} {{ $empleado->apellido }}
+                                                <small class="text-muted">({{ $empleado->id }})</small>
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                    <li class="empleado-combobox-empty px-3 py-2 text-muted small" style="display: none;">Sin resultados</li>
+                                </ul>
+                            </div>
                         </div>
 
-                        <!-- Fila 2: Fechas -->
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    <i class="bi bi-calendar me-1"></i> Fecha de la Ruta
-                                </label>
-                                <input type="date" id="inputFecha" class="form-control form-control-lg" value="{{ date('Y-m-d') }}" required>
+                        <!-- Fila 2: Rango de fechas -->
+                        <div class="mb-3 rango-calendario">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-range me-1"></i> Periodo de la ruta
+                            </label>
+                            <div class="mb-2 text-end">
+                                <span class="fw-semibold small" id="inputFechaRangoLabel" style="color: #79481D;"></span>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    <i class="bi bi-calendar-check me-1"></i> Fecha Límite
-                                </label>
-                                <input type="date" id="inputFechaLimite" class="form-control form-control-lg" value="{{ date('Y-m-d', strtotime('+7 days')) }}" required>
-                            </div>
+                            <input type="text" id="inputFechaRango" class="d-none" tabindex="-1" aria-hidden="true">
                         </div>
 
                         <!-- Siguiente -->
@@ -293,31 +298,42 @@
 
                     <!-- Paso 2 -->
                     <div id="step2" class="d-none">
-                        <div class="row g-0" style="height: 65vh;">
+                        <div class="row g-0 modal-paso-mapa">
                             <!-- Mapa -->
-                            <div class="col-lg-6 position-relative">
+                            <div class="col-6 position-relative modal-paso-mapa-col">
                                 <div id="modalMap" style="height: 100%; width: 100%; background: #e9ecef;"></div>
                             </div>
 
                             <!-- Lista de contratos -->
-                            <div class="col-lg-6 d-flex flex-column">
-                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-white">
+                            <div class="col-6 d-flex flex-column modal-paso-mapa-col">
+                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-white flex-shrink-0">
                                     <div>
                                         <span class="fw-bold small" style="color: #79481D;" id="step2Empleado"></span>
                                         <span class="text-muted small ms-2" id="step2Fecha"></span>
                                     </div>
-                                    <div class="btn-group btn-group-sm">
-                                        <button type="button" class="btn btn-outline-secondary py-0" id="btnSelectAll">Todos</button>
-                                        <button type="button" class="btn btn-outline-secondary py-0" id="btnDeselectAll">Ninguno</button>
+                                    <div class="seg-tabs" id="selectContratosTabs" role="tablist">
+                                        <button type="button" class="seg-tab" id="btnSelectAll" data-value="todos" role="tab" aria-selected="false">Todos</button>
+                                        <button type="button" class="seg-tab active" id="btnDeselectAll" data-value="ninguno" role="tab" aria-selected="true">Ninguno</button>
+                                    </div>
+                                </div>
+
+                                <div class="px-3 py-2 border-bottom bg-white flex-shrink-0" id="puntoCasaWrap">
+                                    <label class="form-label small fw-semibold mb-1">
+                                        <i class="bi bi-house-door me-1"></i> Domicilio del empleado
+                                    </label>
+                                    <div class="seg-tabs" id="puntoCasaTabs" role="tablist">
+                                        <button type="button" class="seg-tab active" data-value="inicio" role="tab" aria-selected="true">Inicial</button>
+                                        <button type="button" class="seg-tab" data-value="final" role="tab" aria-selected="false">Final</button>
+                                        <button type="button" class="seg-tab" data-value="ambos" role="tab" aria-selected="false">Ambos</button>
                                     </div>
                                 </div>
 
                                 <!-- Geocode alert -->
-                                <div id="geocodeAlert" class="alert alert-warning d-none mx-3 mt-2 mb-0 py-2 d-flex align-items-center justify-content-between rounded-3">
+                                <div id="geocodeAlert" class="alert alert-warning d-none mx-3 mt-2 mb-0 py-2 d-flex align-items-center justify-content-between rounded-3 flex-shrink-0">
                                     <span><i class="bi bi-geo-alt-fill me-1"></i><span id="geocodeCount"></span> sin coordenadas</span>
                                     <button type="button" class="btn btn-sm btn-dark py-0" onclick="geocodificarPendientes()"><i class="bi bi-globe me-1"></i>Geocodificar</button>
                                 </div>
-                                <div id="geocodeProgress" class="alert alert-info d-none mx-3 mt-2 mb-0 py-2 rounded-3">
+                                <div id="geocodeProgress" class="alert alert-info d-none mx-3 mt-2 mb-0 py-2 rounded-3 flex-shrink-0">
                                     <div class="d-flex align-items-center">
                                         <div class="spinner-border spinner-border-sm me-2"></div>
                                         <span id="geocodeProgressText">Geocodificando...</span>
@@ -325,9 +341,9 @@
                                     <div class="progress mt-1" style="height: 4px;"><div class="progress-bar bg-success" id="geocodeBar" style="width: 0%"></div></div>
                                 </div>
 
-                                <div id="listaContratos" class="list-group list-group-flush flex-grow-1 overflow-auto" style="max-height: 100%;"></div>
+                                <div id="listaContratos" class="list-group list-group-flush modal-paso-mapa-lista"></div>
 
-                                <div class="px-3 py-2 border-top bg-white">
+                                <div class="px-3 py-2 border-top bg-white flex-shrink-0">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <span class="text-muted small" id="selectedCount">0 seleccionado(s)</span>
@@ -356,8 +372,8 @@
 <!-- Modal Editar Ruta (multi-paso) -->
 @if(auth()->user()->role === 'admin')
 <div class="modal fade" id="editarRutaModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
             <!-- Header -->
             <div class="modal-header border-bottom py-3 px-4" style="flex-direction: row; justify-content: space-between !important;">
                 <div class="d-flex align-items-center gap-3">
@@ -397,20 +413,18 @@
                             <input type="text" id="editEmpleadoNombre" class="form-control form-control-lg" disabled>
                         </div>
 
+                        <div class="mb-3 rango-calendario">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-range me-1"></i> Periodo de la ruta
+                            </label>
+                            <div class="mb-2 text-end">
+                                <span class="fw-semibold small" id="editInputFechaRangoLabel" style="color: #79481D;"></span>
+                            </div>
+                            <input type="text" id="editInputFechaRango" class="d-none" tabindex="-1" aria-hidden="true">
+                        </div>
+
                         <div class="row g-3 mb-3">
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">
-                                    <i class="bi bi-calendar me-1"></i> Fecha de la Ruta
-                                </label>
-                                <input type="date" id="editInputFecha" class="form-control form-control-lg" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-semibold">
-                                    <i class="bi bi-calendar-check me-1"></i> Fecha Límite
-                                </label>
-                                <input type="date" id="editInputFechaLimite" class="form-control form-control-lg" required>
-                            </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">
                                     <i class="bi bi-flag me-1"></i> Estado
                                 </label>
@@ -420,7 +434,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">
                                     <i class="bi bi-sticky me-1"></i> Notas
                                 </label>
@@ -437,24 +451,35 @@
 
                     <!-- Paso 2: Mapa + paradas -->
                     <div id="editStep2" class="d-none">
-                        <div class="row g-0" style="height: 65vh;">
+                        <div class="row g-0 modal-paso-mapa">
                             <!-- Mapa -->
-                            <div class="col-lg-6 position-relative">
+                            <div class="col-6 position-relative modal-paso-mapa-col">
                                 <div id="editModalMap" style="height: 100%; width: 100%; background: #e9ecef;"></div>
                             </div>
 
                             <!-- Lista de paradas -->
-                            <div class="col-lg-6 d-flex flex-column">
-                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-white">
+                            <div class="col-6 d-flex flex-column modal-paso-mapa-col">
+                                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-white flex-shrink-0">
                                     <div>
                                         <span class="fw-bold small" style="color: #79481D;" id="editStep2Empleado"></span>
                                         <span class="text-muted small ms-2" id="editStep2Fecha"></span>
                                     </div>
                                 </div>
 
-                                <div id="editListaParadas" class="list-group list-group-flush flex-grow-1 overflow-auto" style="max-height: 100%;"></div>
+                                <div class="px-3 py-2 border-bottom bg-white flex-shrink-0" id="editPuntoCasaWrap">
+                                    <label class="form-label small fw-semibold mb-1">
+                                        <i class="bi bi-house-door me-1"></i> Domicilio del empleado
+                                    </label>
+                                    <div class="seg-tabs" id="editPuntoCasaTabs" role="tablist">
+                                        <button type="button" class="seg-tab active" data-value="inicio" role="tab" aria-selected="true">Inicial</button>
+                                        <button type="button" class="seg-tab" data-value="final" role="tab" aria-selected="false">Final</button>
+                                        <button type="button" class="seg-tab" data-value="ambos" role="tab" aria-selected="false">Ambos</button>
+                                    </div>
+                                </div>
 
-                                <div class="px-3 py-2 border-top bg-white">
+                                <div id="editListaParadas" class="list-group list-group-flush modal-paso-mapa-lista"></div>
+
+                                <div class="px-3 py-2 border-top bg-white flex-shrink-0">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="text-muted small" id="editParadasCount">0 parada(s)</span>
                                         <div class="d-flex gap-2">
@@ -565,6 +590,79 @@ $(document).ready(function() {
     var domicilios = [];
     var domMarkers = [];
     var homeMarker = null;
+    var empleadoHome = null;
+
+    function distanciaKm(lat1, lng1, lat2, lng2) {
+        var r = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLng = (lng2 - lng1) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return r * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function ordenarPorCercania(items, originLat, originLng) {
+        var con = [];
+        var sin = [];
+        items.forEach(function(item) {
+            var lat = parseFloat(item.latitud);
+            var lng = parseFloat(item.longitud);
+            if (lat && lng) {
+                item.latitud = lat;
+                item.longitud = lng;
+                con.push(item);
+            } else {
+                sin.push(item);
+            }
+        });
+        if (!originLat || !originLng || !con.length) return items;
+        var ordenadas = [];
+        var curLat = originLat;
+        var curLng = originLng;
+        while (con.length) {
+            var best = 0;
+            var bestD = Infinity;
+            for (var i = 0; i < con.length; i++) {
+                var d = distanciaKm(curLat, curLng, con[i].latitud, con[i].longitud);
+                if (d < bestD) {
+                    bestD = d;
+                    best = i;
+                }
+            }
+            var next = con.splice(best, 1)[0];
+            ordenadas.push(next);
+            curLat = next.latitud;
+            curLng = next.longitud;
+        }
+        return ordenadas.concat(sin);
+    }
+
+    function etiquetaPuntoCasa(modo) {
+        if (modo === 'final') return 'Punto final';
+        if (modo === 'ambos') return 'Inicio y fin';
+        return 'Punto de inicio';
+    }
+
+    function getPuntoCasaModo(tabsSelector) {
+        return $(tabsSelector).find('.seg-tab.active').data('value') || 'inicio';
+    }
+
+    function setPuntoCasaModo(tabsSelector, modo) {
+        var value = modo || 'inicio';
+        $(tabsSelector).find('.seg-tab').each(function() {
+            var on = $(this).data('value') === value;
+            $(this).toggleClass('active', on).attr('aria-selected', on ? 'true' : 'false');
+        });
+    }
+
+    function aplicarHomeARuta(coords, home, modo) {
+        if (!home) return coords;
+        var latlng = [home.lat, home.lng];
+        if (modo === 'inicio' || modo === 'ambos') coords.unshift(latlng);
+        if (modo === 'final' || modo === 'ambos') coords.push(latlng);
+        return coords;
+    }
 
     function initModalMap() {
         if (modalMap) {
@@ -658,6 +756,7 @@ $(document).ready(function() {
                 if (response.success) {
                     $('#stepGeocode').addClass('d-none');
                     $('#step2').removeClass('d-none');
+                    setRutaModalAncho('#nuevaRutaModal', true);
                     setTimeout(function() {
                         initModalMap();
                         renderContratos(response.contratos, response.empleado);
@@ -667,19 +766,119 @@ $(document).ready(function() {
         });
     }
 
+    var $empSearch = $('#selectEmpleadoSearch');
+    var $empList = $('#selectEmpleadoList');
+    var $empEmpty = $empList.find('.empleado-combobox-empty');
+    var selectedEmpleadoId = '';
+    var selectedEmpleadoLabel = '';
+
+    function addDays(date, days) {
+        var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        d.setDate(d.getDate() + days);
+        return d;
+    }
+
+    function formatIsoDate(date) {
+        if (!date) return '';
+        return flatpickr.formatDate(date, 'Y-m-d');
+    }
+
+    function formatDisplayDate(date) {
+        if (!date) return '';
+        return flatpickr.formatDate(date, 'd/m/Y');
+    }
+
+    function getRangoIso(picker) {
+        if (!picker || picker.selectedDates.length < 2) return { start: '', end: '' };
+        return {
+            start: formatIsoDate(picker.selectedDates[0]),
+            end: formatIsoDate(picker.selectedDates[1])
+        };
+    }
+
+    var defaultFechaInicio = new Date();
+    var defaultFechaLimite = addDays(defaultFechaInicio, 7);
+    var fpLocale = Object.assign({}, flatpickr.l10ns.es, { rangeSeparator: '  →  ' });
+
+    function rangoLabelText(picker) {
+        if (!picker || !picker.selectedDates.length) return '';
+        if (picker.selectedDates.length === 1) {
+            return formatDisplayDate(picker.selectedDates[0]) + ' → …';
+        }
+        return formatDisplayDate(picker.selectedDates[0]) + ' → ' + formatDisplayDate(picker.selectedDates[1]);
+    }
+
+    function updateRangoLabel(picker, labelSelector) {
+        $(labelSelector).text(rangoLabelText(picker));
+    }
+
+    function createRangoPicker(selector, defaultDates, onChange) {
+        var el = document.querySelector(selector);
+        if (!el) return null;
+        return flatpickr(el, {
+            mode: 'range',
+            inline: true,
+            locale: fpLocale,
+            dateFormat: 'Y-m-d',
+            defaultDate: defaultDates || null,
+            showMonths: 1,
+            disableMobile: true,
+            monthSelectorType: 'static',
+            onChange: onChange || null
+        });
+    }
+
+    function updateBtnSiguiente() {
+        var rango = getRangoIso(pickerNuevaRuta);
+        updateRangoLabel(pickerNuevaRuta, '#inputFechaRangoLabel');
+        $('#btnSiguiente').prop('disabled', !selectedEmpleadoId || !rango.start || !rango.end);
+    }
+
+    var pickerNuevaRuta = createRangoPicker('#inputFechaRango', [defaultFechaInicio, defaultFechaLimite], function() {
+        updateBtnSiguiente();
+    });
+    var pickerEditarRuta = createRangoPicker('#editInputFechaRango', null, function() {
+        updateRangoLabel(pickerEditarRuta, '#editInputFechaRangoLabel');
+    });
+    updateBtnSiguiente();
+    updateRangoLabel(pickerEditarRuta, '#editInputFechaRangoLabel');
+
+    function setRutaModalAncho(modalSelector, wide) {
+        $(modalSelector).find('.modal-dialog').toggleClass('modal-mapa', !!wide);
+        if (wide) {
+            setTimeout(function() {
+                if (modalSelector === '#nuevaRutaModal' && modalMap) modalMap.invalidateSize();
+                if (modalSelector === '#editarRutaModal' && editMap) editMap.invalidateSize();
+            }, 220);
+        }
+    }
+
+    function fixCalendarioAncho(picker) {
+        if (!picker || !picker.calendarContainer) return;
+        picker.calendarContainer.classList.remove('multiMonth');
+        picker.redraw();
+        picker.calendarContainer.style.width = '307.875px';
+    }
+
+    $('#nuevaRutaModal').on('shown.bs.modal', function() {
+        fixCalendarioAncho(pickerNuevaRuta);
+    });
+    $('#editarRutaModal').on('shown.bs.modal', function() {
+        fixCalendarioAncho(pickerEditarRuta);
+    });
+
     $('#btnSiguiente').on('click', function() {
-        var empId = $('#selectEmpleado').val();
-        var fecha = $('#inputFecha').val();
-        var fechaLim = $('#inputFechaLimite').val();
-        if (!empId || !fecha || !fechaLim) return;
+        var empId = selectedEmpleadoId;
+        var rango = getRangoIso(pickerNuevaRuta);
+        if (!empId || !rango.start || !rango.end) return;
 
         $('#formEmpleadoId').val(empId);
-        $('#formFecha').val(fecha);
-        $('#formFechaLimite').val(fechaLim);
+        $('#formFecha').val(rango.start);
+        $('#formFechaLimite').val(rango.end);
 
-        var empText = $('#selectEmpleado option:selected').text().trim();
+        var empText = $('#selectEmpleadoSearch').val().trim();
         $('#step2Empleado').text(empText);
-        $('#step2Fecha').text(fecha.split('-').reverse().join('/'));
+        $('#step2Fecha').text(formatDisplayDate(pickerNuevaRuta.selectedDates[0]) + ' → ' + formatDisplayDate(pickerNuevaRuta.selectedDates[1]));
 
         $('#step1').addClass('d-none');
         $('#stepGeocode').removeClass('d-none');
@@ -691,11 +890,84 @@ $(document).ready(function() {
     $('#btnVolver').on('click', function() {
         $('#step2').addClass('d-none');
         $('#step1').removeClass('d-none');
+        setRutaModalAncho('#nuevaRutaModal', false);
         updateStepIndicator(1);
     });
 
-    $('#selectEmpleado').on('change', function() {
-        $('#btnSiguiente').prop('disabled', !$(this).val());
+    function setEmpleadoSeleccionado(id, label) {
+        selectedEmpleadoId = id || '';
+        if (label !== undefined) {
+            selectedEmpleadoLabel = label;
+            $empSearch.val(label);
+        }
+        $('#btnSiguiente').prop('disabled', !selectedEmpleadoId);
+        updateBtnSiguiente();
+    }
+
+    function filterEmpleadoList(query) {
+        var q = (query || '').toLowerCase().trim();
+        var visible = 0;
+        $empList.find('.empleado-combobox-item').each(function() {
+            var $item = $(this);
+            var text = ($item.attr('data-label') || $item.text()).toString().toLowerCase();
+            var match = !q || text.indexOf(q) !== -1;
+            $item.closest('li').toggle(match);
+            if (match) visible++;
+        });
+        $empEmpty.toggle(visible === 0);
+    }
+
+    function openEmpleadoList() {
+        filterEmpleadoList($empSearch.val());
+        $empList.prop('hidden', false);
+        $empSearch.attr('aria-expanded', 'true');
+    }
+
+    function closeEmpleadoList() {
+        $empList.prop('hidden', true);
+        $empSearch.attr('aria-expanded', 'false');
+    }
+
+    $empSearch.on('focus', function() {
+        if (selectedEmpleadoId && $(this).val() === selectedEmpleadoLabel) {
+            filterEmpleadoList('');
+            $empList.prop('hidden', false);
+            $empSearch.attr('aria-expanded', 'true');
+        } else {
+            openEmpleadoList();
+        }
+    });
+
+    $empSearch.on('input', function() {
+        if ($(this).val() !== selectedEmpleadoLabel) {
+            setEmpleadoSeleccionado('', undefined);
+        }
+        openEmpleadoList();
+    });
+
+    $empSearch.on('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeEmpleadoList();
+            return;
+        }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            var $first = $empList.find('.empleado-combobox-item:visible').first();
+            if ($first.length) $first.trigger('click');
+        }
+    });
+
+    $empList.on('click', '.empleado-combobox-item', function() {
+        var id = $(this).attr('data-id');
+        var label = $(this).attr('data-label');
+        setEmpleadoSeleccionado(id, label);
+        closeEmpleadoList();
+    });
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#empleadoCombobox').length) {
+            closeEmpleadoList();
+        }
     });
 
     function updateStepIndicator(step) {
@@ -759,6 +1031,7 @@ $(document).ready(function() {
         domicilios = [];
 
         if (empleado && empleado.latitud && empleado.longitud && modalMap) {
+            var modoCasa = getPuntoCasaModo('#puntoCasaTabs');
             homeMarker = L.marker([empleado.latitud, empleado.longitud], {
                 icon: L.divIcon({
                     className: 'custom-marker',
@@ -767,7 +1040,7 @@ $(document).ready(function() {
                 }),
                 zIndexOffset: 1000
             }).addTo(modalMap);
-            homeMarker.bindPopup('<strong>Punto de inicio</strong><br><small>Empleado</small>');
+            homeMarker.bindPopup('<strong>' + etiquetaPuntoCasa(modoCasa) + '</strong><br><small>' + (empleado.domicilio || 'Empleado') + '</small>');
         }
 
         if (contratos.length === 0) {
@@ -776,14 +1049,21 @@ $(document).ready(function() {
         }
 
         domicilios = groupByDomicilio(contratos);
+        if (empleado && empleado.latitud && empleado.longitud) {
+            empleadoHome = { lat: parseFloat(empleado.latitud), lng: parseFloat(empleado.longitud) };
+            domicilios = ordenarPorCercania(domicilios, empleadoHome.lat, empleadoHome.lng);
+        } else {
+            empleadoHome = null;
+        }
+        $('#puntoCasaTabs .seg-tab').prop('disabled', !empleadoHome);
         var sinCoords = 0;
         var domIdx = 0;
 
         domicilios.forEach(function(dom) {
             domIdx++;
             var hasCoords = dom.tiene_coordenadas && dom.latitud && dom.longitud;
-            var checked = hasCoords ? 'checked' : '';
-            var opacity = hasCoords ? '1' : '0.5';
+            var checked = '';
+            var opacity = '0.5';
             if (!hasCoords) sinCoords++;
 
             var multiBadge = dom.contratos.length > 1
@@ -793,14 +1073,14 @@ $(document).ready(function() {
             var html = '<div class="list-group-item px-3 py-2 domicilio-item" data-domidx="' + (domIdx - 1) + '" data-cliente-id="' + dom.cliente_id + '" data-lat="' + (dom.latitud || '') + '" data-lng="' + (dom.longitud || '') + '" style="opacity: ' + opacity + '; transition: all 0.2s; border-left: 3px solid transparent;">';
             html += '<div class="d-flex align-items-start gap-2">';
             html += '<div class="d-flex flex-column align-items-center gap-1 pt-1"><i class="bi bi-grip-vertical text-muted" style="cursor: grab; font-size: 1rem;"></i>';
-            html += '<input type="checkbox" class="form-check-input domicilio-check" ' + checked + '></div>';
+            html += '<input type="checkbox" class="form-check-input domicilio-check check-shalom" ' + checked + ' aria-label="Seleccionar domicilio de ' + dom.cliente_nombre.replace(/"/g, '&quot;') + '"></div>';
             html += '<div class="flex-grow-1 min-width-0">';
             html += '<div class="d-flex justify-content-between align-items-center"><div class="fw-semibold small">' + dom.cliente_nombre + multiBadge + '</div><span class="badge bg-light text-dark rounded-pill orden-badge" style="font-size:0.65rem;">#' + domIdx + '</span></div>';
             html += '<div class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-geo-alt me-1"></i>' + dom.domicilio + '</div>';
 
             dom.contratos.forEach(function(c) {
                 html += '<div class="d-flex gap-2 mt-1 align-items-center contrato-sub" data-id="' + c.id + '" style="font-size: 0.75rem; padding-left: 4px; border-left: 2px solid #e9ecef;">';
-                html += '<input type="checkbox" class="form-check-input contrato-check" value="' + c.id + '" ' + checked + ' style="margin: 0;">';
+                html += '<input type="checkbox" class="form-check-input contrato-check check-shalom" value="' + c.id + '" ' + checked + ' aria-label="Seleccionar contrato ' + c.id + '">';
                 html += '<span class="text-muted">C#' + c.id + '</span>';
                 html += '<span><strong>$' + c.cuota + '</strong> cuota</span>';
                 if (c.abono_promedio > 0) html += '<span class="text-success"><strong>$' + c.abono_promedio.toFixed(2) + '</strong> prom</span>';
@@ -831,7 +1111,7 @@ $(document).ready(function() {
         });
 
         var pts = [];
-        if (empleado && empleado.latitud && empleado.longitud) pts.push([empleado.latitud, empleado.longitud]);
+        if (empleadoHome) pts.push([empleadoHome.lat, empleadoHome.lng]);
         domicilios.forEach(function(dom, i) {
             if (dom.tiene_coordenadas && dom.latitud && dom.longitud) {
                 var item = container.find('.domicilio-item').eq(i);
@@ -868,11 +1148,22 @@ $(document).ready(function() {
         });
     }
 
+    function syncSelectContratosTabs() {
+        var total = $('#listaContratos .contrato-check').length;
+        var checked = $('#listaContratos .contrato-check:checked').length;
+        var modo = null;
+        if (total > 0 && checked === total) modo = 'todos';
+        else if (checked === 0) modo = 'ninguno';
+        setPuntoCasaModo('#selectContratosTabs', modo);
+    }
+
     function actualizarRutaModal() {
-        if (routeLine && modalMap) { modalMap.removeLayer(routeLine); }
+        if (routeLine && modalMap) { modalMap.removeLayer(routeLine); routeLine = null; }
         var coords = [];
         var totalContratos = 0;
         var visIdx = 0;
+        var modoCasa = getPuntoCasaModo('#puntoCasaTabs');
+        $('#formPuntoCasa').val(modoCasa);
 
         $('#listaContratos .domicilio-item').each(function() {
             var lat = $(this).data('lat');
@@ -900,11 +1191,19 @@ $(document).ready(function() {
             }
         });
 
+        coords = aplicarHomeARuta(coords, empleadoHome, modoCasa);
+
         if (coords.length > 1 && modalMap) {
             routeLine = L.polyline(coords, { color: '#79481D', weight: 3, opacity: 0.7, dashArray: '10,8' }).addTo(modalMap);
         }
 
-        $('#selectedCount').text(totalContratos + ' contrato(s) en ' + coords.length + ' domicilio(s)');
+        if (homeMarker) {
+            homeMarker.setPopupContent('<strong>' + etiquetaPuntoCasa(modoCasa) + '</strong><br><small>Domicilio del empleado</small>');
+        }
+
+        var paradasCount = visIdx;
+        $('#selectedCount').text(totalContratos + ' contrato(s) en ' + paradasCount + ' domicilio(s)');
+        syncSelectContratosTabs();
     }
 
     function syncDomicilioCheck(domicilioItem) {
@@ -949,6 +1248,13 @@ $(document).ready(function() {
         actualizarRutaModal();
     });
 
+    $('#puntoCasaTabs').on('click', '.seg-tab', function() {
+        if ($(this).prop('disabled')) return;
+        setPuntoCasaModo('#puntoCasaTabs', $(this).data('value'));
+        $('#formPuntoCasa').val(getPuntoCasaModo('#puntoCasaTabs'));
+        actualizarRutaModal();
+    });
+
     $('#nuevaRutaForm').on('submit', function() {
         $(this).find('input[name="contratos[]"]').remove();
         $('#listaContratos .contrato-check:checked').each(function() {
@@ -962,8 +1268,18 @@ $(document).ready(function() {
         $('#stepGeocode').addClass('d-none');
         $('#step2').addClass('d-none');
         updateStepIndicator(1);
-        $('#selectEmpleado').val('');
-        $('#btnSiguiente').prop('disabled', true);
+        selectedEmpleadoLabel = '';
+        setEmpleadoSeleccionado('', '');
+        if (pickerNuevaRuta) pickerNuevaRuta.setDate([defaultFechaInicio, defaultFechaLimite], false);
+        $('#formEmpleadoId').val('');
+        $('#formFecha').val('');
+        $('#formFechaLimite').val('');
+        setPuntoCasaModo('#puntoCasaTabs', 'inicio');
+        setPuntoCasaModo('#selectContratosTabs', 'ninguno');
+        $('#formPuntoCasa').val('inicio');
+        empleadoHome = null;
+        closeEmpleadoList();
+        setRutaModalAncho('#nuevaRutaModal', false);
         $('#listaContratos').empty();
         clearMapOverlays();
         domicilios = [];
@@ -1061,20 +1377,24 @@ $(document).ready(function() {
         $('#editRutaId').text('#' + ruta.id);
         $('#editRutaIdInput').val(ruta.id);
         $('#editEmpleadoNombre').val(ruta.empleado_nombre);
-        $('#editInputFecha').val(ruta.fecha);
-        $('#editInputFechaLimite').val(ruta.fecha_limite);
+        if (pickerEditarRuta) pickerEditarRuta.setDate([ruta.fecha, ruta.fecha_limite], true);
         $('#editSelectEstado').val(ruta.estado);
         $('#editInputNotas').val(ruta.notas || '');
+        setPuntoCasaModo('#editPuntoCasaTabs', ruta.punto_casa || 'inicio');
     }
 
     $('#editBtnSiguiente').on('click', function() {
         var ruta = editRutaData.ruta;
+        var rango = getRangoIso(pickerEditarRuta);
+        if (!rango.start || !rango.end) return;
+
         $('#editStep1').addClass('d-none');
         $('#editStep2').removeClass('d-none');
+        setRutaModalAncho('#editarRutaModal', true);
         updateEditStepIndicator(2);
 
         $('#editStep2Empleado').text(ruta.empleado_nombre);
-        $('#editStep2Fecha').text(ruta.fecha.split('-').reverse().join('/'));
+        $('#editStep2Fecha').text(formatDisplayDate(pickerEditarRuta.selectedDates[0]) + ' → ' + formatDisplayDate(pickerEditarRuta.selectedDates[1]));
 
         setTimeout(function() {
             initEditMap();
@@ -1085,6 +1405,7 @@ $(document).ready(function() {
     $('#editBtnVolver').on('click', function() {
         $('#editStep2').addClass('d-none');
         $('#editStep1').removeClass('d-none');
+        setRutaModalAncho('#editarRutaModal', false);
         updateEditStepIndicator(1);
     });
 
@@ -1092,6 +1413,7 @@ $(document).ready(function() {
         var container = $('#editListaParadas');
         container.empty();
         clearEditMap();
+        $('#editPuntoCasaTabs .seg-tab').prop('disabled', !(ruta.empleado_lat && ruta.empleado_lng));
 
         // Home marker
         if (ruta.empleado_lat && ruta.empleado_lng && editMap) {
@@ -1103,7 +1425,7 @@ $(document).ready(function() {
                 }),
                 zIndexOffset: 1000
             }).addTo(editMap);
-            editHomeMarker.bindPopup('<strong>Punto de inicio</strong><br><small>Empleado</small>');
+            editHomeMarker.bindPopup('<strong>' + etiquetaPuntoCasa(getPuntoCasaModo('#editPuntoCasaTabs')) + '</strong><br><small>Domicilio del empleado</small>');
         }
 
         var pts = [];
@@ -1162,11 +1484,15 @@ $(document).ready(function() {
     }
 
     function actualizarEditRutaLine() {
-        if (editRouteLine && editMap) { editMap.removeLayer(editRouteLine); }
+        if (editRouteLine && editMap) { editMap.removeLayer(editRouteLine); editRouteLine = null; }
         var coords = [];
-
+        var modoCasa = getPuntoCasaModo('#editPuntoCasaTabs');
+        var home = null;
         if (editRutaData && editRutaData.ruta.empleado_lat && editRutaData.ruta.empleado_lng) {
-            coords.push([editRutaData.ruta.empleado_lat, editRutaData.ruta.empleado_lng]);
+            home = {
+                lat: parseFloat(editRutaData.ruta.empleado_lat),
+                lng: parseFloat(editRutaData.ruta.empleado_lng)
+            };
         }
 
         $('#editListaParadas .edit-parada-item').each(function() {
@@ -1175,10 +1501,22 @@ $(document).ready(function() {
             if (lat && lng) coords.push([parseFloat(lat), parseFloat(lng)]);
         });
 
+        coords = aplicarHomeARuta(coords, home, modoCasa);
+
         if (coords.length > 1 && editMap) {
             editRouteLine = L.polyline(coords, { color: '#79481D', weight: 3, opacity: 0.7, dashArray: '10,8' }).addTo(editMap);
         }
+
+        if (editHomeMarker) {
+            editHomeMarker.setPopupContent('<strong>' + etiquetaPuntoCasa(modoCasa) + '</strong><br><small>Domicilio del empleado</small>');
+        }
     }
+
+    $('#editPuntoCasaTabs').on('click', '.seg-tab', function() {
+        if ($(this).prop('disabled')) return;
+        setPuntoCasaModo('#editPuntoCasaTabs', $(this).data('value'));
+        actualizarEditRutaLine();
+    });
 
     // Cambiar estado de parada
     $(document).on('click', '.edit-estado-badge', function() {
@@ -1208,10 +1546,11 @@ $(document).ready(function() {
             method: 'PUT',
             headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' },
             data: JSON.stringify({
-                fecha: $('#editInputFecha').val(),
-                fecha_limite: $('#editInputFechaLimite').val(),
+                fecha: getRangoIso(pickerEditarRuta).start,
+                fecha_limite: getRangoIso(pickerEditarRuta).end,
                 estado: $('#editSelectEstado').val(),
                 notas: $('#editInputNotas').val(),
+                punto_casa: getPuntoCasaModo('#editPuntoCasaTabs'),
                 paradas: paradasOrden
             }),
             success: function(response) {
@@ -1232,6 +1571,7 @@ $(document).ready(function() {
     $('#editarRutaModal').on('hidden.bs.modal', function() {
         $('#editStep1').removeClass('d-none');
         $('#editStep2').addClass('d-none');
+        setRutaModalAncho('#editarRutaModal', false);
         updateEditStepIndicator(1);
         $('#editListaParadas').empty();
         clearEditMap();
@@ -1345,6 +1685,197 @@ function geocodificarPendientes() {
     .table-responsive { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
     .avatar-circle { color: white; font-weight: 600; font-size: 0.875rem; }
 
+    #nuevaRutaModal .modal-dialog,
+    #editarRutaModal .modal-dialog {
+        max-width: 520px;
+        width: calc(100% - 2rem);
+        transition: max-width 0.2s ease;
+    }
+    #nuevaRutaModal .modal-dialog.modal-mapa,
+    #editarRutaModal .modal-dialog.modal-mapa {
+        max-width: min(1140px, calc(100vw - 2rem));
+        width: min(1140px, calc(100vw - 2rem));
+    }
+    #nuevaRutaModal .modal-dialog.modal-mapa .modal-content,
+    #editarRutaModal .modal-dialog.modal-mapa .modal-content {
+        overflow: hidden;
+        max-height: calc(100vh - 3rem);
+        display: flex;
+        flex-direction: column;
+    }
+    #nuevaRutaModal .modal-dialog.modal-mapa #nuevaRutaForm,
+    #editarRutaModal .modal-dialog.modal-mapa #editarRutaForm {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+    #nuevaRutaModal .modal-dialog.modal-mapa .modal-body,
+    #editarRutaModal .modal-dialog.modal-mapa .modal-body {
+        overflow: hidden;
+        flex: 1 1 auto;
+        min-height: 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    #step2,
+    #editStep2 {
+        flex: 1 1 auto;
+        min-height: 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .modal-paso-mapa {
+        flex: 1 1 auto;
+        min-height: 0;
+        min-width: 0;
+        height: 65vh;
+        max-height: 65vh;
+        overflow: hidden;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    .modal-paso-mapa-col {
+        min-height: 0;
+        min-width: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+    .modal-paso-mapa-lista {
+        flex: 1 1 0;
+        min-height: 0;
+        min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    .seg-tabs {
+        display: flex;
+        width: 100%;
+        padding: 3px;
+        gap: 3px;
+        background: #f3f4f6;
+        border-radius: 10px;
+    }
+    #selectContratosTabs {
+        width: auto;
+        flex: 0 0 auto;
+        min-width: 148px;
+    }
+    .seg-tab {
+        flex: 1 1 0;
+        border: none;
+        background: transparent;
+        color: #6b7280;
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.2;
+        padding: 0.4rem 0.35rem;
+        border-radius: 8px;
+        transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .seg-tab:hover:not(:disabled):not(.active) {
+        background: rgba(255,255,255,0.7);
+        color: #79481D;
+    }
+    .seg-tab.active {
+        background: #fff;
+        color: #79481D;
+        box-shadow: 0 1px 3px rgba(31, 41, 55, 0.12);
+    }
+    .seg-tab:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    #step1 { overflow: visible; }
+    #nuevaRutaModal .modal-content,
+    #editarRutaModal .modal-content { overflow: visible; }
+    .empleado-combobox-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1060;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-top: 4px;
+    }
+    .empleado-combobox-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.95rem;
+    }
+    .empleado-combobox-item:hover,
+    .empleado-combobox-item:focus {
+        background: #f8f9ff;
+    }
+
+    .rango-calendario {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .rango-calendario > .form-label,
+    .rango-calendario > .mb-2 {
+        width: 100%;
+    }
+    .rango-calendario .flatpickr-input {
+        display: none !important;
+    }
+    .rango-calendario .flatpickr-calendar,
+    .rango-calendario .flatpickr-calendar.inline {
+        z-index: 1 !important;
+        display: inline-block !important;
+        width: 307.875px !important;
+        max-width: 100%;
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        margin: 0 auto;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        position: relative !important;
+    }
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange,
+    .flatpickr-day.selected:hover,
+    .flatpickr-day.startRange:hover,
+    .flatpickr-day.endRange:hover {
+        background: #79481D;
+        border-color: #79481D;
+    }
+    .flatpickr-day.inRange,
+    .flatpickr-day.prevMonthDay.inRange,
+    .flatpickr-day.nextMonthDay.inRange {
+        background: #f5ead8;
+        box-shadow: none;
+        border-color: transparent;
+        color: #79481D;
+    }
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .flatpickr-weekday {
+        color: #79481D;
+    }
+    .flatpickr-months .flatpickr-prev-month:hover svg,
+    .flatpickr-months .flatpickr-next-month:hover svg {
+        fill: #79481D;
+    }
+
     /* Step indicator */
     .step-num {
         display: inline-flex; align-items: center; justify-content: center;
@@ -1358,7 +1889,50 @@ function geocodificarPendientes() {
     .domicilio-item:hover { background: #f8f9ff; border-left-color: #79481D !important; }
     .contrato-sub { transition: background 0.15s; border-radius: 4px; padding: 2px 0; }
     .contrato-sub:hover { background: #f0f4ff; }
-    .contrato-check { width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+    .check-shalom {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        min-height: 22px;
+        margin: 0;
+        flex-shrink: 0;
+        cursor: pointer;
+        border: 2px solid #E1B240;
+        border-radius: 6px;
+        background-color: #fff;
+        background-image: none !important;
+        box-shadow: none;
+        vertical-align: middle;
+        transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .check-shalom:hover {
+        border-color: #d4a22e;
+        background-color: #fff8e8;
+    }
+    .check-shalom:checked {
+        background-color: #E1B240;
+        border-color: #E1B240;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.4' d='M3.2 8.3l3.1 3.1 6.5-6.8'/%3E%3C/svg%3E") !important;
+        background-size: 14px 14px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .check-shalom:indeterminate {
+        background-color: #E1B240;
+        border-color: #E1B240;
+        background-image: none !important;
+        box-shadow: inset 0 0 0 5px #fff;
+    }
+    .check-shalom:focus {
+        box-shadow: none;
+        outline: none;
+    }
+    .check-shalom:focus-visible {
+        outline: 3px solid #79481D;
+        outline-offset: 2px;
+    }
     .custom-marker { background: transparent !important; border: none !important; }
     .leaflet-popup-content-wrapper { border-radius: 12px !important; }
     .leaflet-popup-content { margin: 10px 14px !important; font-size: 0.85rem !important; }

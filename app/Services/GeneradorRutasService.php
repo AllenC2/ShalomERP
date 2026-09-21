@@ -17,9 +17,9 @@ class GeneradorRutasService
         $this->geocoding = $geocoding;
     }
 
-    public function generar(array $contratoIds, string $empleadoId, string $fecha, string $fechaLimite, ?string $notas = null, ?int $userId = null, bool $respetarOrden = true): Ruta
+    public function generar(array $contratoIds, string $empleadoId, string $fecha, string $fechaLimite, ?string $notas = null, ?int $userId = null, bool $respetarOrden = true, string $puntoCasa = 'inicio'): Ruta
     {
-        return DB::transaction(function () use ($contratoIds, $empleadoId, $fecha, $fechaLimite, $notas, $userId, $respetarOrden) {
+        return DB::transaction(function () use ($contratoIds, $empleadoId, $fecha, $fechaLimite, $notas, $userId, $respetarOrden, $puntoCasa) {
             $empleado = Empleado::findOrFail($empleadoId);
 
             if (!$empleado->tiene_coordenadas && $empleado->domicilio) {
@@ -38,6 +38,7 @@ class GeneradorRutasService
                 'fecha_limite' => $fechaLimite,
                 'estado' => Ruta::ESTADO_PLANEADA,
                 'notas' => $notas,
+                'punto_casa' => in_array($puntoCasa, ['inicio', 'final', 'ambos'], true) ? $puntoCasa : 'inicio',
                 'user_id' => $userId,
             ]);
 

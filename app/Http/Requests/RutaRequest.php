@@ -21,6 +21,7 @@ class RutaRequest extends FormRequest
                 'notas' => 'nullable|string|max:1000',
                 'contratos' => 'required|array|min:1',
                 'contratos.*' => 'exists:contratos,id',
+                'punto_casa' => 'nullable|in:inicio,final,ambos',
             ];
         }
 

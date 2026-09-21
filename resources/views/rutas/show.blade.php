@@ -324,11 +324,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Empleado
+    var homeLatLng = null;
     @if($ruta->empleado->latitud && $ruta->empleado->longitud)
-        var empM = L.marker([{{ $ruta->empleado->latitud }}, {{ $ruta->empleado->longitud }}], { icon: makeIcon('#28a745', 34, 'H'), zIndexOffset: 1000 }).addTo(map);
-        empM.bindPopup('<div style="min-width:140px"><strong style="color:#28a745">Inicio</strong><br><strong>{{ addslashes($ruta->empleado->nombre) }} {{ addslashes($ruta->empleado->apellido) }}</strong><br><small>{{ addslashes($ruta->empleado->domicilio ?? "") }}</small></div>');
-        points.push([{{ $ruta->empleado->latitud }}, {{ $ruta->empleado->longitud }}]);
-        routeCoords.push([{{ $ruta->empleado->latitud }}, {{ $ruta->empleado->longitud }}]);
+        homeLatLng = [{{ $ruta->empleado->latitud }}, {{ $ruta->empleado->longitud }}];
+        var puntoCasa = @json($ruta->punto_casa ?? 'inicio');
+        var casaLabel = puntoCasa === 'final' ? 'Final' : (puntoCasa === 'ambos' ? 'Inicio y fin' : 'Inicio');
+        var empM = L.marker(homeLatLng, { icon: makeIcon('#28a745', 34, 'H'), zIndexOffset: 1000 }).addTo(map);
+        empM.bindPopup('<div style="min-width:140px"><strong style="color:#28a745">' + casaLabel + '</strong><br><strong>{{ addslashes($ruta->empleado->nombre) }} {{ addslashes($ruta->empleado->apellido) }}</strong><br><small>{{ addslashes($ruta->empleado->domicilio ?? "") }}</small></div>');
+        points.push(homeLatLng);
     @endif
 
     // Paradas (un marcador por domicilio único)
@@ -361,6 +364,12 @@ document.addEventListener('DOMContentLoaded', function() {
             routeCoords.push([{{ $lat }}, {{ $lng }}]);
         })();
     @endforeach
+
+    if (homeLatLng) {
+        var puntoCasaRuta = @json($ruta->punto_casa ?? 'inicio');
+        if (puntoCasaRuta === 'inicio' || puntoCasaRuta === 'ambos') routeCoords.unshift(homeLatLng);
+        if (puntoCasaRuta === 'final' || puntoCasaRuta === 'ambos') routeCoords.push(homeLatLng);
+    }
 
     if (routeCoords.length > 1) {
         L.polyline(routeCoords, { color: '#79481D', weight: 3, opacity: 0.7, dashArray: '10,8' }).addTo(map);

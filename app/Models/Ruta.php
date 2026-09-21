@@ -29,6 +29,7 @@ class Ruta extends Model
         'fecha_limite',
         'estado',
         'notas',
+        'punto_casa',
         'user_id',
     ];
 

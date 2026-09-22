@@ -746,6 +746,8 @@
                             'en_curso' => ['color' => '#FF9500', 'bg' => 'rgba(255,149,0,0.1)', 'label' => 'En Curso', 'icon' => 'bi-play-circle'],
                             'cancelada' => ['color' => '#FF3B30', 'bg' => 'rgba(255,59,48,0.1)', 'label' => 'Cancelada', 'icon' => 'bi-slash-circle'],
                             'completada' => ['color' => '#34C759', 'bg' => 'rgba(52,199,89,0.1)', 'label' => 'Completada', 'icon' => 'bi-check-circle'],
+                            'incompleta' => ['color' => '#8E8E93', 'bg' => 'rgba(142,142,147,0.1)', 'label' => 'Incompleta', 'icon' => 'bi-dash-circle'],
+                            'vencida' => ['color' => '#1C1C1E', 'bg' => 'rgba(28,28,30,0.1)', 'label' => 'Vencida', 'icon' => 'bi-clock-history'],
                             default => ['color' => '#8E8E93', 'bg' => 'rgba(142,142,147,0.1)', 'label' => $ruta->estado, 'icon' => 'bi-circle'],
                         };
                     @endphp
@@ -760,11 +762,8 @@
                         <div class="shlom-route-card-body">
                             <div class="shlom-route-date">
                                 <i class="bi bi-calendar3"></i>
-                                <span>{{ $ruta->fecha->format('d M') }}</span>
-                                @if($ruta->fecha_limite && $ruta->fecha_limite != $ruta->fecha)
-                                    <i class="bi bi-arrow-right mx-1"></i>
-                                    <span>{{ $ruta->fecha_limite->format('d M') }}</span>
-                                @endif
+                                <span>{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}</span>
+                                <span class="ms-2">{{ optional($ruta->fecha)->format('d M') }}</span>
                             </div>
                             <div class="shlom-route-stats">
                                 <div class="shlom-stat">
@@ -1710,9 +1709,9 @@
             if (window.resetBottomSheet) window.resetBottomSheet();
 
             // Topbar info
-            document.getElementById('detailRutaTitle').textContent = 'Ruta #' + ruta.id;
+            document.getElementById('detailRutaTitle').textContent = ruta.nombre || ('Ruta #' + ruta.id);
             var fechaStr = ruta.fecha.split('-').reverse().join('/');
-            if (ruta.fecha_limite) fechaStr += ' → ' + ruta.fecha_limite.split('-').reverse().join('/');
+            if (ruta.frecuencia) fechaStr += ' · ' + ruta.frecuencia;
             document.getElementById('detailRutaDate').textContent = fechaStr;
 
             // Estado badge
@@ -1720,7 +1719,9 @@
                 'planeada': { color: '#007AFF', label: 'Planeada' },
                 'en_curso': { color: '#FF9500', label: 'En Curso' },
                 'cancelada': { color: '#FF3B30', label: 'Cancelada' },
-                'completada': { color: '#34C759', label: 'Completada' }
+                'completada': { color: '#34C759', label: 'Completada' },
+                'incompleta': { color: '#8E8E93', label: 'Incompleta' },
+                'vencida': { color: '#1C1C1E', label: 'Vencida' }
             };
             var ec = estadoConfig[ruta.estado] || { color: '#8E8E93', label: ruta.estado };
             var badge = document.getElementById('detailRutaEstado');

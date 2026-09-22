@@ -6,158 +6,199 @@ use App\Models\Contrato;
 use App\Models\Empleado;
 use App\Models\Ruta;
 use App\Models\RutaParada;
+use App\Models\RutaPlantilla;
+use App\Models\RutaPlantillaParada;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class GeneradorRutasService
 {
-    protected GeocodingService $geocoding;
-
-    public function __construct(GeocodingService $geocoding)
+    public function __construct(protected GeocodingService $geocoding)
     {
-        $this->geocoding = $geocoding;
     }
 
-    public function generar(array $contratoIds, string $empleadoId, string $fecha, string $fechaLimite, ?string $notas = null, ?int $userId = null, bool $respetarOrden = true, string $puntoCasa = 'inicio'): Ruta
+    public function crearPlantillaEInstancia(array $datos): Ruta
     {
-        return DB::transaction(function () use ($contratoIds, $empleadoId, $fecha, $fechaLimite, $notas, $userId, $respetarOrden, $puntoCasa) {
-            $empleado = Empleado::findOrFail($empleadoId);
+        $fecha = Carbon::parse($datos['fecha'])->startOfDay();
 
-            if (!$empleado->tiene_coordenadas && $empleado->domicilio) {
-                $coords = $this->geocoding->geocode($empleado->domicilio);
-                if ($coords) {
-                    $empleado->update([
-                        'latitud' => $coords['lat'],
-                        'longitud' => $coords['lng'],
-                    ]);
-                }
+        if (($datos['frecuencia'] ?? '') === RutaPlantilla::FRECUENCIA_SEMANAL) {
+            $datos['dia_semana'] = (int) $fecha->dayOfWeekIso;
+        }
+        if (($datos['frecuencia'] ?? '') === RutaPlantilla::FRECUENCIA_MENSUAL) {
+            $datos['dia_mes'] = (int) $fecha->day;
+        }
+
+        $this->asegurarFechaCoincide($datos, $fecha);
+
+        return DB::transaction(function () use ($datos, $fecha) {
+            $empleado = Empleado::findOrFail($datos['empleado_id']);
+            $this->geocodificarEmpleado($empleado);
+
+            $contratoIds = array_values(array_unique($datos['contratos']));
+            $ocupados = $this->contratosEnPlantillasActivas($contratoIds);
+            if (!empty($ocupados)) {
+                throw new InvalidArgumentException('Uno o más contratos ya están en una ruta activa: ' . implode(', ', $ocupados));
             }
 
-            $ruta = Ruta::create([
-                'empleado_id' => $empleadoId,
-                'fecha' => $fecha,
-                'fecha_limite' => $fechaLimite,
-                'estado' => Ruta::ESTADO_PLANEADA,
-                'notas' => $notas,
-                'punto_casa' => in_array($puntoCasa, ['inicio', 'final', 'ambos'], true) ? $puntoCasa : 'inicio',
-                'user_id' => $userId,
+            $plantilla = RutaPlantilla::create([
+                'nombre' => $datos['nombre'],
+                'empleado_id' => $empleado->id,
+                'frecuencia' => $datos['frecuencia'],
+                'dia_semana' => $datos['frecuencia'] === RutaPlantilla::FRECUENCIA_SEMANAL ? (int) $datos['dia_semana'] : null,
+                'dia_mes' => $datos['frecuencia'] === RutaPlantilla::FRECUENCIA_MENSUAL ? (int) $datos['dia_mes'] : null,
+                'punto_casa' => $datos['punto_casa'] ?? 'inicio',
+                'activa' => true,
+                'user_id' => $datos['user_id'] ?? null,
             ]);
 
-            $paradasData = [];
             foreach ($contratoIds as $index => $contratoId) {
                 $contrato = Contrato::with('cliente')->findOrFail($contratoId);
-                $cliente = $contrato->cliente;
-
-                if (!$cliente->tiene_coordenadas) {
-                    $coords = $this->geocoding->geocode($cliente->domicilio_completo);
-                    if ($coords) {
-                        $cliente->update([
-                            'latitud' => $coords['lat'],
-                            'longitud' => $coords['lng'],
-                        ]);
-                    }
-                }
-
-                $paradasData[] = [
-                    'ruta_id' => $ruta->id,
+                RutaPlantillaParada::create([
+                    'plantilla_id' => $plantilla->id,
                     'orden' => $index + 1,
                     'contrato_id' => $contrato->id,
-                    'cliente_id' => $cliente->id,
-                    'direccion_destino' => $cliente->domicilio_completo,
-                    'latitud' => $cliente->latitud,
-                    'longitud' => $cliente->longitud,
-                    'estado' => RutaParada::ESTADO_PENDIENTE,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                    'cliente_id' => $contrato->cliente_id,
+                ]);
             }
 
-            $paradasOrdenadas = $respetarOrden
-                ? $paradasData
-                : $this->ordenarPorCercania($paradasData, $empleado);
-
-            foreach ($paradasOrdenadas as $orden => $parada) {
-                $parada['orden'] = $orden + 1;
-                RutaParada::create($parada);
-            }
-
-            return $ruta->load('paradas.contrato.cliente', 'empleado');
+            return $this->clonarInstancia($plantilla->fresh('paradas.contrato.cliente'), $fecha, $datos['notas'] ?? null);
         });
     }
 
-    protected function ordenarPorCercania(array $paradas, Empleado $empleado): array
+    public function clonarInstancia(RutaPlantilla $plantilla, Carbon $fecha, ?string $notas = null): Ruta
     {
-        $puntoInicio = $this->obtenerPuntoInicio($empleado);
+        $empleado = $plantilla->empleado;
+        $this->geocodificarEmpleado($empleado);
 
-        if (!$puntoInicio) {
-            return $paradas;
-        }
+        $ruta = Ruta::create([
+            'plantilla_id' => $plantilla->id,
+            'nombre' => $plantilla->nombre,
+            'empleado_id' => $plantilla->empleado_id,
+            'fecha' => $fecha->toDateString(),
+            'estado' => Ruta::ESTADO_PLANEADA,
+            'notas' => $notas,
+            'punto_casa' => $plantilla->punto_casa ?? 'inicio',
+            'user_id' => $plantilla->user_id,
+        ]);
 
-        $conCoordenadas = [];
-        $sinCoordenadas = [];
-
-        foreach ($paradas as $parada) {
-            if ($parada['latitud'] && $parada['longitud']) {
-                $conCoordenadas[] = $parada;
-            } else {
-                $sinCoordenadas[] = $parada;
-            }
-        }
-
-        if (empty($conCoordenadas)) {
-            return $paradas;
-        }
-
-        $ordenadas = [];
-        $actual = $puntoInicio;
-
-        while (!empty($conCoordenadas)) {
-            $indiceMasCercano = null;
-            $distanciaMinima = PHP_FLOAT_MAX;
-
-            foreach ($conCoordenadas as $index => $parada) {
-                $distancia = $this->distanciaHaversine(
-                    $actual['lat'], $actual['lng'],
-                    $parada['latitud'], $parada['longitud']
-                );
-
-                if ($distancia < $distanciaMinima) {
-                    $distanciaMinima = $distancia;
-                    $indiceMasCercano = $index;
+        foreach ($plantilla->paradas as $index => $paradaPlantilla) {
+            $contrato = $paradaPlantilla->contrato()->with('cliente')->first();
+            $cliente = $contrato?->cliente;
+            if ($cliente && !$cliente->tiene_coordenadas && $cliente->domicilio_completo) {
+                $coords = $this->geocoding->geocode($cliente->domicilio_completo);
+                if ($coords) {
+                    $cliente->update([
+                        'latitud' => $coords['lat'],
+                        'longitud' => $coords['lng'],
+                    ]);
+                    $cliente->refresh();
                 }
             }
 
-            $paradaCercana = $conCoordenadas[$indiceMasCercano];
-            $ordenadas[] = $paradaCercana;
-            $actual = ['lat' => $paradaCercana['latitud'], 'lng' => $paradaCercana['longitud']];
-            unset($conCoordenadas[$indiceMasCercano]);
-            $conCoordenadas = array_values($conCoordenadas);
+            RutaParada::create([
+                'ruta_id' => $ruta->id,
+                'orden' => $paradaPlantilla->orden ?: ($index + 1),
+                'contrato_id' => $paradaPlantilla->contrato_id,
+                'cliente_id' => $paradaPlantilla->cliente_id,
+                'direccion_destino' => $cliente?->domicilio_completo ?? '',
+                'latitud' => $cliente?->latitud,
+                'longitud' => $cliente?->longitud,
+                'estado' => RutaParada::ESTADO_PENDIENTE,
+            ]);
         }
 
-        return array_merge($ordenadas, $sinCoordenadas);
+        return $ruta->load('paradas.contrato.cliente', 'empleado', 'plantilla');
     }
 
-    protected function obtenerPuntoInicio(Empleado $empleado): ?array
+    public function generarInstanciasDelDia(?Carbon $fecha = null): int
     {
-        if ($empleado->latitud && $empleado->longitud) {
-            return ['lat' => $empleado->latitud, 'lng' => $empleado->longitud];
+        $fecha = ($fecha ?? now())->startOfDay();
+        $creadas = 0;
+
+        RutaPlantilla::with(['paradas.contrato.cliente', 'empleado'])
+            ->where('activa', true)
+            ->get()
+            ->each(function (RutaPlantilla $plantilla) use ($fecha, &$creadas) {
+                if (!$plantilla->correspondeA($fecha)) {
+                    return;
+                }
+                $existe = Ruta::where('plantilla_id', $plantilla->id)
+                    ->whereDate('fecha', $fecha->toDateString())
+                    ->exists();
+                if ($existe) {
+                    return;
+                }
+                $this->clonarInstancia($plantilla, $fecha);
+                $creadas++;
+            });
+
+        return $creadas;
+    }
+
+    public function cerrarEjecucionesPasadas(?Carbon $hoy = null): int
+    {
+        $hoy = ($hoy ?? now())->startOfDay();
+        $cerradas = 0;
+
+        $rutas = Ruta::with('paradas')
+            ->whereDate('fecha', '<', $hoy->toDateString())
+            ->whereIn('estado', [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO])
+            ->get();
+
+        foreach ($rutas as $ruta) {
+            $visitadas = $ruta->paradas->where('estado', RutaParada::ESTADO_VISITADA)->count();
+            $total = $ruta->paradas->count();
+
+            if ($total > 0 && $visitadas === $total) {
+                $ruta->update(['estado' => Ruta::ESTADO_COMPLETADA]);
+            } elseif ($visitadas === 0) {
+                $ruta->update(['estado' => Ruta::ESTADO_VENCIDA]);
+            } else {
+                $ruta->update(['estado' => Ruta::ESTADO_INCOMPLETA]);
+            }
+            $cerradas++;
         }
 
-        return null;
+        return $cerradas;
     }
 
-    protected function distanciaHaversine(float $lat1, float $lng1, float $lat2, float $lng2): float
+    public function contratosEnPlantillasActivas(array $contratoIds = []): array
     {
-        $radioTierra = 6371;
+        $query = RutaPlantillaParada::query()
+            ->whereHas('plantilla', fn ($q) => $q->where('activa', true));
 
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLng = deg2rad($lng2 - $lng1);
+        if (!empty($contratoIds)) {
+            $query->whereIn('contrato_id', $contratoIds);
+        }
 
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLng / 2) * sin($dLng / 2);
+        return $query->pluck('contrato_id')->unique()->values()->all();
+    }
 
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+    public function asegurarFechaCoincide(array $datos, Carbon $fecha): void
+    {
+        $ok = match ($datos['frecuencia'] ?? '') {
+            RutaPlantilla::FRECUENCIA_DIARIA => true,
+            RutaPlantilla::FRECUENCIA_SEMANAL => (int) $fecha->dayOfWeekIso === (int) ($datos['dia_semana'] ?? 0),
+            RutaPlantilla::FRECUENCIA_MENSUAL => (int) $fecha->day === min((int) ($datos['dia_mes'] ?? 0), $fecha->daysInMonth),
+            default => false,
+        };
 
-        return $radioTierra * $c;
+        if (!$ok) {
+            throw new InvalidArgumentException('La fecha no coincide con la frecuencia elegida.');
+        }
+    }
+
+    protected function geocodificarEmpleado(Empleado $empleado): void
+    {
+        if (!$empleado->tiene_coordenadas && $empleado->domicilio) {
+            $coords = $this->geocoding->geocode($empleado->domicilio);
+            if ($coords) {
+                $empleado->update([
+                    'latitud' => $coords['lat'],
+                    'longitud' => $coords['lng'],
+                ]);
+            }
+        }
     }
 }

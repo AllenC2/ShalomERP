@@ -35,6 +35,16 @@
                 @endif
             </div>
 
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="">
                 <!-- Filtros -->
                 <div class="pb-3">
@@ -114,8 +124,8 @@
                                     <tr>
                                         <th class="ps-4">ID</th>
                                         <th>Empleado</th>
+                                        <th>Nombre</th>
                                         <th>Fecha</th>
-                                        <th>Fecha Límite</th>
                                         <th>Progreso</th>
                                         <th>Estado</th>
                                         <th class="text-center pe-4">Acciones</th>
@@ -138,8 +148,13 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>{{ $ruta->fecha->format('d/m/Y') }}</td>
-                                            <td>{{ $ruta->fecha_limite->format('d/m/Y') }}</td>
+                                            <td>
+                                                <div class="fw-semibold text-dark">{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}</div>
+                                                @if($ruta->plantilla)
+                                                    <small class="text-muted">{{ $ruta->plantilla->etiquetaFrecuencia() }}</small>
+                                                @endif
+                                            </td>
+                                            <td>{{ $ruta->fecha instanceof \Carbon\Carbon ? $ruta->fecha->format('d/m/Y') : \Carbon\Carbon::parse($ruta->fecha)->format('d/m/Y') }}</td>
                                             <td>
                                                 @php
                                                     $total = $ruta->paradas->count();
@@ -208,7 +223,7 @@
                     <div class="d-flex align-items-center gap-2" id="stepIndicator">
                         <span class="step-item active" data-step="1">
                             <span class="step-num active">1</span>
-                            <span class="step-label fw-semibold small" style="color: #79481D;">Empleado</span>
+                            <span class="step-label fw-semibold small" style="color: #79481D;">Datos</span>
                         </span>
                         <span class="text-muted">&rsaquo;</span>
                         <span class="step-item" data-step="2">
@@ -223,15 +238,15 @@
             <form method="POST" action="{{ route('rutas.store') }}" id="nuevaRutaForm">
                 @csrf
                 <input type="hidden" name="empleado_id" id="formEmpleadoId">
+                <input type="hidden" name="nombre" id="formNombre">
                 <input type="hidden" name="fecha" id="formFecha">
-                <input type="hidden" name="fecha_limite" id="formFechaLimite">
+                <input type="hidden" name="frecuencia" id="formFrecuencia" value="diaria">
                 <input type="hidden" name="notas" id="formNotas">
                 <input type="hidden" name="punto_casa" id="formPuntoCasa" value="inicio">
 
                 <div class="modal-body p-0">
                     <!-- Paso 1 -->
                     <div id="step1" class="p-4">
-                        <!-- Fila 1: Empleado -->
                         <div class="mb-3">
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-person me-1"></i> Empleado
@@ -252,10 +267,28 @@
                             </div>
                         </div>
 
-                        <!-- Fila 2: Rango de fechas -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="inputNombreRuta">
+                                <i class="bi bi-tag me-1"></i> Nombre de la ruta
+                            </label>
+                            <input type="text" id="inputNombreRuta" class="form-control form-control-lg" placeholder="Ej. Zona Norte lunes" maxlength="120">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-arrow-repeat me-1"></i> Frecuencia
+                            </label>
+                            <div class="seg-tabs" id="frecuenciaTabs" role="tablist">
+                                <button type="button" class="seg-tab active" data-value="diaria" role="tab" aria-selected="true">Diaria</button>
+                                <button type="button" class="seg-tab" data-value="semanal" role="tab" aria-selected="false">Semanal</button>
+                                <button type="button" class="seg-tab" data-value="mensual" role="tab" aria-selected="false">Mensual</button>
+                            </div>
+                            <small class="text-muted d-block mt-2" id="frecuenciaHint"></small>
+                        </div>
+
                         <div class="mb-3 rango-calendario">
                             <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar-range me-1"></i> Periodo de la ruta
+                                <i class="bi bi-calendar-event me-1"></i> Primera fecha
                             </label>
                             <div class="mb-2 text-end">
                                 <span class="fw-semibold small" id="inputFechaRangoLabel" style="color: #79481D;"></span>
@@ -263,7 +296,6 @@
                             <input type="text" id="inputFechaRango" class="d-none" tabindex="-1" aria-hidden="true">
                         </div>
 
-                        <!-- Siguiente -->
                         <div class="d-flex justify-content-end">
                             <button type="button" class="btn btn-lg px-4 text-white fw-bold" style="background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border: none;" id="btnSiguiente" disabled>
                                 Siguiente <i class="bi bi-arrow-right ms-1"></i>
@@ -311,9 +343,17 @@
                                         <span class="fw-bold small" style="color: #79481D;" id="step2Empleado"></span>
                                         <span class="text-muted small ms-2" id="step2Fecha"></span>
                                     </div>
-                                    <div class="seg-tabs" id="selectContratosTabs" role="tablist">
-                                        <button type="button" class="seg-tab" id="btnSelectAll" data-value="todos" role="tab" aria-selected="false">Todos</button>
-                                        <button type="button" class="seg-tab active" id="btnDeselectAll" data-value="ninguno" role="tab" aria-selected="true">Ninguno</button>
+                                </div>
+
+                                <div class="px-3 py-2 border-bottom bg-white flex-shrink-0">
+                                    <label class="form-label small fw-semibold mb-1">
+                                        <i class="bi bi-search me-1"></i> Agregar contrato (folio o titular)
+                                    </label>
+                                    <div class="empleado-combobox position-relative" id="contratoFolioCombobox">
+                                        <input type="text" id="buscarContratoFolio" class="form-control form-control-sm" placeholder="Folio o nombre del titular..." autocomplete="off">
+                                        <ul class="empleado-combobox-list list-unstyled mb-0 shadow-sm" id="buscarContratoLista" hidden>
+                                            <li class="px-3 py-2 text-muted small" id="buscarContratoEmpty">Sin resultados</li>
+                                        </ul>
                                     </div>
                                 </div>
 
@@ -415,12 +455,19 @@
 
                         <div class="mb-3 rango-calendario">
                             <label class="form-label fw-semibold">
-                                <i class="bi bi-calendar-range me-1"></i> Periodo de la ruta
+                                <i class="bi bi-calendar-event me-1"></i> Fecha de esta ejecución
                             </label>
                             <div class="mb-2 text-end">
                                 <span class="fw-semibold small" id="editInputFechaRangoLabel" style="color: #79481D;"></span>
                             </div>
                             <input type="text" id="editInputFechaRango" class="d-none" tabindex="-1" aria-hidden="true">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="editInputNombre">
+                                <i class="bi bi-tag me-1"></i> Nombre
+                            </label>
+                            <input type="text" id="editInputNombre" class="form-control form-control-lg" maxlength="120">
                         </div>
 
                         <div class="row g-3 mb-3">
@@ -683,85 +730,38 @@ $(document).ready(function() {
         domMarkers = [];
     }
 
+    var contratosAgregados = [];
+    var contratoSearchTimer = null;
+
     function startGeocodificacion(empId) {
-        var csrf = $('meta[name="csrf-token"]').attr('content');
-        $('#geocodeStepBar').css('width', '0%');
-        $('#geocodeStepCount').text('');
-        $('#geocodeStepStatus').text('Obteniendo contratos...');
-        $('#geocodeStepErrors').html('');
-
-        $.ajax({
-            url: '{{ route("rutas.contratosEmpleado") }}',
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
-            data: { empleado_id: empId },
-            success: function(response) {
-                if (response.success) geocodificarStep(response.contratos, empId);
-            },
-            error: function() {
-                $('#geocodeStepStatus').html('<span class="text-danger">Error al cargar contratos</span>');
-            }
-        });
-    }
-
-    function geocodificarStep(contratos, empId) {
-        var ids = [];
-        var seen = {};
-        contratos.forEach(function(c) {
-            if (c.cliente_id && !seen[c.cliente_id] && !c.tiene_coordenadas) { seen[c.cliente_id] = true; ids.push(c.cliente_id); }
-        });
-
-        if (ids.length === 0) { irAPaso2(empId); return; }
-
-        var total = ids.length, proc = 0, ok = 0, fail = 0;
-        var csrf = document.querySelector('meta[name="csrf-token"]');
-        var errorsHtml = '';
-
-        function next() {
-            if (ids.length === 0) {
-                $('#geocodeStepBar').css('width', '100%');
-                $('#geocodeStepCount').text(ok + ' / ' + total);
-                $('#geocodeStepStatus').html('<span class="' + (fail > 0 ? 'text-warning' : 'text-success') + ' fw-bold">' + ok + ' actualizados' + (fail > 0 ? ', ' + fail + ' sin resultado' : '') + '</span>');
-                if (errorsHtml) $('#geocodeStepErrors').html(errorsHtml);
-                setTimeout(function() { irAPaso2(empId); }, 1000);
-                return;
-            }
-            var cid = ids.shift(); proc++;
-            $('#geocodeStepBar').css('width', Math.round((proc - 1) / total * 100) + '%');
-            $('#geocodeStepCount').text((proc - 1) + ' / ' + total);
-            $('#geocodeStepStatus').text('Geocodificando ' + proc + ' de ' + total + '...');
-
-            fetch('{{ route("rutas.geocodificarCliente") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf ? csrf.content : '{{ csrf_token() }}', 'Accept': 'application/json' },
-                body: JSON.stringify({ cliente_id: cid })
-            }).then(function(r) { return r.json(); })
-            .then(function(d) {
-                if (d.success) { ok++; }
-                else { fail++; errorsHtml += '<div class="text-danger small"><i class="bi bi-x-circle"></i> ' + (d.message || 'Error') + '</div>'; }
-                setTimeout(next, 1800);
-            }).catch(function() { fail++; setTimeout(next, 1800); });
-        }
-        next();
+        irAPaso2(empId);
     }
 
     function irAPaso2(empId) {
         var csrf = $('meta[name="csrf-token"]').attr('content');
         $.ajax({
-            url: '{{ route("rutas.contratosEmpleado") }}',
+            url: '{{ route("rutas.empleadoDatos") }}',
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
             data: { empleado_id: empId },
             success: function(response) {
-                if (response.success) {
-                    $('#stepGeocode').addClass('d-none');
-                    $('#step2').removeClass('d-none');
-                    setRutaModalAncho('#nuevaRutaModal', true);
-                    setTimeout(function() {
-                        initModalMap();
-                        renderContratos(response.contratos, response.empleado);
-                    }, 100);
-                }
+                $('#stepGeocode').addClass('d-none');
+                $('#step2').removeClass('d-none');
+                setRutaModalAncho('#nuevaRutaModal', true);
+                setTimeout(function() {
+                    initModalMap();
+                    renderContratos(contratosAgregados, response.empleado || null);
+                    $('#buscarContratoFolio').trigger('focus');
+                }, 100);
+            },
+            error: function() {
+                $('#stepGeocode').addClass('d-none');
+                $('#step2').removeClass('d-none');
+                setRutaModalAncho('#nuevaRutaModal', true);
+                setTimeout(function() {
+                    initModalMap();
+                    renderContratos(contratosAgregados, null);
+                }, 100);
             }
         });
     }
@@ -771,12 +771,8 @@ $(document).ready(function() {
     var $empEmpty = $empList.find('.empleado-combobox-empty');
     var selectedEmpleadoId = '';
     var selectedEmpleadoLabel = '';
-
-    function addDays(date, days) {
-        var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        d.setDate(d.getDate() + days);
-        return d;
-    }
+    var selectedFrecuencia = 'diaria';
+    var diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
     function formatIsoDate(date) {
         if (!date) return '';
@@ -788,39 +784,27 @@ $(document).ready(function() {
         return flatpickr.formatDate(date, 'd/m/Y');
     }
 
-    function getRangoIso(picker) {
-        if (!picker || picker.selectedDates.length < 2) return { start: '', end: '' };
-        return {
-            start: formatIsoDate(picker.selectedDates[0]),
-            end: formatIsoDate(picker.selectedDates[1])
-        };
+    function getFechaIso(picker) {
+        if (!picker || !picker.selectedDates.length) return '';
+        return formatIsoDate(picker.selectedDates[0]);
     }
 
     var defaultFechaInicio = new Date();
-    var defaultFechaLimite = addDays(defaultFechaInicio, 7);
-    var fpLocale = Object.assign({}, flatpickr.l10ns.es, { rangeSeparator: '  →  ' });
+    var fpLocale = Object.assign({}, flatpickr.l10ns.es);
 
-    function rangoLabelText(picker) {
-        if (!picker || !picker.selectedDates.length) return '';
-        if (picker.selectedDates.length === 1) {
-            return formatDisplayDate(picker.selectedDates[0]) + ' → …';
-        }
-        return formatDisplayDate(picker.selectedDates[0]) + ' → ' + formatDisplayDate(picker.selectedDates[1]);
+    function updateFechaLabel(picker, labelSelector) {
+        $(labelSelector).text(picker && picker.selectedDates.length ? formatDisplayDate(picker.selectedDates[0]) : '');
     }
 
-    function updateRangoLabel(picker, labelSelector) {
-        $(labelSelector).text(rangoLabelText(picker));
-    }
-
-    function createRangoPicker(selector, defaultDates, onChange) {
+    function createFechaPicker(selector, defaultDate, onChange) {
         var el = document.querySelector(selector);
         if (!el) return null;
         return flatpickr(el, {
-            mode: 'range',
+            mode: 'single',
             inline: true,
             locale: fpLocale,
             dateFormat: 'Y-m-d',
-            defaultDate: defaultDates || null,
+            defaultDate: defaultDate || null,
             showMonths: 1,
             disableMobile: true,
             monthSelectorType: 'static',
@@ -828,20 +812,30 @@ $(document).ready(function() {
         });
     }
 
-    function updateBtnSiguiente() {
-        var rango = getRangoIso(pickerNuevaRuta);
-        updateRangoLabel(pickerNuevaRuta, '#inputFechaRangoLabel');
-        $('#btnSiguiente').prop('disabled', !selectedEmpleadoId || !rango.start || !rango.end);
+    function frecuenciaHintText(picker, frecuencia) {
+        if (!picker || !picker.selectedDates.length) return 'Elige la primera fecha de la ruta.';
+        var date = picker.selectedDates[0];
+        var isoDay = date.getDay() === 0 ? 7 : date.getDay();
+        if (frecuencia === 'semanal') return 'Se repetirá cada ' + diasSemana[isoDay - 1] + '.';
+        if (frecuencia === 'mensual') return 'Se repetirá el día ' + date.getDate() + ' de cada mes.';
+        return 'Se generará una ejecución cada día.';
     }
 
-    var pickerNuevaRuta = createRangoPicker('#inputFechaRango', [defaultFechaInicio, defaultFechaLimite], function() {
+    function updateBtnSiguiente() {
+        updateFechaLabel(pickerNuevaRuta, '#inputFechaRangoLabel');
+        $('#frecuenciaHint').text(frecuenciaHintText(pickerNuevaRuta, selectedFrecuencia));
+        var nombre = ($('#inputNombreRuta').val() || '').trim();
+        $('#btnSiguiente').prop('disabled', !selectedEmpleadoId || !getFechaIso(pickerNuevaRuta) || !nombre);
+    }
+
+    var pickerNuevaRuta = createFechaPicker('#inputFechaRango', defaultFechaInicio, function() {
         updateBtnSiguiente();
     });
-    var pickerEditarRuta = createRangoPicker('#editInputFechaRango', null, function() {
-        updateRangoLabel(pickerEditarRuta, '#editInputFechaRangoLabel');
+    var pickerEditarRuta = createFechaPicker('#editInputFechaRango', null, function() {
+        updateFechaLabel(pickerEditarRuta, '#editInputFechaRangoLabel');
     });
     updateBtnSiguiente();
-    updateRangoLabel(pickerEditarRuta, '#editInputFechaRangoLabel');
+    updateFechaLabel(pickerEditarRuta, '#editInputFechaRangoLabel');
 
     function setRutaModalAncho(modalSelector, wide) {
         $(modalSelector).find('.modal-dialog').toggleClass('modal-mapa', !!wide);
@@ -869,22 +863,24 @@ $(document).ready(function() {
 
     $('#btnSiguiente').on('click', function() {
         var empId = selectedEmpleadoId;
-        var rango = getRangoIso(pickerNuevaRuta);
-        if (!empId || !rango.start || !rango.end) return;
+        var fecha = getFechaIso(pickerNuevaRuta);
+        var nombre = ($('#inputNombreRuta').val() || '').trim();
+        if (!empId || !fecha || !nombre) return;
 
         $('#formEmpleadoId').val(empId);
-        $('#formFecha').val(rango.start);
-        $('#formFechaLimite').val(rango.end);
+        $('#formNombre').val(nombre);
+        $('#formFecha').val(fecha);
+        $('#formFrecuencia').val(selectedFrecuencia);
 
         var empText = $('#selectEmpleadoSearch').val().trim();
-        $('#step2Empleado').text(empText);
-        $('#step2Fecha').text(formatDisplayDate(pickerNuevaRuta.selectedDates[0]) + ' → ' + formatDisplayDate(pickerNuevaRuta.selectedDates[1]));
+        $('#step2Empleado').text(nombre);
+        $('#step2Fecha').text(empText + ' · ' + formatDisplayDate(pickerNuevaRuta.selectedDates[0]) + ' · ' + selectedFrecuencia);
 
         $('#step1').addClass('d-none');
-        $('#stepGeocode').removeClass('d-none');
+        $('#stepGeocode').addClass('d-none');
+        $('#step2').removeClass('d-none');
         updateStepIndicator(2);
-
-        startGeocodificacion(empId);
+        irAPaso2(empId);
     });
 
     $('#btnVolver').on('click', function() {
@@ -903,6 +899,15 @@ $(document).ready(function() {
         $('#btnSiguiente').prop('disabled', !selectedEmpleadoId);
         updateBtnSiguiente();
     }
+
+    $('#inputNombreRuta').on('input', updateBtnSiguiente);
+
+    $('#frecuenciaTabs').on('click', '.seg-tab', function() {
+        selectedFrecuencia = $(this).data('value');
+        setPuntoCasaModo('#frecuenciaTabs', selectedFrecuencia);
+        $('#formFrecuencia').val(selectedFrecuencia);
+        updateBtnSiguiente();
+    });
 
     function filterEmpleadoList(query) {
         var q = (query || '').toLowerCase().trim();
@@ -985,20 +990,121 @@ $(document).ready(function() {
         });
     }
 
-    window.loadContratos = function(empId) {
-        var csrf = $('meta[name="csrf-token"]').attr('content');
-        $.ajax({
-            url: '{{ route("rutas.contratosEmpleado") }}',
+    function idsAgregados() {
+        return contratosAgregados.map(function(c) { return String(c.id); });
+    }
+
+    function agregarContratoARuta(contrato) {
+        if (idsAgregados().indexOf(String(contrato.id)) !== -1) return;
+        contratosAgregados.push(contrato);
+        renderContratos(contratosAgregados, empleadoHome ? {
+            latitud: empleadoHome.lat,
+            longitud: empleadoHome.lng,
+            domicilio: empleadoHome.domicilio || ''
+        } : null);
+        if (!contrato.tiene_coordenadas && contrato.cliente_id) {
+            geocodificarContratoAgregado(contrato);
+        }
+    }
+
+    function quitarContratoDeRuta(contratoId) {
+        contratosAgregados = contratosAgregados.filter(function(c) { return String(c.id) !== String(contratoId); });
+        renderContratos(contratosAgregados, empleadoHome ? {
+            latitud: empleadoHome.lat,
+            longitud: empleadoHome.lng,
+            domicilio: empleadoHome.domicilio || ''
+        } : null);
+    }
+
+    function geocodificarContratoAgregado(contrato) {
+        var csrf = document.querySelector('meta[name="csrf-token"]');
+        fetch('{{ route("rutas.geocodificarCliente") }}', {
             method: 'POST',
-            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
-            data: { empleado_id: empId },
-            success: function(response) {
-                if (response.success) renderContratos(response.contratos, response.empleado);
-            },
-            error: function() {
-                $('#listaContratos').html('<div class="text-center py-5 text-muted">Error al cargar contratos.</div>');
-            }
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf ? csrf.content : '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: JSON.stringify({ cliente_id: contrato.cliente_id })
+        }).then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.success) return;
+            contratosAgregados.forEach(function(c) {
+                if (String(c.cliente_id) === String(contrato.cliente_id)) {
+                    c.latitud = d.lat;
+                    c.longitud = d.lng;
+                    c.tiene_coordenadas = true;
+                }
+            });
+            renderContratos(contratosAgregados, empleadoHome ? {
+                latitud: empleadoHome.lat,
+                longitud: empleadoHome.lng,
+                domicilio: empleadoHome.domicilio || ''
+            } : null);
+        }).catch(function() {});
+    }
+
+    function cerrarBusquedaContrato() {
+        $('#buscarContratoLista').prop('hidden', true);
+    }
+
+    function renderResultadosContrato(contratos) {
+        var $list = $('#buscarContratoLista');
+        $list.find('.resultado-contrato').remove();
+        var agregados = idsAgregados();
+        var visibles = 0;
+        contratos.forEach(function(c) {
+            if (agregados.indexOf(String(c.id)) !== -1) return;
+            visibles++;
+            var $li = $('<li class="resultado-contrato"></li>');
+            var $btn = $('<button type="button" class="empleado-combobox-item"></button>');
+            if (c.ocupado) $btn.prop('disabled', true).css('opacity', '0.55');
+            $btn.append('<div class="fw-semibold small">Folio #' + c.id + (c.ocupado ? ' <span class="text-danger">en ruta activa</span>' : '') + '</div>');
+            $btn.append('<div class="text-muted" style="font-size:0.75rem;">' + (c.cliente_nombre || '') + ' — ' + (c.domicilio || '') + '</div>');
+            $btn.on('click', function() {
+                if (c.ocupado) return;
+                agregarContratoARuta(c);
+                $('#buscarContratoFolio').val('');
+                cerrarBusquedaContrato();
+            });
+            $li.append($btn);
+            $list.append($li);
         });
+        $('#buscarContratoEmpty').toggle(visibles === 0).text(visibles === 0 ? 'Sin resultados' : '');
+        $list.prop('hidden', false);
+    }
+
+    $('#buscarContratoFolio').on('input', function() {
+        var q = $(this).val().trim();
+        clearTimeout(contratoSearchTimer);
+        if (!q) {
+            cerrarBusquedaContrato();
+            return;
+        }
+        contratoSearchTimer = setTimeout(function() {
+            $.ajax({
+                url: '{{ route("rutas.buscarContratos") }}',
+                method: 'GET',
+                data: { q: q },
+                success: function(response) {
+                    if (response.success) renderResultadosContrato(response.contratos || []);
+                }
+            });
+        }, 250);
+    });
+
+    $('#buscarContratoFolio').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $('#buscarContratoLista .empleado-combobox-item:not(:disabled)').first().trigger('click');
+        }
+        if (e.key === 'Escape') cerrarBusquedaContrato();
+    });
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#contratoFolioCombobox').length) {
+            cerrarBusquedaContrato();
+        }
+    });
+
+    window.loadContratos = function(empId) {
+        irAPaso2(empId);
     };
 
     function groupByDomicilio(contratos) {
@@ -1044,13 +1150,15 @@ $(document).ready(function() {
         }
 
         if (contratos.length === 0) {
-            container.html('<div class="text-center py-5 text-muted"><i class="bi bi-exclamation-circle" style="font-size: 2rem;"></i><p class="mt-2 small">Este empleado no tiene contratos activos.</p></div>');
+            container.html('<div class="text-center py-5 text-muted"><i class="bi bi-search" style="font-size: 2rem;"></i><p class="mt-2 small mb-0">Busca un contrato por folio y agrégalo a la ruta.</p></div>');
+            $('#geocodeAlert').addClass('d-none');
+            actualizarRutaModal();
             return;
         }
 
         domicilios = groupByDomicilio(contratos);
         if (empleado && empleado.latitud && empleado.longitud) {
-            empleadoHome = { lat: parseFloat(empleado.latitud), lng: parseFloat(empleado.longitud) };
+            empleadoHome = { lat: parseFloat(empleado.latitud), lng: parseFloat(empleado.longitud), domicilio: empleado.domicilio || '' };
             domicilios = ordenarPorCercania(domicilios, empleadoHome.lat, empleadoHome.lng);
         } else {
             empleadoHome = null;
@@ -1062,8 +1170,8 @@ $(document).ready(function() {
         domicilios.forEach(function(dom) {
             domIdx++;
             var hasCoords = dom.tiene_coordenadas && dom.latitud && dom.longitud;
-            var checked = '';
-            var opacity = '0.5';
+            var checked = 'checked';
+            var opacity = '1';
             if (!hasCoords) sinCoords++;
 
             var multiBadge = dom.contratos.length > 1
@@ -1081,11 +1189,12 @@ $(document).ready(function() {
             dom.contratos.forEach(function(c) {
                 html += '<div class="d-flex gap-2 mt-1 align-items-center contrato-sub" data-id="' + c.id + '" style="font-size: 0.75rem; padding-left: 4px; border-left: 2px solid #e9ecef;">';
                 html += '<input type="checkbox" class="form-check-input contrato-check check-shalom" value="' + c.id + '" ' + checked + ' aria-label="Seleccionar contrato ' + c.id + '">';
-                html += '<span class="text-muted">C#' + c.id + '</span>';
+                html += '<span class="text-muted">Folio #' + c.id + '</span>';
                 html += '<span><strong>$' + c.cuota + '</strong> cuota</span>';
                 if (c.abono_promedio > 0) html += '<span class="text-success"><strong>$' + c.abono_promedio.toFixed(2) + '</strong> prom</span>';
                 if (c.saldo_raw > 0) html += '<span class="text-danger"><strong>$' + c.saldo + '</strong> saldo</span>';
                 if (c.proxima_fecha_pago) html += '<span class="' + (c.pago_atrasado ? 'text-danger fw-bold' : '') + '">' + c.proxima_fecha_pago + '</span>';
+                html += '<button type="button" class="btn btn-link btn-sm p-0 ms-auto text-danger quitar-contrato" data-id="' + c.id + '" title="Quitar de la ruta"><i class="bi bi-x-lg"></i></button>';
                 html += '</div>';
             });
 
@@ -1149,12 +1258,7 @@ $(document).ready(function() {
     }
 
     function syncSelectContratosTabs() {
-        var total = $('#listaContratos .contrato-check').length;
-        var checked = $('#listaContratos .contrato-check:checked').length;
-        var modo = null;
-        if (total > 0 && checked === total) modo = 'todos';
-        else if (checked === 0) modo = 'ninguno';
-        setPuntoCasaModo('#selectContratosTabs', modo);
+        return;
     }
 
     function actualizarRutaModal() {
@@ -1222,6 +1326,12 @@ $(document).ready(function() {
         }
     }
 
+    $(document).on('click', '.quitar-contrato', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        quitarContratoDeRuta($(this).data('id'));
+    });
+
     $(document).on('change', '.domicilio-check', function() {
         var item = $(this).closest('.domicilio-item');
         item.find('.contrato-check').prop('checked', this.checked);
@@ -1235,19 +1345,6 @@ $(document).ready(function() {
         actualizarRutaModal();
     });
 
-    $('#btnSelectAll').on('click', function() {
-        $('.contrato-check').prop('checked', true);
-        $('.domicilio-check').prop('checked', true).prop('indeterminate', false);
-        $('.domicilio-item').css('opacity', '1');
-        actualizarRutaModal();
-    });
-    $('#btnDeselectAll').on('click', function() {
-        $('.contrato-check').prop('checked', false);
-        $('.domicilio-check').prop('checked', false).prop('indeterminate', false);
-        $('.domicilio-item').css('opacity', '0.5');
-        actualizarRutaModal();
-    });
-
     $('#puntoCasaTabs').on('click', '.seg-tab', function() {
         if ($(this).prop('disabled')) return;
         setPuntoCasaModo('#puntoCasaTabs', $(this).data('value'));
@@ -1256,6 +1353,8 @@ $(document).ready(function() {
     });
 
     $('#nuevaRutaForm').on('submit', function() {
+        $('#formNombre').val(($('#inputNombreRuta').val() || '').trim());
+        $('#formFrecuencia').val(selectedFrecuencia);
         $(this).find('input[name="contratos[]"]').remove();
         $('#listaContratos .contrato-check:checked').each(function() {
             $('#nuevaRutaForm').append('<input type="hidden" name="contratos[]" value="' + $(this).val() + '">');
@@ -1270,14 +1369,20 @@ $(document).ready(function() {
         updateStepIndicator(1);
         selectedEmpleadoLabel = '';
         setEmpleadoSeleccionado('', '');
-        if (pickerNuevaRuta) pickerNuevaRuta.setDate([defaultFechaInicio, defaultFechaLimite], false);
+        if (pickerNuevaRuta) pickerNuevaRuta.setDate(defaultFechaInicio, false);
         $('#formEmpleadoId').val('');
+        $('#formNombre').val('');
         $('#formFecha').val('');
-        $('#formFechaLimite').val('');
+        $('#formFrecuencia').val('diaria');
+        $('#inputNombreRuta').val('');
+        selectedFrecuencia = 'diaria';
+        setPuntoCasaModo('#frecuenciaTabs', 'diaria');
         setPuntoCasaModo('#puntoCasaTabs', 'inicio');
-        setPuntoCasaModo('#selectContratosTabs', 'ninguno');
         $('#formPuntoCasa').val('inicio');
         empleadoHome = null;
+        contratosAgregados = [];
+        $('#buscarContratoFolio').val('');
+        cerrarBusquedaContrato();
         closeEmpleadoList();
         setRutaModalAncho('#nuevaRutaModal', false);
         $('#listaContratos').empty();
@@ -1377,7 +1482,8 @@ $(document).ready(function() {
         $('#editRutaId').text('#' + ruta.id);
         $('#editRutaIdInput').val(ruta.id);
         $('#editEmpleadoNombre').val(ruta.empleado_nombre);
-        if (pickerEditarRuta) pickerEditarRuta.setDate([ruta.fecha, ruta.fecha_limite], true);
+        $('#editInputNombre').val(ruta.nombre || '');
+        if (pickerEditarRuta) pickerEditarRuta.setDate(ruta.fecha, true);
         $('#editSelectEstado').val(ruta.estado);
         $('#editInputNotas').val(ruta.notas || '');
         setPuntoCasaModo('#editPuntoCasaTabs', ruta.punto_casa || 'inicio');
@@ -1385,8 +1491,8 @@ $(document).ready(function() {
 
     $('#editBtnSiguiente').on('click', function() {
         var ruta = editRutaData.ruta;
-        var rango = getRangoIso(pickerEditarRuta);
-        if (!rango.start || !rango.end) return;
+        var fecha = getFechaIso(pickerEditarRuta);
+        if (!fecha) return;
 
         $('#editStep1').addClass('d-none');
         $('#editStep2').removeClass('d-none');
@@ -1394,7 +1500,7 @@ $(document).ready(function() {
         updateEditStepIndicator(2);
 
         $('#editStep2Empleado').text(ruta.empleado_nombre);
-        $('#editStep2Fecha').text(formatDisplayDate(pickerEditarRuta.selectedDates[0]) + ' → ' + formatDisplayDate(pickerEditarRuta.selectedDates[1]));
+        $('#editStep2Fecha').text(formatDisplayDate(pickerEditarRuta.selectedDates[0]));
 
         setTimeout(function() {
             initEditMap();
@@ -1546,8 +1652,8 @@ $(document).ready(function() {
             method: 'PUT',
             headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' },
             data: JSON.stringify({
-                fecha: getRangoIso(pickerEditarRuta).start,
-                fecha_limite: getRangoIso(pickerEditarRuta).end,
+                fecha: getFechaIso(pickerEditarRuta),
+                nombre: $('#editInputNombre').val(),
                 estado: $('#editSelectEstado').val(),
                 notas: $('#editInputNotas').val(),
                 punto_casa: getPuntoCasaModo('#editPuntoCasaTabs'),
@@ -1601,7 +1707,24 @@ function geocodificarPendientes() {
         if (ids.length === 0) {
             bar.style.width = '100%';
             text.textContent = ok + ' encontrados, ' + fail + ' sin resultado.';
-            if (ok > 0) setTimeout(function() { location.reload(); }, 2000);
+            if (ok > 0) {
+                setTimeout(function() {
+                    contratosAgregados.forEach(function(c) {
+                        var el = document.getElementById('sin-coord-' + c.cliente_id);
+                        if (!el) {
+                            c.tiene_coordenadas = true;
+                        }
+                    });
+                    renderContratos(contratosAgregados, empleadoHome ? {
+                        latitud: empleadoHome.lat,
+                        longitud: empleadoHome.lng,
+                        domicilio: empleadoHome.domicilio || ''
+                    } : null);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-globe me-1"></i>Geocodificar';
+                    progress.classList.add('d-none');
+                }, 400);
+            }
             else { btn.disabled = false; btn.innerHTML = '<i class="bi bi-globe me-1"></i>Reintentar'; progress.classList.add('d-none'); }
             return;
         }
@@ -1616,7 +1739,22 @@ function geocodificarPendientes() {
         }).then(function(r) { return r.json().then(function(d) { return { s: r.status, d: d }; }); })
         .then(function(r) {
             var el = document.getElementById('sin-coord-' + cid);
-            if (r.d.success) { ok++; if (el) { if (r.d.approximate) { el.innerHTML = '<i class="bi bi-info-circle"></i> ' + (r.d.message || 'Aprox'); el.className = 'text-info small'; } else el.remove(); } }
+            if (r.d.success) {
+                ok++;
+                contratosAgregados.forEach(function(c) {
+                    if (String(c.cliente_id) === String(cid)) {
+                        c.latitud = r.d.lat;
+                        c.longitud = r.d.lng;
+                        c.tiene_coordenadas = true;
+                    }
+                });
+                if (el) {
+                    if (r.d.approximate) {
+                        el.innerHTML = '<i class="bi bi-info-circle"></i> ' + (r.d.message || 'Aprox');
+                        el.className = 'text-info small';
+                    } else el.remove();
+                }
+            }
             else { fail++; if (el) { el.innerHTML = '<i class="bi bi-x-circle"></i> ' + (r.d.message || 'No encontrado'); el.className = 'text-danger small'; } }
             setTimeout(next, 2000);
         }).catch(function() { fail++; setTimeout(next, 2000); });

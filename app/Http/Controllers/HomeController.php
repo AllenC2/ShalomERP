@@ -320,7 +320,7 @@ class HomeController extends Controller
             return collect();
         }
 
-        return Ruta::with(['paradas.contrato.cliente', 'empleado'])
+        return Ruta::with(['paradas.contrato.cliente', 'empleado', 'plantilla'])
             ->where('empleado_id', $empleado->id)
             ->whereIn('estado', [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO])
             ->orderBy('fecha', 'desc')

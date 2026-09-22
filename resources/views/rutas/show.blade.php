@@ -26,10 +26,13 @@
                 <i class="fa-solid fa-route"></i>
             </div>
             <div class="header-text">
-                <h1 class="page-title">Ruta #{{ $ruta->id }}</h1>
+                <h1 class="page-title">{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}</h1>
                 <p class="page-subtitle">
                     {{ $ruta->empleado->nombre }} {{ $ruta->empleado->apellido }}
-                    &mdash; {{ $ruta->fecha->format('d/m/Y') }}
+                    &mdash; {{ optional($ruta->fecha)->format('d/m/Y') }}
+                    @if($ruta->plantilla)
+                        &mdash; {{ $ruta->plantilla->etiquetaFrecuencia() }}
+                    @endif
                     &mdash; <span class="badge {{ $ruta->estado_badge }}">{{ $ruta->estado_label }}</span>
                 </p>
             </div>

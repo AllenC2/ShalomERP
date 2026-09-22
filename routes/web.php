@@ -57,6 +57,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     ]);
 
     // Rutas de rutas de distribución
+    Route::get('rutas/buscar-contratos', [App\Http\Controllers\RutaController::class, 'buscarContratos'])->name('rutas.buscarContratos');
+    Route::post('rutas/empleado-datos', [App\Http\Controllers\RutaController::class, 'empleadoDatos'])->name('rutas.empleadoDatos');
     Route::resource('rutas', App\Http\Controllers\RutaController::class);
     Route::post('rutas/{ruta}/orden', [App\Http\Controllers\RutaController::class, 'actualizarOrden'])->name('rutas.actualizarOrden');
     Route::post('rutas/{ruta}/paradas/{parada}/estado', [App\Http\Controllers\RutaController::class, 'actualizarEstadoParada'])->name('rutas.actualizarEstadoParada');

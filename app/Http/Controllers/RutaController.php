@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use InvalidArgumentException;
 
 class RutaController extends Controller
 {
@@ -33,7 +34,7 @@ class RutaController extends Controller
         }
         $empleadoFiltro = $request->input('empleado_id');
 
-        $rutas = Ruta::with(['empleado', 'user', 'paradas']);
+        $rutas = Ruta::with(['empleado', 'user', 'paradas', 'plantilla']);
 
         if ($user->role !== 'admin') {
             $empleado = $user->empleado;
@@ -59,16 +60,20 @@ class RutaController extends Controller
 
     public function store(RutaRequest $request): RedirectResponse
     {
-        $ruta = $this->generador->generar(
-            $request->contratos,
-            $request->empleado_id,
-            $request->fecha,
-            $request->fecha_limite,
-            $request->notas,
-            Auth::id(),
-            true,
-            $request->input('punto_casa', 'inicio')
-        );
+        try {
+            $ruta = $this->generador->crearPlantillaEInstancia([
+                'nombre' => $request->nombre,
+                'empleado_id' => $request->empleado_id,
+                'fecha' => $request->fecha,
+                'frecuencia' => $request->frecuencia,
+                'contratos' => $request->contratos,
+                'notas' => $request->notas,
+                'punto_casa' => $request->input('punto_casa', 'inicio'),
+                'user_id' => Auth::id(),
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return back()->withInput()->withErrors(['contratos' => $e->getMessage()]);
+        }
 
         return redirect()->route('rutas.show', $ruta->id)
             ->with('success', 'Ruta creada correctamente con ' . $ruta->paradas->count() . ' paradas.');
@@ -76,7 +81,7 @@ class RutaController extends Controller
 
     public function show($id): View
     {
-        $ruta = Ruta::with(['empleado', 'user', 'paradas.contrato.cliente', 'paradas.contrato.pagos', 'paradas.visitas'])->findOrFail($id);
+        $ruta = Ruta::with(['empleado', 'user', 'plantilla', 'paradas.contrato.cliente', 'paradas.contrato.pagos', 'paradas.visitas'])->findOrFail($id);
 
         return view('rutas.show', compact('ruta'));
     }
@@ -219,6 +224,72 @@ class RutaController extends Controller
         }
     }
 
+    public function empleadoDatos(Request $request, GeocodingService $geocoding)
+    {
+        $request->validate([
+            'empleado_id' => 'required|string|exists:empleados,id',
+        ]);
+
+        $empleado = Empleado::findOrFail($request->empleado_id);
+
+        if (!$empleado->tiene_coordenadas && $empleado->domicilio) {
+            $coords = $geocoding->geocode($empleado->domicilio);
+            if ($coords) {
+                $empleado->update([
+                    'latitud' => $coords['lat'],
+                    'longitud' => $coords['lng'],
+                ]);
+                $empleado->refresh();
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'empleado' => [
+                'latitud' => $empleado->latitud,
+                'longitud' => $empleado->longitud,
+                'domicilio' => $empleado->domicilio,
+            ],
+        ]);
+    }
+
+    public function buscarContratos(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+        if ($q === '') {
+            return response()->json(['success' => true, 'contratos' => []]);
+        }
+
+        $ocupados = $this->generador->contratosEnPlantillasActivas();
+
+        $contratos = Contrato::query()
+            ->where('estado', Contrato::ESTADO_ACTIVO)
+            ->where(function ($query) use ($q) {
+                $query->where('id', 'like', $q . '%')
+                    ->orWhereHas('cliente', function ($cliente) use ($q) {
+                        $cliente->where('nombre', 'like', '%' . $q . '%')
+                            ->orWhere('apellido', 'like', '%' . $q . '%');
+                    });
+            })
+            ->with(['cliente', 'pagos' => function ($query) {
+                $query->where('estado', 'hecho');
+            }])
+            ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$q])
+            ->orderBy('id')
+            ->limit(12)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'contratos' => $contratos->map(function (Contrato $c) use ($ocupados) {
+                $row = $this->serializarContratoRuta($c);
+                $row['ocupado'] = in_array($c->id, $ocupados, false);
+
+                return $row;
+            })->values(),
+        ]);
+    }
+
     public function contratosEmpleado(Request $request, GeocodingService $geocoding)
     {
         $request->validate([
@@ -262,27 +333,7 @@ class RutaController extends Controller
                 ->get();
         }
 
-        $data = $contratos->map(function ($c) {
-            $pagosHechos = $c->pagos->where('estado', 'hecho');
-            $abonoPromedio = $pagosHechos->count() > 0 ? round($pagosHechos->avg('monto'), 2) : 0;
-
-            return [
-                'id' => $c->id,
-                'cliente_id' => $c->cliente_id,
-                'cliente_nombre' => $c->cliente->nombre . ' ' . $c->cliente->apellido,
-                'cliente_telefono' => $c->cliente->telefono,
-                'domicilio' => $c->cliente->domicilio_completo,
-                'cuota' => number_format($c->monto_cuota_real, 2),
-                'abono_promedio' => $abonoPromedio,
-                'saldo' => number_format($c->saldo_pendiente, 2),
-                'saldo_raw' => $c->saldo_pendiente,
-                'proxima_fecha_pago' => $c->proxima_fecha_pago ? \Carbon\Carbon::parse($c->proxima_fecha_pago)->format('d/m/Y') : null,
-                'pago_atrasado' => $c->proxima_fecha_pago ? \Carbon\Carbon::parse($c->proxima_fecha_pago)->isPast() : false,
-                'latitud' => $c->cliente->latitud,
-                'longitud' => $c->cliente->longitud,
-                'tiene_coordenadas' => $c->cliente->tiene_coordenadas,
-            ];
-        });
+        $data = $contratos->map(fn (Contrato $c) => $this->serializarContratoRuta($c));
 
         return response()->json([
             'success' => true,
@@ -297,7 +348,7 @@ class RutaController extends Controller
 
     public function getRutaData($id, GeocodingService $geocoding)
     {
-        $ruta = Ruta::with(['empleado', 'paradas.contrato.cliente'])->findOrFail($id);
+        $ruta = Ruta::with(['empleado', 'plantilla', 'paradas.contrato.cliente'])->findOrFail($id);
 
         $paradas = $ruta->paradas->map(function ($p) use ($geocoding) {
             $cliente = $p->contrato->cliente ?? null;
@@ -341,8 +392,9 @@ class RutaController extends Controller
                 'id' => $ruta->id,
                 'empleado_id' => $ruta->empleado_id,
                 'empleado_nombre' => $ruta->empleado->nombre . ' ' . $ruta->empleado->apellido,
-                'fecha' => $ruta->fecha->format('Y-m-d'),
-                'fecha_limite' => $ruta->fecha_limite->format('Y-m-d'),
+                'fecha' => optional($ruta->fecha)->format('Y-m-d'),
+                'nombre' => $ruta->nombre,
+                'frecuencia' => $ruta->plantilla?->etiquetaFrecuencia(),
                 'estado' => $ruta->estado,
                 'notas' => $ruta->notas,
                 'punto_casa' => $ruta->punto_casa ?? 'inicio',
@@ -374,8 +426,8 @@ class RutaController extends Controller
     {
         $request->validate([
             'fecha' => 'required|date',
-            'fecha_limite' => 'required|date|after_or_equal:fecha',
-            'estado' => 'required|in:planeada,en_curso,completada,cancelada',
+            'nombre' => 'nullable|string|max:120',
+            'estado' => 'required|in:' . implode(',', array_keys(Ruta::getEstadosValidos())),
             'notas' => 'nullable|string',
             'paradas' => 'nullable|array',
             'paradas.*' => 'exists:ruta_paradas,id',
@@ -385,7 +437,7 @@ class RutaController extends Controller
         $ruta = Ruta::findOrFail($id);
         $ruta->update([
             'fecha' => $request->fecha,
-            'fecha_limite' => $request->fecha_limite,
+            'nombre' => $request->nombre ?: $ruta->nombre,
             'estado' => $request->estado,
             'notas' => $request->notas,
             'punto_casa' => $request->input('punto_casa', $ruta->punto_casa ?? 'inicio'),
@@ -403,5 +455,30 @@ class RutaController extends Controller
             'success' => true,
             'message' => 'Ruta actualizada correctamente.',
         ]);
+    }
+
+    protected function serializarContratoRuta(Contrato $c): array
+    {
+        $pagosHechos = $c->pagos->where('estado', 'hecho');
+        $abonoPromedio = $pagosHechos->count() > 0 ? round($pagosHechos->avg('monto'), 2) : 0;
+        $cliente = $c->cliente;
+
+        return [
+            'id' => $c->id,
+            'folio' => $c->id,
+            'cliente_id' => $c->cliente_id,
+            'cliente_nombre' => $cliente ? ($cliente->nombre . ' ' . $cliente->apellido) : 'Sin cliente',
+            'cliente_telefono' => $cliente?->telefono,
+            'domicilio' => $cliente?->domicilio_completo ?? '',
+            'cuota' => number_format($c->monto_cuota_real, 2),
+            'abono_promedio' => $abonoPromedio,
+            'saldo' => number_format($c->saldo_pendiente, 2),
+            'saldo_raw' => $c->saldo_pendiente,
+            'proxima_fecha_pago' => $c->proxima_fecha_pago ? \Carbon\Carbon::parse($c->proxima_fecha_pago)->format('d/m/Y') : null,
+            'pago_atrasado' => $c->proxima_fecha_pago ? \Carbon\Carbon::parse($c->proxima_fecha_pago)->isPast() : false,
+            'latitud' => $cliente?->latitud,
+            'longitud' => $cliente?->longitud,
+            'tiene_coordenadas' => $cliente?->tiene_coordenadas ?? false,
+        ];
     }
 }

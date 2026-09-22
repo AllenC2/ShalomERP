@@ -39,12 +39,12 @@
                         <input type="text" class="form-control" value="{{ $ruta->empleado->nombre }} {{ $ruta->empleado->apellido }}" disabled>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Fecha</label>
-                        <input type="date" name="fecha" class="form-control" value="{{ $ruta->fecha->format('Y-m-d') }}">
+                        <label class="form-label fw-semibold">Nombre</label>
+                        <input type="text" name="nombre" class="form-control" value="{{ $ruta->nombre }}">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Fecha Límite</label>
-                        <input type="date" name="fecha_limite" class="form-control" value="{{ $ruta->fecha_limite->format('Y-m-d') }}">
+                        <label class="form-label fw-semibold">Fecha</label>
+                        <input type="date" name="fecha" class="form-control" value="{{ optional($ruta->fecha)->format('Y-m-d') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Estado</label>

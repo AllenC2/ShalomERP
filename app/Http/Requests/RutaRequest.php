@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Ruta;
+use App\Models\RutaPlantilla;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RutaRequest extends FormRequest
 {
@@ -15,9 +18,14 @@ class RutaRequest extends FormRequest
     {
         if ($this->isMethod('post')) {
             return [
+                'nombre' => 'required|string|max:120',
                 'empleado_id' => 'required|string|exists:empleados,id',
                 'fecha' => 'required|date',
-                'fecha_limite' => 'required|date|after_or_equal:fecha',
+                'frecuencia' => ['required', Rule::in([
+                    RutaPlantilla::FRECUENCIA_DIARIA,
+                    RutaPlantilla::FRECUENCIA_SEMANAL,
+                    RutaPlantilla::FRECUENCIA_MENSUAL,
+                ])],
                 'notas' => 'nullable|string|max:1000',
                 'contratos' => 'required|array|min:1',
                 'contratos.*' => 'exists:contratos,id',
@@ -25,10 +33,12 @@ class RutaRequest extends FormRequest
             ];
         }
 
+        $estados = array_keys(Ruta::getEstadosValidos());
+
         return [
+            'nombre' => 'sometimes|string|max:120',
             'fecha' => 'sometimes|date',
-            'fecha_limite' => 'sometimes|date|after_or_equal:fecha',
-            'estado' => 'sometimes|in:planeada,en_curso,completada,cancelada',
+            'estado' => ['sometimes', Rule::in($estados)],
             'notas' => 'nullable|string|max:1000',
         ];
     }
@@ -36,13 +46,14 @@ class RutaRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'nombre.required' => 'El nombre de la ruta es obligatorio.',
             'empleado_id.required' => 'Debe seleccionar un empleado.',
             'empleado_id.exists' => 'El empleado seleccionado no existe.',
             'fecha.required' => 'La fecha es obligatoria.',
-            'fecha_limite.required' => 'La fecha límite es obligatoria.',
-            'fecha_limite.after_or_equal' => 'La fecha límite debe ser igual o posterior a la fecha de la ruta.',
-            'contratos.required' => 'Debe seleccionar al menos un contrato.',
-            'contratos.min' => 'Debe seleccionar al menos un contrato.',
+            'frecuencia.required' => 'Debe elegir la frecuencia de la ruta.',
+            'frecuencia.in' => 'La frecuencia no es válida.',
+            'contratos.required' => 'Debe agregar al menos un contrato.',
+            'contratos.min' => 'Debe agregar al menos un contrato.',
         ];
     }
 }

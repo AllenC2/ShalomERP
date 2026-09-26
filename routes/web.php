@@ -12,6 +12,7 @@ Route::get('/', function () {
 Auth::routes(['register' => true]);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::middleware('auth')->get('/home/rutas-dia', [App\Http\Controllers\HomeController::class, 'rutasDia'])->name('home.rutasDia');
 
 // Rutas restringidas - Solo acceso para administradores
 Route::middleware(['auth', 'role:admin'])->group(function () {
@@ -72,6 +73,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 // Rutas de lectura para empleados
 Route::middleware(['auth', 'role:admin,empleado'])->group(function () {
     Route::get('rutas/{ruta}/datos', [App\Http\Controllers\RutaController::class, 'getRutaData'])->name('rutas.getRutaData');
+    Route::post('rutas/{ruta}/punto-casa', [App\Http\Controllers\RutaController::class, 'actualizarPuntoCasa'])->name('rutas.actualizarPuntoCasa');
 });
 
 // Ruta para servir PDFs de contratos - Accesible para cualquier usuario autenticado

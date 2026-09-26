@@ -252,7 +252,10 @@
                                 <i class="bi bi-person me-1"></i> Empleado
                             </label>
                             <div class="empleado-combobox position-relative" id="empleadoCombobox">
-                                <input type="text" id="selectEmpleadoSearch" class="form-control form-control-lg" placeholder="Escribir para buscar empleado..." autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="selectEmpleadoSearch" class="form-control" placeholder="Buscar empleado por nombre o ID..." autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
+                                </div>
                                 <ul class="empleado-combobox-list list-unstyled mb-0 shadow-sm" id="selectEmpleadoList" hidden>
                                     @foreach($empleados as $empleado)
                                         <li>
@@ -450,7 +453,24 @@
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-person me-1"></i> Empleado
                             </label>
-                            <input type="text" id="editEmpleadoNombre" class="form-control form-control-lg" disabled>
+                            <div class="empleado-combobox position-relative" id="editEmpleadoCombobox">
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="editEmpleadoSearch" class="form-control" placeholder="Buscar empleado por nombre o ID..." autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">
+                                </div>
+                                <ul class="empleado-combobox-list list-unstyled mb-0 shadow-sm" id="editEmpleadoList" hidden>
+                                    @foreach($empleados as $empleado)
+                                        <li>
+                                            <button type="button" class="empleado-combobox-item" data-id="{{ $empleado->id }}" data-label="{{ $empleado->nombre }} {{ $empleado->apellido }} ({{ $empleado->id }})">
+                                                <i class="bi bi-person me-2"></i>{{ $empleado->nombre }} {{ $empleado->apellido }}
+                                                <small class="text-muted">({{ $empleado->id }})</small>
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                    <li class="empleado-combobox-empty px-3 py-2 text-muted small" style="display: none;">Sin resultados</li>
+                                </ul>
+                            </div>
+                            <small class="text-muted">Un empleado puede tener varias rutas; esta ruta queda con un solo empleado.</small>
                         </div>
 
                         <div class="mb-3 rango-calendario">
@@ -470,23 +490,11 @@
                             <input type="text" id="editInputNombre" class="form-control form-control-lg" maxlength="120">
                         </div>
 
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    <i class="bi bi-flag me-1"></i> Estado
-                                </label>
-                                <select id="editSelectEstado" class="form-select form-select-lg">
-                                    @foreach(\App\Models\Ruta::getEstadosValidos() as $key => $label)
-                                        <option value="{{ $key }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">
-                                    <i class="bi bi-sticky me-1"></i> Notas
-                                </label>
-                                <input type="text" id="editInputNotas" class="form-control form-control-lg" placeholder="Observaciones...">
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-sticky me-1"></i> Notas
+                            </label>
+                            <input type="text" id="editInputNotas" class="form-control form-control-lg" placeholder="Observaciones...">
                         </div>
 
                         <div class="d-flex justify-content-end">
@@ -934,6 +942,7 @@ $(document).ready(function() {
     }
 
     $empSearch.on('focus', function() {
+        $(this).select();
         if (selectedEmpleadoId && $(this).val() === selectedEmpleadoLabel) {
             filterEmpleadoList('');
             $empList.prop('hidden', false);
@@ -1050,6 +1059,7 @@ $(document).ready(function() {
         var agregados = idsAgregados();
         var visibles = 0;
         contratos.forEach(function(c) {
+            if (String(c.estado || 'activo').toLowerCase() !== 'activo') return;
             if (agregados.indexOf(String(c.id)) !== -1) return;
             visibles++;
             var $li = $('<li class="resultado-contrato"></li>');
@@ -1396,6 +1406,11 @@ $(document).ready(function() {
     var editRouteLine = null;
     var editHomeMarker = null;
     var editRutaData = null;
+    var selectedEditEmpleadoId = '';
+    var selectedEditEmpleadoLabel = '';
+    var $editEmpSearch = $('#editEmpleadoSearch');
+    var $editEmpList = $('#editEmpleadoList');
+    var $editEmpEmpty = $editEmpList.find('.empleado-combobox-empty');
 
     function initEditMap() {
         if (editMap) {
@@ -1481,31 +1496,143 @@ $(document).ready(function() {
     function populateEditStep1(ruta) {
         $('#editRutaId').text('#' + ruta.id);
         $('#editRutaIdInput').val(ruta.id);
-        $('#editEmpleadoNombre').val(ruta.empleado_nombre);
+        var $match = $editEmpList.find('.empleado-combobox-item[data-id="' + ruta.empleado_id + '"]');
+        var label = $match.attr('data-label') || (ruta.empleado_nombre || '');
+        setEditEmpleadoSeleccionado(ruta.empleado_id, label);
         $('#editInputNombre').val(ruta.nombre || '');
         if (pickerEditarRuta) pickerEditarRuta.setDate(ruta.fecha, true);
-        $('#editSelectEstado').val(ruta.estado);
         $('#editInputNotas').val(ruta.notas || '');
         setPuntoCasaModo('#editPuntoCasaTabs', ruta.punto_casa || 'inicio');
     }
 
-    $('#editBtnSiguiente').on('click', function() {
+    function setEditEmpleadoSeleccionado(id, label) {
+        selectedEditEmpleadoId = id || '';
+        if (label !== undefined) {
+            selectedEditEmpleadoLabel = label;
+            $editEmpSearch.val(label);
+        }
+    }
+
+    function filterEditEmpleadoList(query) {
+        var q = (query || '').toLowerCase().trim();
+        var visible = 0;
+        $editEmpList.find('.empleado-combobox-item').each(function() {
+            var $item = $(this);
+            var text = ($item.attr('data-label') || $item.text()).toString().toLowerCase();
+            var match = !q || text.indexOf(q) !== -1;
+            $item.closest('li').toggle(match);
+            if (match) visible++;
+        });
+        $editEmpEmpty.toggle(visible === 0);
+    }
+
+    function openEditEmpleadoList() {
+        filterEditEmpleadoList($editEmpSearch.val() === selectedEditEmpleadoLabel ? '' : $editEmpSearch.val());
+        $editEmpList.prop('hidden', false);
+        $editEmpSearch.attr('aria-expanded', 'true');
+    }
+
+    function closeEditEmpleadoList() {
+        $editEmpList.prop('hidden', true);
+        $editEmpSearch.attr('aria-expanded', 'false');
+    }
+
+    $editEmpSearch.on('focus', function() {
+        $(this).select();
+        openEditEmpleadoList();
+    });
+
+    $editEmpSearch.on('input', function() {
+        if ($(this).val() !== selectedEditEmpleadoLabel) {
+            setEditEmpleadoSeleccionado('', undefined);
+        }
+        openEditEmpleadoList();
+    });
+
+    $editEmpSearch.on('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeEditEmpleadoList();
+            return;
+        }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            var $first = $editEmpList.find('.empleado-combobox-item:visible').first();
+            if ($first.length) $first.trigger('click');
+        }
+    });
+
+    $editEmpList.on('click', '.empleado-combobox-item', function() {
+        setEditEmpleadoSeleccionado($(this).attr('data-id'), $(this).attr('data-label'));
+        closeEditEmpleadoList();
+    });
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#editEmpleadoCombobox').length) {
+            closeEditEmpleadoList();
+        }
+    });
+
+    function aplicarEmpleadoEnEdicion(done) {
+        if (!editRutaData || !editRutaData.ruta) {
+            done();
+            return;
+        }
         var ruta = editRutaData.ruta;
+        if (!selectedEditEmpleadoId) {
+            alert('Selecciona un empleado para esta ruta.');
+            return;
+        }
+        if (String(ruta.empleado_id) === String(selectedEditEmpleadoId) && ruta.empleado_lat) {
+            done();
+            return;
+        }
+        var csrf = $('meta[name="csrf-token"]').attr('content');
+        $.ajax({
+            url: '{{ route("rutas.empleadoDatos") }}',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            data: { empleado_id: selectedEditEmpleadoId },
+            success: function(response) {
+                ruta.empleado_id = selectedEditEmpleadoId;
+                ruta.empleado_nombre = selectedEditEmpleadoLabel;
+                if (response.empleado) {
+                    ruta.empleado_lat = response.empleado.latitud;
+                    ruta.empleado_lng = response.empleado.longitud;
+                }
+                done();
+            },
+            error: function() {
+                ruta.empleado_id = selectedEditEmpleadoId;
+                ruta.empleado_nombre = selectedEditEmpleadoLabel;
+                done();
+            }
+        });
+    }
+
+    $('#editBtnSiguiente').on('click', function() {
+        if (!editRutaData || !editRutaData.ruta) return;
         var fecha = getFechaIso(pickerEditarRuta);
         if (!fecha) return;
+        if (!selectedEditEmpleadoId) {
+            alert('Selecciona un empleado para esta ruta.');
+            return;
+        }
 
-        $('#editStep1').addClass('d-none');
-        $('#editStep2').removeClass('d-none');
-        setRutaModalAncho('#editarRutaModal', true);
-        updateEditStepIndicator(2);
+        aplicarEmpleadoEnEdicion(function() {
+            var ruta = editRutaData.ruta;
+            $('#editStep1').addClass('d-none');
+            $('#editStep2').removeClass('d-none');
+            setRutaModalAncho('#editarRutaModal', true);
+            updateEditStepIndicator(2);
 
-        $('#editStep2Empleado').text(ruta.empleado_nombre);
-        $('#editStep2Fecha').text(formatDisplayDate(pickerEditarRuta.selectedDates[0]));
+            $('#editStep2Empleado').text(selectedEditEmpleadoLabel);
+            $('#editStep2Fecha').text(formatDisplayDate(pickerEditarRuta.selectedDates[0]));
 
-        setTimeout(function() {
-            initEditMap();
-            renderEditParadas(editRutaData.paradas, ruta);
-        }, 200);
+            setTimeout(function() {
+                initEditMap();
+                renderEditParadas(editRutaData.paradas, ruta);
+            }, 200);
+        });
     });
 
     $('#editBtnVolver').on('click', function() {
@@ -1638,7 +1765,11 @@ $(document).ready(function() {
     });
 
     // Guardar cambios
-    $('#editBtnGuardar').on('click', function() {
+        $('#editBtnGuardar').on('click', function() {
+        if (!selectedEditEmpleadoId) {
+            alert('Selecciona un empleado para esta ruta.');
+            return;
+        }
         var rutaId = $('#editRutaIdInput').val();
         var paradasOrden = [];
         $('#editListaParadas .edit-parada-item').each(function() {
@@ -1654,7 +1785,7 @@ $(document).ready(function() {
             data: JSON.stringify({
                 fecha: getFechaIso(pickerEditarRuta),
                 nombre: $('#editInputNombre').val(),
-                estado: $('#editSelectEstado').val(),
+                empleado_id: selectedEditEmpleadoId,
                 notas: $('#editInputNotas').val(),
                 punto_casa: getPuntoCasaModo('#editPuntoCasaTabs'),
                 paradas: paradasOrden
@@ -1682,6 +1813,8 @@ $(document).ready(function() {
         $('#editListaParadas').empty();
         clearEditMap();
         editRutaData = null;
+        setEditEmpleadoSeleccionado('', '');
+        closeEditEmpleadoList();
     });
 });
 
@@ -1930,7 +2063,8 @@ function geocodificarPendientes() {
         opacity: 0.5;
         cursor: not-allowed;
     }
-    #step1 { overflow: visible; }
+    #step1,
+    #editStep1 { overflow: visible; }
     #nuevaRutaModal .modal-content,
     #editarRutaModal .modal-content { overflow: visible; }
     .empleado-combobox-list {
@@ -1938,7 +2072,7 @@ function geocodificarPendientes() {
         top: 100%;
         left: 0;
         right: 0;
-        z-index: 1060;
+        z-index: 1080;
         max-height: 250px;
         overflow-y: auto;
         background: #fff;

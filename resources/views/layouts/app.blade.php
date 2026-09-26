@@ -29,6 +29,42 @@
             height: 40px;
         }
 
+        .nav-user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+            box-shadow: 0 2px 8px rgba(225, 178, 64, 0.35);
+        }
+
+        .nav-link.nav-user-avatar-link {
+            padding: 0;
+            line-height: 0;
+        }
+
+        nav.navbar,
+        nav.navbar .container,
+        nav.navbar #navbarSupportedContent,
+        nav.navbar .navbar-nav {
+            overflow: visible;
+        }
+
+        .navbar-nav .dropdown-menu {
+            position: absolute !important;
+            top: 100%;
+            right: 0;
+            left: auto;
+            margin-top: 8px;
+            z-index: 1080;
+        }
+
         .btn-primary {
             background-color: #007bff;
             border-color: #007bff;
@@ -183,13 +219,15 @@
                 <a class="navbar-brand" href="{{ url('/home') }}">
                     <img src="{{ asset('shalom_logo.svg') }}" alt="Shalom Logo" height="40">
                 </a>
+                @if(auth()->check() && auth()->user()->role === 'admin')
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+                @endif
 
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <div class="{{ auth()->check() && auth()->user()->role !== 'admin' ? 'd-flex flex-grow-1 justify-content-end' : 'collapse navbar-collapse' }}" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav me-auto">
 
@@ -232,13 +270,19 @@
                             @endif
 
                             @if(auth()->user() && auth()->user()->role !== 'admin')
+                                @php
+                                    $navNombre = auth()->user()->name ?? 'U';
+                                    $navInicial = mb_strtoupper(mb_substr(trim($navNombre), 0, 1));
+                                @endphp
                                 <li class="nav-item dropdown">
-                                    <a id="navbarDropdown" class="nav-link" href="#" role="button" data-bs-toggle="dropdown"
-                                        aria-haspopup="true" aria-expanded="false" v-pre>
-                                        {{ isset($currentUser) && $currentUser ? $currentUser->name : (auth()->user() ? auth()->user()->name : 'Usuario') }}
+                                    <a id="navbarDropdown" class="nav-link nav-user-avatar-link" href="#" role="button" data-bs-toggle="dropdown" data-bs-display="dynamic" data-bs-offset="0,8"
+                                        aria-haspopup="true" aria-expanded="false" aria-label="{{ $navNombre }}">
+                                        <span class="nav-user-avatar">{{ $navInicial }}</span>
                                     </a>
 
                                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                        <div class="dropdown-item-text text-muted small">{{ $navNombre }}</div>
+                                        <div class="dropdown-divider"></div>
                                         <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault();
                                                                              document.getElementById('logout-form').submit();">
                                             {{ __('Cerrar sesión') }}

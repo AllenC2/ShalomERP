@@ -8,6 +8,7 @@ use App\Models\Contrato;
 use App\Models\Empleado;
 use App\Models\Pago;
 use App\Models\Ruta;
+use App\Models\RutaPlantilla;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -123,7 +124,10 @@ class HomeController extends Controller
             'empleadoContratos' => $this->getEmpleadoContratos(),
             'empleadoAgenda' => $this->getEmpleadoAgenda($weekOffset),
             'empleadoPagosVencidos' => $this->getEmpleadoPagosVencidos(),
-            'empleadoRutas' => $this->getEmpleadoRutas()
+            'empleadoRutas' => $this->getEmpleadoRutas($fecha),
+            'empleadoPlantillas' => $this->getEmpleadoPlantillas(),
+            'rutasDiaTitulo' => $this->etiquetaDiaCorta($fecha),
+            'rutasDiaSubtitulo' => $fecha->isoFormat('D [de] MMMM'),
         ]);
     }
 
@@ -303,10 +307,67 @@ class HomeController extends Controller
         });
     }
 
+    public function rutasDia(Request $request)
+    {
+        $dayOffset = $request->input('day', 0);
+        if (! is_numeric($dayOffset)) {
+            $dayOffset = 0;
+        } else {
+            $dayOffset = (int) $dayOffset;
+            $dayOffset = max(-365, min(365, $dayOffset));
+        }
+
+        Carbon::setLocale('es');
+        $fecha = Carbon::now()->addDays($dayOffset)->startOfDay();
+        $rutas = $this->getEmpleadoRutas($fecha);
+
+        return response()->json([
+            'success' => true,
+            'offset' => $dayOffset,
+            'titulo' => $this->etiquetaDiaCorta($fecha),
+            'subtitulo' => $fecha->isoFormat('D [de] MMMM'),
+            'rutas' => $rutas->map(fn (Ruta $ruta) => $this->serializarRutaEmpleado($ruta))->values(),
+        ]);
+    }
+
+    private function etiquetaDiaCorta(Carbon $fecha): string
+    {
+        if ($fecha->isToday()) {
+            return 'Hoy';
+        }
+        if ($fecha->isYesterday()) {
+            return 'Ayer';
+        }
+        if ($fecha->isTomorrow()) {
+            return 'Mañana';
+        }
+
+        return ucfirst($fecha->isoFormat('dddd'));
+    }
+
+    private function getEmpleadoPlantillas()
+    {
+        $user = Auth::user();
+        if ($user->role === 'admin') {
+            return collect();
+        }
+
+        $empleado = Empleado::where('user_id', $user->id)->first();
+        if (! $empleado) {
+            return collect();
+        }
+
+        return RutaPlantilla::withCount('paradas')
+            ->where('empleado_id', $empleado->id)
+            ->where('activa', true)
+            ->orderBy('nombre')
+            ->get();
+    }
+
     /**
-     * Obtener rutas asignadas al empleado del usuario logueado
+     * Instancias del empleado para un día.
      */
-    private function getEmpleadoRutas()
+    private function getEmpleadoRutas(?Carbon $fecha = null)
     {
         $user = Auth::user();
 
@@ -316,14 +377,66 @@ class HomeController extends Controller
 
         $empleado = Empleado::where('user_id', $user->id)->first();
 
-        if (!$empleado) {
+        if (! $empleado) {
             return collect();
         }
 
+        $fecha = ($fecha ?? Carbon::today())->toDateString();
+
         return Ruta::with(['paradas.contrato.cliente', 'empleado', 'plantilla'])
             ->where('empleado_id', $empleado->id)
-            ->whereIn('estado', [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO])
-            ->orderBy('fecha', 'desc')
+            ->whereDate('fecha', $fecha)
+            ->where('estado', '!=', Ruta::ESTADO_CANCELADA)
+            ->orderBy('nombre')
+            ->orderBy('id')
             ->get();
+    }
+
+    private function serializarRutaEmpleado(Ruta $ruta): array
+    {
+        $domiciliosUnicos = [];
+        foreach ($ruta->paradas as $parada) {
+            $dkey = $parada->cliente_id . '_' . md5($parada->direccion_destino ?? '');
+            if (! isset($domiciliosUnicos[$dkey])) {
+                $domiciliosUnicos[$dkey] = ['paradas' => collect()];
+            }
+            $domiciliosUnicos[$dkey]['paradas']->push($parada);
+        }
+        $totalParadas = count($domiciliosUnicos);
+        $completadas = 0;
+        $omitidas = 0;
+        foreach ($domiciliosUnicos as $d) {
+            $t = $d['paradas']->count();
+            $c = $d['paradas']->where('estado', 'visitada')->count();
+            $o = $d['paradas']->where('estado', 'omitida')->count();
+            if ($c === $t) {
+                $completadas++;
+            } elseif ($o === $t) {
+                $omitidas++;
+            }
+        }
+        $porcentaje = $totalParadas > 0 ? (int) round(($completadas / $totalParadas) * 100) : 0;
+        $estadoConfig = match ($ruta->estado) {
+            'planeada' => ['color' => '#007AFF', 'bg' => 'rgba(0,122,255,0.1)', 'label' => 'Planeada', 'icon' => 'bi-calendar'],
+            'en_curso' => ['color' => '#FF9500', 'bg' => 'rgba(255,149,0,0.1)', 'label' => 'En Curso', 'icon' => 'bi-play-circle'],
+            'completada' => ['color' => '#34C759', 'bg' => 'rgba(52,199,89,0.1)', 'label' => 'Completada', 'icon' => 'bi-check-circle'],
+            'incompleta' => ['color' => '#8E8E93', 'bg' => 'rgba(142,142,147,0.1)', 'label' => 'Incompleta', 'icon' => 'bi-dash-circle'],
+            'vencida' => ['color' => '#1C1C1E', 'bg' => 'rgba(28,28,30,0.1)', 'label' => 'Vencida', 'icon' => 'bi-clock-history'],
+            default => ['color' => '#8E8E93', 'bg' => 'rgba(142,142,147,0.1)', 'label' => $ruta->estado, 'icon' => 'bi-circle'],
+        };
+
+        return [
+            'id' => $ruta->id,
+            'nombre' => $ruta->nombre ?: ('Ruta #' . $ruta->id),
+            'estado' => $ruta->estado,
+            'estado_label' => $estadoConfig['label'],
+            'estado_color' => $estadoConfig['color'],
+            'estado_bg' => $estadoConfig['bg'],
+            'estado_icon' => $estadoConfig['icon'],
+            'total_domicilios' => $totalParadas,
+            'completadas' => $completadas,
+            'omitidas' => $omitidas,
+            'porcentaje' => $porcentaje,
+        ];
     }
 }

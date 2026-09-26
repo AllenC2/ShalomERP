@@ -34,9 +34,26 @@
                 @csrf
                 @method('PUT')
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Empleado</label>
-                        <input type="text" class="form-control" value="{{ $ruta->empleado->nombre }} {{ $ruta->empleado->apellido }}" disabled>
+                        <input type="hidden" name="empleado_id" id="empleadoId" value="{{ $ruta->empleado_id }}" required>
+                        <div class="empleado-combobox position-relative" id="empleadoCombobox">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input type="text" id="empleadoSearch" class="form-control" placeholder="Buscar empleado por nombre o ID..." autocomplete="off" value="{{ $ruta->empleado->nombre }} {{ $ruta->empleado->apellido }} ({{ $ruta->empleado->id }})">
+                            </div>
+                            <ul class="empleado-combobox-list list-unstyled mb-0 shadow-sm" id="empleadoList" hidden>
+                                @foreach($empleados as $empleado)
+                                    <li>
+                                        <button type="button" class="empleado-combobox-item" data-id="{{ $empleado->id }}" data-label="{{ $empleado->nombre }} {{ $empleado->apellido }} ({{ $empleado->id }})">
+                                            {{ $empleado->nombre }} {{ $empleado->apellido }}
+                                            <small class="text-muted">({{ $empleado->id }})</small>
+                                        </button>
+                                    </li>
+                                @endforeach
+                                <li class="empleado-combobox-empty px-3 py-2 text-muted small" style="display: none;">Sin resultados</li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Nombre</label>
@@ -45,14 +62,6 @@
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Fecha</label>
                         <input type="date" name="fecha" class="form-control" value="{{ optional($ruta->fecha)->format('Y-m-d') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Estado</label>
-                        <select name="estado" class="form-select">
-                            @foreach(\App\Models\Ruta::getEstadosValidos() as $key => $label)
-                                <option value="{{ $key }}" {{ $ruta->estado === $key ? 'selected' : '' }}>{{ $label }}</option>
-                            @endforeach
-                        </select>
                     </div>
                     <div class="col-md-9">
                         <label class="form-label fw-semibold">Notas</label>
@@ -127,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    document.getElementById('ordenForm').addEventListener('submit', function(e) {
+    document.getElementById('ordenForm').addEventListener('submit', function() {
         var items = el.querySelectorAll('.sortable-item');
         var form = this;
         var existingInputs = form.querySelectorAll('input[name^="orden"]');
@@ -141,6 +150,70 @@ document.addEventListener('DOMContentLoaded', function() {
             form.appendChild(input);
         });
     });
+
+    var search = document.getElementById('empleadoSearch');
+    var list = document.getElementById('empleadoList');
+    var hidden = document.getElementById('empleadoId');
+    var empty = list ? list.querySelector('.empleado-combobox-empty') : null;
+    var selectedLabel = search ? search.value : '';
+
+    function filterList(query) {
+        var q = (query || '').toLowerCase().trim();
+        var visible = 0;
+        list.querySelectorAll('.empleado-combobox-item').forEach(function(item) {
+            var text = (item.getAttribute('data-label') || item.textContent).toLowerCase();
+            var match = !q || text.indexOf(q) !== -1;
+            item.closest('li').style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        if (empty) empty.style.display = visible === 0 ? '' : 'none';
+    }
+
+    function openList() {
+        filterList(search.value === selectedLabel ? '' : search.value);
+        list.hidden = false;
+    }
+
+    function closeList() {
+        list.hidden = true;
+    }
+
+    if (search && list && hidden) {
+        search.addEventListener('focus', function() {
+            search.select();
+            openList();
+        });
+        search.addEventListener('input', function() {
+            if (search.value !== selectedLabel) hidden.value = '';
+            openList();
+        });
+        search.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeList();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var first = list.querySelector('.empleado-combobox-item:not([style*="display: none"])');
+                if (first) first.click();
+            }
+        });
+        list.addEventListener('click', function(e) {
+            var item = e.target.closest('.empleado-combobox-item');
+            if (!item) return;
+            hidden.value = item.getAttribute('data-id');
+            selectedLabel = item.getAttribute('data-label');
+            search.value = selectedLabel;
+            closeList();
+        });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#empleadoCombobox')) closeList();
+        });
+        search.closest('form').addEventListener('submit', function(e) {
+            if (!hidden.value) {
+                e.preventDefault();
+                alert('Selecciona un empleado de la lista.');
+                search.focus();
+            }
+        });
+    }
 });
 </script>
 
@@ -167,6 +240,32 @@ document.addEventListener('DOMContentLoaded', function() {
         user-select: none;
     }
     .sortable-item:hover {
+        background: #f8f9ff;
+    }
+    .empleado-combobox-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-top: 4px;
+    }
+    .empleado-combobox-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: none;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.95rem;
+    }
+    .empleado-combobox-item:hover,
+    .empleado-combobox-item:focus {
         background: #f8f9ff;
     }
     @media (max-width: 768px) {

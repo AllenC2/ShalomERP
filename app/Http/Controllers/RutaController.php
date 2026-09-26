@@ -10,6 +10,7 @@ use App\Models\Ruta;
 use App\Models\RutaParada;
 use App\Services\GeocodingService;
 use App\Services\GeneradorRutasService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -90,6 +91,9 @@ class RutaController extends Controller
     {
         $ruta = Ruta::with(['empleado', 'paradas.contrato.cliente'])->findOrFail($id);
         $empleados = Empleado::where('estado', 'activo')->orderBy('nombre')->get();
+        if ($ruta->empleado && !$empleados->contains('id', $ruta->empleado_id)) {
+            $empleados->prepend($ruta->empleado);
+        }
 
         return view('rutas.edit', compact('ruta', 'empleados'));
     }
@@ -98,6 +102,7 @@ class RutaController extends Controller
     {
         $ruta = Ruta::findOrFail($id);
         $ruta->update($request->validated());
+        $this->sincronizarEmpleadoPlantilla($ruta);
 
         return redirect()->route('rutas.show', $ruta->id)
             ->with('success', 'Ruta actualizada correctamente.');
@@ -173,6 +178,126 @@ class RutaController extends Controller
         }
 
         return back()->with('success', 'Estado de parada actualizado.');
+    }
+
+    public function omitirParadas(Request $request, $rutaId)
+    {
+        $request->validate([
+            'ruta_parada_ids' => 'required|array|min:1',
+            'ruta_parada_ids.*' => 'exists:ruta_paradas,id',
+        ]);
+
+        $ruta = Ruta::with('paradas')->findOrFail($rutaId);
+        $this->autorizarRutaEmpleado($ruta);
+
+        $ids = collect($request->input('ruta_parada_ids'))->unique()->values();
+        $paradas = $ruta->paradas->whereIn('id', $ids->all());
+
+        if ($paradas->count() !== $ids->count()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Una o más paradas no pertenecen a esta ruta.',
+            ], 422);
+        }
+
+        $grupos = $this->gruposDomicilio($ruta);
+        $grupoIdx = null;
+        foreach ($grupos as $i => $grupo) {
+            if ($grupo->pluck('id')->intersect($ids)->isNotEmpty()) {
+                $grupoIdx = $i;
+                break;
+            }
+        }
+
+        if ($grupoIdx === null) {
+            return response()->json(['success' => false, 'message' => 'No se encontró la parada.'], 422);
+        }
+
+        if ($grupoIdx > 0) {
+            $anteriorPendiente = $grupos[$grupoIdx - 1]->contains(
+                fn (RutaParada $p) => $p->estado === RutaParada::ESTADO_PENDIENTE
+            );
+            if ($anteriorPendiente) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes visitar u omitir la parada anterior primero.',
+                ], 422);
+            }
+        }
+
+        foreach ($paradas as $parada) {
+            if ($parada->estado === RutaParada::ESTADO_PENDIENTE) {
+                $parada->update(['estado' => RutaParada::ESTADO_OMITIDA]);
+            }
+        }
+
+        $ruta->refresh();
+        $pendientes = $ruta->paradas()->where('estado', RutaParada::ESTADO_PENDIENTE)->exists();
+        if (! $pendientes && in_array($ruta->estado, [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO], true)) {
+            $ruta->update(['estado' => Ruta::ESTADO_COMPLETADA]);
+        } elseif ($ruta->estado === Ruta::ESTADO_PLANEADA) {
+            $ruta->update(['estado' => Ruta::ESTADO_EN_CURSO]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Parada omitida. La siguiente queda desbloqueada.',
+        ]);
+    }
+
+    public function actualizarPuntoCasa(Request $request, $rutaId)
+    {
+        $request->validate([
+            'punto_casa' => 'required|in:inicio,final,ambos',
+            'ruta_parada_ids' => 'nullable|array',
+            'ruta_parada_ids.*' => 'exists:ruta_paradas,id',
+        ]);
+
+        $ruta = Ruta::with('paradas')->findOrFail($rutaId);
+        $this->autorizarRutaEmpleado($ruta);
+
+        $ruta->update(['punto_casa' => $request->punto_casa]);
+
+        $ids = collect($request->input('ruta_parada_ids', []))->map(fn ($id) => (int) $id)->unique()->values();
+        foreach ($ids as $index => $paradaId) {
+            RutaParada::where('id', $paradaId)
+                ->where('ruta_id', $ruta->id)
+                ->update(['orden' => $index + 1]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'punto_casa' => $ruta->punto_casa,
+        ]);
+    }
+
+    protected function autorizarRutaEmpleado(Ruta $ruta): void
+    {
+        $user = Auth::user();
+        if (! $user || $user->role !== 'empleado') {
+            return;
+        }
+
+        $empleadoId = $user->empleado?->id;
+        if (! $empleadoId || (int) $ruta->empleado_id !== (int) $empleadoId) {
+            abort(403, 'No puedes modificar una ruta que no te corresponde.');
+        }
+    }
+
+    protected function gruposDomicilio(Ruta $ruta)
+    {
+        $grupos = [];
+        $orden = [];
+        foreach ($ruta->paradas->sortBy('orden') as $parada) {
+            $key = $parada->cliente_id . '_' . $parada->direccion_destino;
+            if (! isset($grupos[$key])) {
+                $grupos[$key] = collect();
+                $orden[] = $key;
+            }
+            $grupos[$key]->push($parada);
+        }
+
+        return array_map(fn ($key) => $grupos[$key], $orden);
     }
 
     public function geocodificarCliente(\Illuminate\Http\Request $request, GeocodingService $geocoding)
@@ -263,7 +388,7 @@ class RutaController extends Controller
         $ocupados = $this->generador->contratosEnPlantillasActivas();
 
         $contratos = Contrato::query()
-            ->where('estado', Contrato::ESTADO_ACTIVO)
+            ->whereRaw('LOWER(TRIM(contratos.estado)) = ?', [Contrato::ESTADO_ACTIVO])
             ->where(function ($query) use ($q) {
                 $query->where('id', 'like', $q . '%')
                     ->orWhereHas('cliente', function ($cliente) use ($q) {
@@ -281,12 +406,15 @@ class RutaController extends Controller
 
         return response()->json([
             'success' => true,
-            'contratos' => $contratos->map(function (Contrato $c) use ($ocupados) {
-                $row = $this->serializarContratoRuta($c);
-                $row['ocupado'] = in_array($c->id, $ocupados, false);
+            'contratos' => $contratos
+                ->filter(fn (Contrato $c) => strtolower(trim((string) $c->estado)) === Contrato::ESTADO_ACTIVO)
+                ->map(function (Contrato $c) use ($ocupados) {
+                    $row = $this->serializarContratoRuta($c);
+                    $row['estado'] = $c->estado;
+                    $row['ocupado'] = in_array($c->id, $ocupados, false);
 
-                return $row;
-            })->values(),
+                    return $row;
+                })->values(),
         ]);
     }
 
@@ -386,6 +514,8 @@ class RutaController extends Controller
             ];
         });
 
+        $esPasada = $ruta->fecha && $ruta->fecha->lt(Carbon::today());
+
         return response()->json([
             'success' => true,
             'ruta' => [
@@ -400,9 +530,103 @@ class RutaController extends Controller
                 'punto_casa' => $ruta->punto_casa ?? 'inicio',
                 'empleado_lat' => $ruta->empleado->latitud,
                 'empleado_lng' => $ruta->empleado->longitud,
+                'es_pasada' => $esPasada,
+                'resumen' => $this->resumenRutaHistorica($ruta, $paradas),
             ],
             'paradas' => $paradas,
         ]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $paradas
+     * @return array<string, mixed>
+     */
+    protected function resumenRutaHistorica(Ruta $ruta, $paradas): array
+    {
+        $grupos = [];
+        foreach ($paradas as $p) {
+            $key = ($p['cliente_id'] ?? '') . '_' . ($p['domicilio'] ?? '');
+            if (! isset($grupos[$key])) {
+                $grupos[$key] = [
+                    'nombre' => $p['cliente_nombre'] ?? 'Sin cliente',
+                    'paradas' => [],
+                ];
+            }
+            $grupos[$key]['paradas'][] = $p;
+        }
+
+        $visitados = 0;
+        $omitidos = 0;
+        $pendientes = 0;
+        $hastaNombre = null;
+        $hastaOrden = 0;
+        $secuenciaRota = false;
+
+        foreach (array_values($grupos) as $i => $grupo) {
+            $totalGrupo = count($grupo['paradas']);
+            $vis = collect($grupo['paradas'])->where('estado', RutaParada::ESTADO_VISITADA)->count();
+            $omi = collect($grupo['paradas'])->where('estado', RutaParada::ESTADO_OMITIDA)->count();
+            $cerrada = $totalGrupo > 0 && ($vis + $omi) === $totalGrupo;
+
+            if ($cerrada) {
+                if ($vis > 0) {
+                    $visitados++;
+                } else {
+                    $omitidos++;
+                }
+            } else {
+                $pendientes++;
+            }
+
+            if (! $secuenciaRota && $cerrada) {
+                $hastaNombre = $grupo['nombre'];
+                $hastaOrden = $i + 1;
+            } elseif (! $cerrada) {
+                $secuenciaRota = true;
+            }
+        }
+
+        $total = count($grupos);
+        $hechos = $visitados + $omitidos;
+        $comenzada = $hechos > 0 || collect($paradas)->contains(function ($p) {
+            return in_array($p['estado'] ?? '', [RutaParada::ESTADO_VISITADA, RutaParada::ESTADO_OMITIDA], true);
+        });
+        $completada = $total > 0 && $pendientes === 0;
+
+        if ($total === 0) {
+            $headline = 'Sin paradas';
+            $detalle = 'Esta ruta no tiene domicilios registrados.';
+        } elseif (! $comenzada) {
+            $headline = 'No se comenzó';
+            $detalle = 'No se visitó ni se omitió ningún domicilio.';
+        } elseif ($completada && $omitidos === 0) {
+            $headline = 'Ruta completada';
+            $detalle = $total === 1
+                ? 'Se visitó el domicilio asignado.'
+                : 'Se visitaron los '.$total.' domicilios.';
+        } elseif ($completada) {
+            $headline = 'Ruta completada';
+            $detalle = $visitados.' visitado'.($visitados === 1 ? '' : 's').' · '.$omitidos.' omitido'.($omitidos === 1 ? '' : 's').'.';
+        } elseif ($hastaNombre) {
+            $headline = 'Se comenzó y no se terminó';
+            $detalle = 'Llegó hasta '.$hastaNombre.' ('.$hastaOrden.' de '.$total.'). Quedaron '.$pendientes.' pendiente'.($pendientes === 1 ? '' : 's').'.';
+        } else {
+            $headline = 'Se comenzó y no se terminó';
+            $detalle = 'Hubo avance parcial. Quedaron '.$pendientes.' domicilio'.($pendientes === 1 ? '' : 's').' pendiente'.($pendientes === 1 ? '' : 's').'.';
+        }
+
+        return [
+            'comenzada' => $comenzada,
+            'completada' => $completada,
+            'headline' => $headline,
+            'detalle' => $detalle,
+            'hasta' => $hastaNombre,
+            'total' => $total,
+            'visitados' => $visitados,
+            'omitidos' => $omitidos,
+            'pendientes' => $pendientes,
+            'estado' => $ruta->estado,
+        ];
     }
 
     public function reubicarCliente(Request $request)
@@ -427,7 +651,7 @@ class RutaController extends Controller
         $request->validate([
             'fecha' => 'required|date',
             'nombre' => 'nullable|string|max:120',
-            'estado' => 'required|in:' . implode(',', array_keys(Ruta::getEstadosValidos())),
+            'empleado_id' => 'required|string|exists:empleados,id',
             'notas' => 'nullable|string',
             'paradas' => 'nullable|array',
             'paradas.*' => 'exists:ruta_paradas,id',
@@ -438,10 +662,11 @@ class RutaController extends Controller
         $ruta->update([
             'fecha' => $request->fecha,
             'nombre' => $request->nombre ?: $ruta->nombre,
-            'estado' => $request->estado,
+            'empleado_id' => $request->empleado_id,
             'notas' => $request->notas,
             'punto_casa' => $request->input('punto_casa', $ruta->punto_casa ?? 'inicio'),
         ]);
+        $this->sincronizarEmpleadoPlantilla($ruta);
 
         if ($request->has('paradas')) {
             foreach ($request->paradas as $index => $paradaId) {
@@ -480,5 +705,17 @@ class RutaController extends Controller
             'longitud' => $cliente?->longitud,
             'tiene_coordenadas' => $cliente?->tiene_coordenadas ?? false,
         ];
+    }
+
+    protected function sincronizarEmpleadoPlantilla(Ruta $ruta): void
+    {
+        if (!$ruta->empleado_id) {
+            return;
+        }
+
+        $ruta->loadMissing('plantilla');
+        if ($ruta->plantilla && $ruta->plantilla->empleado_id !== $ruta->empleado_id) {
+            $ruta->plantilla->update(['empleado_id' => $ruta->empleado_id]);
+        }
     }
 }

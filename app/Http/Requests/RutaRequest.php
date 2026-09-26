@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Ruta;
 use App\Models\RutaPlantilla;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -33,12 +32,10 @@ class RutaRequest extends FormRequest
             ];
         }
 
-        $estados = array_keys(Ruta::getEstadosValidos());
-
         return [
             'nombre' => 'sometimes|string|max:120',
+            'empleado_id' => 'sometimes|string|exists:empleados,id',
             'fecha' => 'sometimes|date',
-            'estado' => ['sometimes', Rule::in($estados)],
             'notas' => 'nullable|string|max:1000',
         ];
     }

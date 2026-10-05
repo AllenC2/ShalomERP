@@ -181,7 +181,7 @@
                                                                         <span class="small fw-semibold">C#{{ $parada->contrato_id }}</span>
                                                                         <span class="badge {{ $parada->estado_badge }}" style="font-size: 0.6rem;">{{ $parada->estado_label }}</span>
                                                                     </div>
-                                                                    <div class="d-flex gap-1 mt-1">
+                                                                    <div class="d-flex gap-1 mt-1 flex-wrap">
                                                                         @if($parada->estado === 'pendiente')
                                                                             <form method="POST" action="{{ route('rutas.actualizarEstadoParada', [$ruta->id, $parada->id]) }}" class="d-inline">
                                                                                 @csrf
@@ -216,6 +216,14 @@
                                                                         @endif
                                                                     </div>
                                                                 </li>
+                                                                <li>
+                                                                    <a href="{{ route('contratos.show', $parada->contrato_id) }}" class="dropdown-item py-2">
+                                                                        <i class="bi bi-file-earmark-text text-primary me-2"></i>Ver contrato
+                                                                        @if($totalGrupo > 1)
+                                                                            <span class="text-muted small">#{{ $parada->contrato_id }}</span>
+                                                                        @endif
+                                                                    </a>
+                                                                </li>
                                                                 @if(!$loop->last)
                                                                     <li><hr class="dropdown-divider my-1"></li>
                                                                 @endif
@@ -226,31 +234,20 @@
                                             </div>
                                             @if($totalGrupo === 1)
                                                 @php $parada = $paradasGrupo->first(); @endphp
-                                                <div class="d-flex gap-3 mt-1 flex-wrap" style="font-size: 0.75rem;">
-                                                    <span><strong>${{ number_format($parada->contrato->monto_cuota_real, 2) }}</strong> cuota</span>
-                                                    @php
-                                                        $pagosHechos = $parada->contrato->pagos->where('estado', 'hecho');
-                                                        $abonoPromedio = $pagosHechos->count() > 0 ? $pagosHechos->avg('monto') : 0;
-                                                    @endphp
-                                                    @if($abonoPromedio > 0)
-                                                        <span class="text-success"><strong>${{ number_format($abonoPromedio, 2) }}</strong> prom</span>
-                                                    @endif
-                                                    @if($parada->contrato->saldo_pendiente > 0)
-                                                        <span class="text-danger"><strong>${{ number_format($parada->contrato->saldo_pendiente, 2) }}</strong> saldo</span>
-                                                    @endif
+                                                <div class="mt-2">
+                                                    <span class="parada-cuota-pill">
+                                                        Cuota ${{ number_format($parada->contrato->monto_cuota_real, 2) }}
+                                                    </span>
                                                     @if($parada->notas)
-                                                        <span class="text-muted"><i class="bi bi-chat-dots"></i> {{ $parada->notas }}</span>
+                                                        <span class="text-muted ms-2" style="font-size: 0.75rem;"><i class="bi bi-chat-dots"></i> {{ $parada->notas }}</span>
                                                     @endif
                                                 </div>
                                             @else
-                                                <div class="mt-1" style="font-size: 0.72rem;">
+                                                <div class="mt-2" style="font-size: 0.72rem;">
                                                     @foreach($paradasGrupo as $parada)
                                                         <div class="d-flex align-items-center gap-2 {{ !$loop->last ? 'mb-1' : '' }}" style="padding-left: 4px; border-left: 2px solid {{ $parada->estado === 'visitada' ? '#28a745' : ($parada->estado === 'omitida' ? '#dc3545' : '#e9ecef') }};">
                                                             <span class="text-muted">C#{{ $parada->contrato_id }}</span>
-                                                            <span><strong>${{ number_format($parada->contrato->monto_cuota_real, 2) }}</strong></span>
-                                                            @if($parada->contrato->saldo_pendiente > 0)
-                                                                <span class="text-danger">${{ number_format($parada->contrato->saldo_pendiente, 2) }}</span>
-                                                            @endif
+                                                            <span class="parada-cuota-pill parada-cuota-pill-sm">Cuota ${{ number_format($parada->contrato->monto_cuota_real, 2) }}</span>
                                                             <span class="badge {{ $parada->estado_badge }}" style="font-size: 0.55rem;">{{ $parada->estado_label }}</span>
                                                         </div>
                                                     @endforeach
@@ -495,6 +492,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     .centrar-mapa-btn:hover {
         color: #79481D !important;
+    }
+
+    .parada-cuota-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #79481D;
+        background: linear-gradient(135deg, rgba(225, 178, 64, 0.22) 0%, rgba(121, 72, 29, 0.12) 100%);
+        border: 1px solid rgba(121, 72, 29, 0.18);
+    }
+    .parada-cuota-pill-sm {
+        padding: 0.15rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
     }
 
     .min-width-0 { min-width: 0; }

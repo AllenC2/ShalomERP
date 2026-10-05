@@ -386,7 +386,7 @@ class HomeController extends Controller
         return Ruta::with(['paradas.contrato.cliente', 'empleado', 'plantilla'])
             ->where('empleado_id', $empleado->id)
             ->whereDate('fecha', $fecha)
-            ->where('estado', '!=', Ruta::ESTADO_CANCELADA)
+            ->where('estado', '!=', Ruta::ESTADO_DETENIDA)
             ->orderBy('nombre')
             ->orderBy('id')
             ->get();
@@ -422,6 +422,7 @@ class HomeController extends Controller
             'completada' => ['color' => '#34C759', 'bg' => 'rgba(52,199,89,0.1)', 'label' => 'Completada', 'icon' => 'bi-check-circle'],
             'incompleta' => ['color' => '#8E8E93', 'bg' => 'rgba(142,142,147,0.1)', 'label' => 'Incompleta', 'icon' => 'bi-dash-circle'],
             'vencida' => ['color' => '#1C1C1E', 'bg' => 'rgba(28,28,30,0.1)', 'label' => 'Vencida', 'icon' => 'bi-clock-history'],
+            'detenida' => ['color' => '#FF3B30', 'bg' => 'rgba(255,59,48,0.1)', 'label' => 'Detenida', 'icon' => 'bi-slash-circle'],
             default => ['color' => '#8E8E93', 'bg' => 'rgba(142,142,147,0.1)', 'label' => $ruta->estado, 'icon' => 'bi-circle'],
         };
 

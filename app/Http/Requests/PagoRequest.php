@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Models\Contrato;
 use App\Models\Pago;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class PagoRequest extends FormRequest
 {
@@ -59,5 +61,60 @@ class PagoRequest extends FormRequest
             'documento.mimes' => 'El documento debe ser un archivo PDF, Imagen, Word o Excel.',
             'documento.max' => 'El documento no puede ser mayor a 10MB.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($validator->errors()->hasAny(['monto', 'contrato_id', 'estado'])) {
+                return;
+            }
+
+            $contratoId = $this->input('contrato_id');
+            if (!$contratoId) {
+                return;
+            }
+
+            $contrato = Contrato::with('pagos')->find($contratoId);
+            if (!$contrato) {
+                return;
+            }
+
+            $pagoActual = $this->route('pago');
+            $pagoActual = $pagoActual instanceof Pago ? $pagoActual : null;
+
+            $pagosBase = collect($contrato->pagos->all());
+            if ($pagoActual) {
+                $pagosBase = $pagosBase
+                    ->reject(fn ($pago) => (int) $pago->id === (int) $pagoActual->id)
+                    ->values();
+            }
+
+            $simulado = new Pago([
+                'contrato_id' => $contrato->id,
+                'tipo_pago' => $this->input('tipo_pago') ?: ($pagoActual?->tipo_pago ?? 'cuota'),
+                'monto' => $this->input('monto'),
+                'estado' => $this->input('estado') ?: ($pagoActual?->estado ?? 'hecho'),
+            ]);
+            $simulado->id = $pagoActual?->id ?? 0;
+            $simulado->pago_padre_id = $pagoActual?->pago_padre_id;
+
+            $pagadoSinEste = round((float) calcularMontoPagadoContrato($pagosBase), 2);
+            $pagadoActual = round((float) calcularMontoPagadoContrato($contrato->pagos), 2);
+            $pagadoNuevo = round((float) calcularMontoPagadoContrato($pagosBase->concat([$simulado])), 2);
+            $limite = round((float) $contrato->monto_total, 2);
+
+            if ($pagadoNuevo <= $limite || $pagadoNuevo <= $pagadoActual) {
+                return;
+            }
+
+            $saldoDisponible = max(0, round($limite - $pagadoSinEste, 2));
+
+            $validator->errors()->add(
+                'monto',
+                'Este pago haría que lo cobrado ($' . number_format($pagadoNuevo, 2) . ') supere el total del contrato ($' . number_format($limite, 2) . '). '
+                . 'El saldo disponible es $' . number_format($saldoDisponible, 2) . '.'
+            );
+        });
     }
 }

@@ -10,9 +10,27 @@ class Visita extends Model
         'contrato_id',
         'user_id',
         'ruta_parada_id',
+        'lote',
+        'en_domicilio',
+        'recibido',
+        'receptor_nombre',
+        'receptor_parentesco',
         'comentarios',
         'ubicacion_evidencia',
-        'adeudo_momento'
+        'adeudo_momento',
+    ];
+
+    protected $casts = [
+        'en_domicilio' => 'boolean',
+        'recibido' => 'boolean',
+        'adeudo_momento' => 'decimal:2',
+    ];
+
+    public const PARENTESCOS = [
+        'titular' => 'Titular',
+        'familiar' => 'Familiar',
+        'vecino' => 'Vecino',
+        'otro' => 'Otro',
     ];
 
     /**
@@ -34,6 +52,11 @@ class Visita extends Model
     public function rutaParada()
     {
         return $this->belongsTo(RutaParada::class, 'ruta_parada_id');
+    }
+
+    public function pagos()
+    {
+        return $this->hasMany(Pago::class, 'visita_id');
     }
 
     /**

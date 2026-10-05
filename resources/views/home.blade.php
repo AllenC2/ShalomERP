@@ -361,9 +361,152 @@
     font-weight: 600; color: #1c1c1e; text-align: right;
     letter-spacing: -0.01em; word-break: break-word;
 }
+.ios-confirm-map-wrap {
+    position: relative;
+    margin-bottom: 10px;
+}
 .ios-confirm-map {
     height: 180px; border-radius: 14px; overflow: hidden;
-    background: #e9ecef; margin-bottom: 10px;
+    background: #e9ecef; margin-bottom: 0;
+}
+.visita-gps-recenter {
+    position: absolute; right: 10px; bottom: 10px; z-index: 1000;
+    width: 40px; height: 40px; border: none; border-radius: 12px;
+    background: #fff; color: #007AFF; box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; -webkit-tap-highlight-color: transparent;
+}
+.visita-gps-recenter:active { transform: scale(0.94); opacity: 0.85; }
+.visita-gps-recenter:disabled { opacity: 0.45; }
+.ios-chip-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; border: 1px dashed rgba(60,60,67,0.28); border-radius: 12px;
+    background: rgba(242,242,247,0.7); color: #636366; font-size: 0.84rem; font-weight: 600;
+    padding: 10px 12px; margin-bottom: 10px; -webkit-tap-highlight-color: transparent;
+}
+.ios-chip-btn.active {
+    border-style: solid; border-color: rgba(255,59,48,0.35);
+    background: rgba(255,59,48,0.1); color: #FF3B30;
+}
+.visita-metodo-group {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.visita-metodo-option { position: relative; }
+.visita-metodo-option input {
+    position: absolute; opacity: 0; width: 0; height: 0;
+}
+.visita-metodo-option label {
+    display: flex; align-items: center; gap: 6px; margin: 0;
+    padding: 10px 8px; border: 1px solid #d1d9e0; border-radius: 10px;
+    background: #fff; font-size: 0.72rem; font-weight: 600; color: #24292f;
+    cursor: pointer; min-height: 42px;
+}
+.visita-metodo-option input:checked + label {
+    border-color: #0969da; background: #dbeafe; color: #0969da;
+}
+.visita-metodo-option label i { font-size: 0.95rem; }
+.ios-wizard-dots {
+    display: flex; justify-content: center; gap: 6px; margin: 0 0 12px;
+}
+.ios-wizard-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #d1d1d6;
+}
+.ios-wizard-dot.active { background: #007AFF; }
+.ios-wizard-dot.done { background: #34C759; }
+.ios-field {
+    text-align: left; margin: 0 0 10px;
+}
+.ios-field label {
+    display: block; font-size: 0.72rem; font-weight: 600; color: #8e8e93;
+    margin: 0 0 4px; letter-spacing: 0.02em; text-transform: uppercase;
+}
+.ios-field input, .ios-field select {
+    width: 100%; border: none; border-radius: 12px; padding: 10px 12px;
+    background: rgba(242,242,247,0.95); font-size: 0.92rem; color: #1c1c1e;
+}
+.ios-seg-mini {
+    display: flex; background: rgba(118,118,128,0.12); border-radius: 12px; padding: 3px; gap: 3px;
+}
+.ios-seg-mini button {
+    flex: 1; border: none; background: transparent; border-radius: 10px;
+    padding: 8px 6px; font-size: 0.82rem; font-weight: 600; color: #636366;
+}
+.ios-seg-mini button.active { background: #fff; color: #1c1c1e; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.ios-folio-card {
+    text-align: left; background: rgba(242,242,247,0.9); border-radius: 14px;
+    padding: 12px; margin-bottom: 10px;
+}
+.ios-folio-card h4 { font-size: 0.88rem; font-weight: 700; margin: 0 0 4px; color: #1c1c1e; }
+.ios-folio-card .saldo { font-size: 0.75rem; color: #8e8e93; margin-bottom: 8px; }
+.visita-ticket-frame {
+    width: 100%; height: 380px; border: none; background: #fff; border-radius: 12px;
+}
+.visita-wizard-card {
+    display: flex;
+    flex-direction: column;
+    max-height: min(92vh, 760px);
+}
+.visita-wizard-body {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+.visita-wizard-actions {
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+/* Visita wizard: pantalla completa en celular */
+@media (max-width: 767.98px) {
+    #visitaConfirmModal {
+        padding: 0 !important;
+    }
+    #visitaConfirmModal .modal-dialog.visita-wizard-dialog {
+        max-width: 100%;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        max-height: none;
+    }
+    #visitaConfirmModal .visita-wizard-card {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        height: 100dvh;
+        max-height: 100dvh;
+        padding: 0;
+        overflow: hidden;
+    }
+    #visitaConfirmModal .visita-wizard-body {
+        padding: max(14px, env(safe-area-inset-top)) 18px 12px;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
+    }
+    #visitaConfirmModal .visita-wizard-actions {
+        margin: 0;
+        padding: 10px 18px max(14px, env(safe-area-inset-bottom));
+        border-top: 0.5px solid rgba(60,60,67,0.12);
+        background: #fff;
+    }
+    #visitaConfirmModal .ios-confirm-map {
+        height: min(28vh, 200px);
+    }
+    #visitaConfirmModal .visita-ticket-frame {
+        height: min(52vh, 460px);
+        border-radius: 0;
+    }
+    #visitaConfirmModal .ios-confirm-icon {
+        margin-top: 4px;
+    }
+    body.modal-open {
+        overflow: hidden !important;
+        overscroll-behavior: none;
+    }
 }
 .ios-banner {
     text-align: left; font-size: 0.75rem; line-height: 1.35;
@@ -398,6 +541,24 @@
 /* Screens */
 .shlom-screen { display: none; }
 .shlom-screen.active { display: block; }
+#screenRutaDetalle.active {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+#screenRutaDetalle.active .shlom-map-full {
+    touch-action: manipulation;
+    overscroll-behavior: none;
+}
+body.shlom-ruta-detalle-open,
+body.shlom-ruta-detalle-open .rainbow-background {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+    height: 100dvh;
+    max-height: 100dvh;
+}
 
 /* ====== HEADER ====== */
 .shlom-header { padding: 12px 16px 8px; }
@@ -537,25 +698,50 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
     background: white; border-radius: 20px 20px 0 0;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-    height: 85vh;
-    will-change: transform;
+    height: 280px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    will-change: height;
     -webkit-user-select: none; user-select: none;
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-    transform: translateY(calc(100% - 268px));
+    transition: height 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    transform: none;
+    touch-action: none;
+    overscroll-behavior: none;
 }
 .shlom-bottom-sheet.expanded {
-    transform: translateY(0);
+    height: 85vh;
+    transform: none;
 }
 .shlom-sheet-handle {
     display: flex; justify-content: center; padding: 12px 0 8px; cursor: grab;
     -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
 }
 .shlom-sheet-handle:active { cursor: grabbing; }
 .shlom-handle-bar {
     width: 40px; height: 5px; border-radius: 3px; background: rgba(60,60,67,0.25);
 }
 .shlom-sheet-content {
-    padding: 0 0 16px; overflow-y: auto; max-height: calc(85vh - 30px);
+    padding: 0 0 16px;
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
+    touch-action: pan-y;
+}
+.shlom-bottom-sheet:not(.expanded) .shlom-sheet-content {
+    overflow-y: hidden;
+    touch-action: none;
+}
+.shlom-bottom-sheet.expanded .shlom-sheet-content {
+    touch-action: pan-y;
+}
+.shlom-bottom-sheet.expanded .shlom-slider-track {
+    touch-action: pan-x pan-y;
 }
 .shlom-seg-label {
     font-size: 0.65rem; color: #8e8e93; font-weight: 600;
@@ -600,13 +786,18 @@
 }
 .shlom-resumen-stats { margin-bottom: 0 !important; }
 .shlom-bottom-sheet.historica {
-    transform: translateY(calc(100% - 360px));
+    height: 360px;
+}
+.shlom-bottom-sheet.historica.expanded {
+    height: 85vh;
 }
 
 /* ====== SLIDER (inside sheet) ====== */
 .shlom-slider-track {
-    display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+    display: flex; gap: 12px; overflow-x: auto; overflow-y: visible;
+    scroll-snap-type: x mandatory;
     padding: 8px 20px 4px; scrollbar-width: none; -ms-overflow-style: none;
+    touch-action: pan-x pan-y;
 }
 .shlom-slider-track::-webkit-scrollbar { display: none; }
 
@@ -614,6 +805,7 @@
     flex: 0 0 88%; max-width: 380px; scroll-snap-align: center;
     background: #f2f2f7; border-radius: 16px; padding: 16px;
     border: none; min-width: 0;
+    display: flex; flex-direction: column;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
 }
 .shlom-slider-card-locked {
@@ -675,6 +867,9 @@
 .shlom-card-btn-visit { background: rgba(52,199,89,0.1); color: #34C759; }
 .shlom-card-btn-skip { background: rgba(255,59,48,0.1); color: #FF3B30; }
 
+.shlom-card-content {
+    display: flex; flex-direction: column; min-width: 0;
+}
 /* Contract sub-items */
 .shlom-card-contracts {
     border-top: 1px solid rgba(60,60,67,0.08); padding-top: 10px;
@@ -949,7 +1144,7 @@
                         $estadoConfig = match($ruta->estado) {
                             'planeada' => ['color' => '#007AFF', 'bg' => 'rgba(0,122,255,0.1)', 'label' => 'Planeada', 'icon' => 'bi-calendar'],
                             'en_curso' => ['color' => '#FF9500', 'bg' => 'rgba(255,149,0,0.1)', 'label' => 'En Curso', 'icon' => 'bi-play-circle'],
-                            'cancelada' => ['color' => '#FF3B30', 'bg' => 'rgba(255,59,48,0.1)', 'label' => 'Cancelada', 'icon' => 'bi-slash-circle'],
+                            'detenida' => ['color' => '#FF3B30', 'bg' => 'rgba(255,59,48,0.1)', 'label' => 'Detenida', 'icon' => 'bi-slash-circle'],
                             'completada' => ['color' => '#34C759', 'bg' => 'rgba(52,199,89,0.1)', 'label' => 'Completada', 'icon' => 'bi-check-circle'],
                         'incompleta' => ['color' => '#8E8E93', 'bg' => 'rgba(142,142,147,0.1)', 'label' => 'Incompleta', 'icon' => 'bi-dash-circle'],
                         'vencida' => ['color' => '#1C1C1E', 'bg' => 'rgba(28,28,30,0.1)', 'label' => 'Vencida', 'icon' => 'bi-clock-history'],
@@ -1097,35 +1292,97 @@
     </div>
 
     <div class="modal fade" id="visitaConfirmModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered ios-confirm-dialog">
-            <div class="modal-content ios-confirm-card">
-                <div class="ios-confirm-icon ios-confirm-icon-visit">
-                    <i class="bi bi-geo-alt-fill"></i>
+        <div class="modal-dialog modal-dialog-centered ios-confirm-dialog visita-wizard-dialog">
+            <div class="modal-content ios-confirm-card visita-wizard-card">
+                <div class="visita-wizard-body">
+                    <div id="visitaWizardError" class="ios-banner ios-banner-danger d-none"></div>
+                    <div class="ios-wizard-dots" id="visitaWizardDots"></div>
+                    <div class="ios-confirm-icon ios-confirm-icon-visit">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </div>
+                    <h2 class="ios-confirm-title" id="visitaWizardTitle">Visita</h2>
+                    <p class="ios-confirm-msg" id="visitaConfirmTexto">Se registrará una visita hecha en este domicilio.</p>
+                    <ul class="ios-grouped">
+                        <li>
+                            <span>Contrato</span>
+                            <strong id="visitaVinculoContrato">—</strong>
+                        </li>
+                        <li>
+                            <span>Nombre</span>
+                            <strong id="visitaVinculoNombre">—</strong>
+                        </li>
+                        <li>
+                            <span>Domicilio</span>
+                            <strong id="visitaVinculoDomicilio">—</strong>
+                        </li>
+                    </ul>
+
+                    <div class="visita-wizard-step" data-step="1">
+                        <div class="ios-confirm-map-wrap">
+                            <div id="visitaGpsMap" class="ios-confirm-map"></div>
+                            <button type="button" class="visita-gps-recenter" id="btnVisitaGpsRecenter" title="Centrar mi ubicación" disabled>
+                                <i class="bi bi-crosshair"></i>
+                            </button>
+                        </div>
+                        <div id="visitaGpsStatus" class="ios-banner ios-banner-info">
+                            <span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...
+                        </div>
+                        <div id="visitaDistanciaAlert" class="ios-banner ios-banner-warning d-none"></div>
+                        <div class="ios-field">
+                            <label>¿Recibió el titular?</label>
+                            <div class="ios-seg-mini" id="visitaTitularSeg">
+                                <button type="button" class="active" data-value="1">Sí</button>
+                                <button type="button" data-value="0">No</button>
+                            </div>
+                        </div>
+                        <div id="visitaOtroReceptorBlock" class="d-none">
+                            <button type="button" class="ios-chip-btn" id="btnNadieRecibio">
+                                <i class="bi bi-slash-circle"></i> Nadie recibió
+                            </button>
+                            <div id="visitaReceptorFields">
+                                <div class="ios-field">
+                                    <label for="visitaReceptorNombre">Nombre de quien recibió</label>
+                                    <input type="text" id="visitaReceptorNombre" maxlength="120" autocomplete="name">
+                                </div>
+                                <div class="ios-field">
+                                    <label for="visitaReceptorParentesco">Parentesco</label>
+                                    <select id="visitaReceptorParentesco">
+                                        <option value="">Selecciona</option>
+                                        @foreach(\App\Models\Visita::PARENTESCOS as $valor => $etiqueta)
+                                            @if($valor !== 'titular')
+                                                <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="visita-wizard-step d-none" data-step="2">
+                        <div class="ios-field">
+                            <label>¿Registrar pago o abono?</label>
+                            <div class="ios-seg-mini" id="visitaPagoSeg">
+                                <button type="button" class="active" data-value="0">No</button>
+                                <button type="button" data-value="1">Sí</button>
+                            </div>
+                        </div>
+                        <p class="ios-confirm-msg mb-0">Solo puedes cobrar los folios asignados a esta parada.</p>
+                    </div>
+
+                    <div class="visita-wizard-step d-none" data-step="3">
+                        <div id="visitaFoliosPago"></div>
+                    </div>
+
+                    <div class="visita-wizard-step d-none" data-step="4">
+                        <iframe id="visitaTicketFrame" class="visita-ticket-frame" title="Ticket de visita"></iframe>
+                    </div>
                 </div>
-                <h2 class="ios-confirm-title">Confirmar visita</h2>
-                <p class="ios-confirm-msg" id="visitaConfirmTexto">Se registrará una visita hecha en este domicilio.</p>
-                <ul class="ios-grouped">
-                    <li>
-                        <span>Contrato</span>
-                        <strong id="visitaVinculoContrato">—</strong>
-                    </li>
-                    <li>
-                        <span>Nombre</span>
-                        <strong id="visitaVinculoNombre">—</strong>
-                    </li>
-                    <li>
-                        <span>Domicilio</span>
-                        <strong id="visitaVinculoDomicilio">—</strong>
-                    </li>
-                </ul>
-                <div id="visitaGpsMap" class="ios-confirm-map"></div>
-                <div id="visitaGpsStatus" class="ios-banner ios-banner-info">
-                    <span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...
-                </div>
-                <div id="visitaDistanciaAlert" class="ios-banner ios-banner-warning d-none"></div>
-                <div class="ios-confirm-actions">
-                    <button type="button" class="ios-btn ios-btn-primary" id="btnConfirmarVisita" disabled>Registrar visita</button>
-                    <button type="button" class="ios-btn ios-btn-plain" data-bs-dismiss="modal">Cancelar</button>
+                <div class="ios-confirm-actions visita-wizard-actions">
+                    <button type="button" class="ios-btn ios-btn-primary" id="btnVisitaWizardNext" disabled>Continuar</button>
+                    <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardBack">Atrás</button>
+                    <button type="button" class="ios-btn ios-btn-plain" id="btnVisitaWizardCancel" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardClose">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -1826,8 +2083,6 @@
         var currentRutaMeta = null;
         var sliderIndex = 0;
         var paradaMarkers = [];
-        var touchStartX = 0;
-        var touchEndX = 0;
 
         var homeCurrentPosMarker = null;
         var homeCurrentPosCircle = null;
@@ -2020,103 +2275,197 @@
             });
         }
 
+        function setRutaDetalleBodyLock(on) {
+            document.body.classList.toggle('shlom-ruta-detalle-open', !!on);
+            if (!on) {
+                document.body.style.removeProperty('top');
+                document.body.style.removeProperty('position');
+                document.body.style.removeProperty('width');
+            }
+        }
+
         // Volver a la lista
         var btnBackToList = document.getElementById('btnBackToList');
         if (btnBackToList) {
             btnBackToList.addEventListener('click', function() {
-            document.getElementById('screenRutaList').classList.add('active');
-            document.getElementById('screenRutaDetalle').classList.remove('active');
-        });
+                document.getElementById('screenRutaList').classList.add('active');
+                document.getElementById('screenRutaDetalle').classList.remove('active');
+                setRutaDetalleBodyLock(false);
+            });
         }
 
         // ==================== BOTTOM SHEET ====================
         (function() {
             var sheet = document.getElementById('bottomSheet');
             var handle = document.getElementById('sheetHandle');
-            if (!sheet || !handle) return;
+            var content = sheet ? sheet.querySelector('.shlom-sheet-content') : null;
+            if (!sheet || !handle || !content) return;
 
             var startY = 0;
             var startX = 0;
+            var baseH = 0;
             var isDragging = false;
             var directionLocked = null;
-            var THRESHOLD = 60;
+            var THRESHOLD = 40;
+            var moved = false;
+            var fromHandle = false;
 
-            handle.addEventListener('touchstart', function(e) {
-                if (e.touches.length !== 1) return;
+            function collapsedSheetHeight() {
+                return sheet.classList.contains('historica') ? 360 : 280;
+            }
+
+            function expandedSheetHeight() {
+                return Math.round(window.innerHeight * 0.85);
+            }
+
+            function contentAtTop() {
+                return content.scrollTop <= 1;
+            }
+
+            function beginSheetDrag(clientY, clientX, handleStart) {
                 isDragging = true;
+                moved = false;
                 directionLocked = null;
-                startY = e.touches[0].clientY;
-                startX = e.touches[0].clientX;
+                fromHandle = !!handleStart;
+                startY = clientY;
+                startX = clientX;
+                baseH = sheet.getBoundingClientRect().height || (
+                    sheet.classList.contains('expanded')
+                        ? expandedSheetHeight()
+                        : collapsedSheetHeight()
+                );
                 sheet.style.transition = 'none';
-            }, { passive: true });
+            }
 
-            document.addEventListener('touchmove', function(e) {
+            function canStartSheetDragFromTarget(target, handleStart) {
+                if (handleStart) return true;
+                if (target.closest('.shlom-card-btn, .shlom-seg-tab, button, a, input, select, textarea')) {
+                    return false;
+                }
+                if (!sheet.classList.contains('expanded')) return true;
+                return contentAtTop();
+            }
+
+            function applySheetHeight(dy) {
+                var collapsedH = collapsedSheetHeight();
+                var expandedH = expandedSheetHeight();
+                var newH = baseH - dy;
+                newH = Math.max(collapsedH, Math.min(expandedH, newH));
+                sheet.style.height = newH + 'px';
+            }
+
+            function endSheetDrag(clientY) {
+                if (!isDragging) return;
+                isDragging = false;
+                sheet.style.transition = 'height 0.35s cubic-bezier(0.32, 0.72, 0, 1)';
+
+                if (directionLocked !== 'v' || !moved) {
+                    sheet.style.height = '';
+                    return;
+                }
+
+                var dy = clientY - startY;
+                var collapsedH = collapsedSheetHeight();
+                var expandedH = expandedSheetHeight();
+                var currentH = parseFloat(sheet.style.height) || baseH;
+                var mid = (collapsedH + expandedH) / 2;
+
+                // Prefer gesture direction; fall back to midpoint.
+                if (dy < -THRESHOLD) {
+                    sheet.classList.add('expanded');
+                } else if (dy > THRESHOLD) {
+                    sheet.classList.remove('expanded');
+                    content.scrollTop = 0;
+                } else if (currentH > mid) {
+                    sheet.classList.add('expanded');
+                } else {
+                    sheet.classList.remove('expanded');
+                    content.scrollTop = 0;
+                }
+                sheet.style.height = '';
+            }
+
+            function onTouchStart(e, handleStart) {
+                if (e.touches.length !== 1) return;
+                if (!canStartSheetDragFromTarget(e.target, handleStart)) return;
+                beginSheetDrag(e.touches[0].clientY, e.touches[0].clientX, handleStart);
+            }
+
+            function onTouchMove(e) {
                 if (!isDragging) return;
 
                 var dy = e.touches[0].clientY - startY;
                 var dx = e.touches[0].clientX - startX;
 
-                // Lock direction on first significant move
                 if (directionLocked === null) {
-                    if (Math.abs(dy) > 5 || Math.abs(dx) > 5) {
-                        directionLocked = Math.abs(dy) > Math.abs(dx) ? 'v' : 'h';
+                    if (Math.abs(dy) < 4 && Math.abs(dx) < 4) return;
+                    directionLocked = Math.abs(dy) >= Math.abs(dx) ? 'v' : 'h';
+                    if (directionLocked === 'h') {
+                        isDragging = false;
+                        sheet.style.height = '';
+                        sheet.style.transition = '';
+                        return;
                     }
-                    return;
                 }
 
-                // If horizontal, let browser handle (don't interfere)
                 if (directionLocked === 'h') return;
 
-                // Vertical drag — prevent scroll
-                e.preventDefault();
-
                 var expanded = sheet.classList.contains('expanded');
-                var baseY = expanded ? 0 : (window.innerHeight - 220);
-                var newY = baseY + dy;
-                var minY = 0;
-                var maxY = window.innerHeight - 220;
-                newY = Math.max(minY, Math.min(newY, maxY));
-                sheet.style.transform = 'translateY(' + newY + 'px)';
-            }, { passive: false });
 
-            document.addEventListener('touchend', function(e) {
-                if (!isDragging) return;
-                isDragging = false;
-
-                sheet.style.transition = 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)';
-
-                if (directionLocked !== 'v') {
-                    // Was a tap or horizontal — just snap back
-                    sheet.style.transform = '';
+                // Expanded and already scrolled: native content scroll.
+                if (!fromHandle && expanded && !contentAtTop()) {
+                    isDragging = false;
+                    sheet.style.height = '';
+                    sheet.style.transition = '';
                     return;
                 }
 
-                var dy = e.changedTouches[0].clientY - startY;
-                if (dy < -THRESHOLD) {
-                    sheet.classList.add('expanded');
-                } else if (dy > THRESHOLD) {
-                    sheet.classList.remove('expanded');
+                // Expanded at top, finger going up: let content scroll.
+                if (!fromHandle && expanded && contentAtTop() && dy < 0) {
+                    isDragging = false;
+                    sheet.style.height = '';
+                    sheet.style.transition = '';
+                    return;
                 }
-                sheet.style.transform = '';
-            });
 
-            // Click toggle for desktop
-            handle.addEventListener('click', function(e) {
-                // Only toggle if it wasn't a drag
+                moved = true;
+                if (e.cancelable) e.preventDefault();
+                applySheetHeight(dy);
+            }
+
+            handle.addEventListener('touchstart', function(e) { onTouchStart(e, true); }, { passive: true });
+            content.addEventListener('touchstart', function(e) { onTouchStart(e, false); }, { passive: true });
+            sheet.addEventListener('touchmove', onTouchMove, { passive: false });
+            sheet.addEventListener('touchend', function(e) {
+                endSheetDrag(e.changedTouches[0] ? e.changedTouches[0].clientY : startY);
+            }, { passive: true });
+            sheet.addEventListener('touchcancel', function(e) {
+                endSheetDrag(e.changedTouches[0] ? e.changedTouches[0].clientY : startY);
+            }, { passive: true });
+
+            // Block page pull-to-refresh while the finger is on the sheet.
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging || directionLocked !== 'v') return;
+                if (e.cancelable) e.preventDefault();
+            }, { passive: false });
+
+            handle.addEventListener('click', function() {
+                if (moved) return;
                 sheet.classList.toggle('expanded');
+                if (!sheet.classList.contains('expanded')) content.scrollTop = 0;
             });
 
-            // Reset when opening a route
             window.resetBottomSheet = function(historica) {
                 sheet.classList.remove('expanded');
                 sheet.classList.toggle('historica', !!historica);
                 sheet.style.transition = 'none';
+                sheet.style.height = '';
                 sheet.style.transform = '';
-                sheet.offsetHeight; // force reflow
+                content.scrollTop = 0;
+                sheet.offsetHeight;
                 sheet.style.transition = '';
             };
 
-            // Invalidate map after animation
             sheet.addEventListener('transitionend', function() {
                 if (typeof homeMap !== 'undefined' && homeMap) {
                     setTimeout(function() { homeMap.invalidateSize(); }, 50);
@@ -2186,6 +2535,7 @@
             // Transición de pantallas
             document.getElementById('screenRutaList').classList.remove('active');
             document.getElementById('screenRutaDetalle').classList.add('active');
+            setRutaDetalleBodyLock(true);
 
             // Reset bottom sheet to collapsed
             if (window.resetBottomSheet) window.resetBottomSheet(esPasada);
@@ -2202,7 +2552,7 @@
             var estadoConfig = {
                 'planeada': { color: '#007AFF', label: 'Planeada' },
                 'en_curso': { color: '#FF9500', label: 'En Curso' },
-                'cancelada': { color: '#FF3B30', label: 'Cancelada' },
+                'detenida': { color: '#FF3B30', label: 'Detenida' },
                 'completada': { color: '#34C759', label: 'Completada' },
                 'incompleta': { color: '#8E8E93', label: 'Incompleta' },
                 'vencida': { color: '#1C1C1E', label: 'Vencida' }
@@ -2457,7 +2807,7 @@
                     var subEstado = estadoConfig[p.estado] || estadoConfig['pendiente'];
                     subItems += '<div class="shlom-contract-row">';
                     subItems += '<div class="shlom-contract-dot" style="background:' + subEstado.color + ';"></div>';
-                    subItems += '<span class="shlom-contract-id">C#' + p.id + '</span>';
+                    subItems += '<span class="shlom-contract-id">C#' + (p.contrato_id || p.id) + '</span>';
                     subItems += '<span class="shlom-contract-amount">$' + (p.cuota || '0') + '</span>';
                     subItems += '</div>';
                 });
@@ -2597,18 +2947,27 @@
         }
 
         var sliderEl = document.getElementById('paradasSlider');
+        var sliderTouchStartX = 0;
+        var sliderTouchStartY = 0;
+        var sliderTouchOnContracts = false;
         if (sliderEl) {
         sliderEl.addEventListener('touchstart', function(e) {
-            touchStartX = e.touches[0].clientX;
-        });
+            sliderTouchStartX = e.touches[0].clientX;
+            sliderTouchStartY = e.touches[0].clientY;
+            sliderTouchOnContracts = !!e.target.closest('.shlom-card-contracts');
+        }, { passive: true });
         sliderEl.addEventListener('touchend', function(e) {
-            touchEndX = e.changedTouches[0].clientX;
-            var diff = touchStartX - touchEndX;
-            if (Math.abs(diff) > 50) {
-                if (diff > 0 && sliderIndex < currentDomicilios.length - 1) goToSlide(sliderIndex + 1);
-                else if (diff < 0 && sliderIndex > 0) goToSlide(sliderIndex - 1);
+            if (sliderTouchOnContracts) return;
+            var endX = e.changedTouches[0].clientX;
+            var endY = e.changedTouches[0].clientY;
+            var dx = sliderTouchStartX - endX;
+            var dy = sliderTouchStartY - endY;
+            if (Math.abs(dx) <= Math.abs(dy)) return;
+            if (Math.abs(dx) > 50) {
+                if (dx > 0 && sliderIndex < currentDomicilios.length - 1) goToSlide(sliderIndex + 1);
+                else if (dx < 0 && sliderIndex > 0) goToSlide(sliderIndex - 1);
             }
-        });
+        }, { passive: true });
         }
 
         // Also detect scroll stop on slider
@@ -2635,15 +2994,49 @@
         var visitaGpsMarker = null;
         var visitaParadaMarker = null;
         var VISITA_DISTANCIA_MAX_M = 150;
-        var visitaPending = { paradaIds: [], punto: '', paradaLat: null, paradaLng: null };
+        var VISITA_METODOS = @json(\App\Models\Pago::METODOS_PAGO);
+        var VISITA_METODO_ICONOS = {
+            'efectivo': 'bi-cash-coin',
+            'transferencia bancaria': 'bi-bank',
+            'tarjeta credito/debito': 'bi-credit-card',
+            'cheque': 'bi-journal-check',
+            'otro': 'bi-three-dots'
+        };
+        var visitaPending = {
+            paradaIds: [],
+            punto: '',
+            paradaLat: null,
+            paradaLng: null,
+            step: 1,
+            gpsOk: false,
+            enDomicilio: false,
+            titularRecibio: true,
+            nadieRecibio: false,
+            recibido: true,
+            clienteNombre: '',
+            registrarPago: false,
+            ticketUrl: '',
+            pendientes: [],
+            userLat: null,
+            userLng: null
+        };
 
         function setVisitaGpsStatus(type, html, canConfirm) {
             var el = document.getElementById('visitaGpsStatus');
             if (!el) return;
+            visitaPending.gpsOk = !!canConfirm;
+            var recenter = document.getElementById('btnVisitaGpsRecenter');
+            if (recenter) recenter.disabled = !visitaPending.userLat;
+            if (canConfirm && !html) {
+                el.classList.add('d-none');
+                el.innerHTML = '';
+                syncVisitaWizardButtons();
+                return;
+            }
+            el.classList.remove('d-none');
             el.className = 'ios-banner ios-banner-' + type;
             el.innerHTML = html;
-            var btn = document.getElementById('btnConfirmarVisita');
-            if (btn) btn.disabled = !canConfirm;
+            syncVisitaWizardButtons();
         }
 
         function setVisitaDistanciaAlert(html) {
@@ -2745,21 +3138,38 @@
         }
 
         function aplicarGpsVisita(lat, lng) {
+            visitaPending.userLat = lat;
+            visitaPending.userLng = lng;
             visitaPending.punto = 'POINT(' + lng + ' ' + lat + ')';
             initVisitaGpsMap(lat, lng);
-            setVisitaGpsStatus('success', '<i class="bi bi-check-circle me-1"></i>Esta es tu ubicación actual.', true);
+            setVisitaGpsStatus('success', '', true);
             advertirSiNoCoincideConParada(lat, lng);
+        }
+
+        function recentrarGpsVisita() {
+            if (visitaPending.userLat == null || visitaPending.userLng == null) {
+                pedirUbicacionVisita(true);
+                return;
+            }
+            if (visitaGpsMap) {
+                visitaGpsMap.setView([visitaPending.userLat, visitaPending.userLng], 17);
+                if (visitaGpsMarker) visitaGpsMarker.setLatLng([visitaPending.userLat, visitaPending.userLng]);
+            } else {
+                pedirUbicacionVisita(true);
+            }
         }
 
         function advertirSiNoCoincideConParada(lat, lng) {
             var pLat = visitaPending.paradaLat;
             var pLng = visitaPending.paradaLng;
             if (pLat == null || pLng == null || isNaN(pLat) || isNaN(pLng)) {
+                visitaPending.enDomicilio = false;
                 setVisitaDistanciaAlert('<i class="bi bi-exclamation-triangle me-1"></i>Esta parada no tiene coordenadas registradas; no se puede comprobar si coinciden.');
                 return;
             }
             var metros = distanciaMetros(lat, lng, pLat, pLng);
-            if (metros <= VISITA_DISTANCIA_MAX_M) {
+            visitaPending.enDomicilio = metros <= VISITA_DISTANCIA_MAX_M;
+            if (visitaPending.enDomicilio) {
                 setVisitaDistanciaAlert('');
                 return;
             }
@@ -2833,6 +3243,231 @@
             });
         }
 
+        function setVisitaWizardError(msg) {
+            var el = document.getElementById('visitaWizardError');
+            if (!el) return;
+            if (!msg) {
+                el.classList.add('d-none');
+                el.textContent = '';
+                return;
+            }
+            el.classList.remove('d-none');
+            el.textContent = msg;
+        }
+
+        function syncRecepcionUI() {
+            var otro = document.getElementById('visitaOtroReceptorBlock');
+            var fields = document.getElementById('visitaReceptorFields');
+            var nadieBtn = document.getElementById('btnNadieRecibio');
+            var showOtro = !visitaPending.titularRecibio;
+            if (otro) otro.classList.toggle('d-none', !showOtro);
+            if (fields) fields.classList.toggle('d-none', !showOtro || visitaPending.nadieRecibio);
+            if (nadieBtn) nadieBtn.classList.toggle('active', !!visitaPending.nadieRecibio);
+            if (visitaPending.titularRecibio) {
+                visitaPending.nadieRecibio = false;
+                visitaPending.recibido = true;
+            } else if (visitaPending.nadieRecibio) {
+                visitaPending.recibido = false;
+            } else {
+                visitaPending.recibido = true;
+            }
+        }
+
+        function renderVisitaWizardDots() {
+            var el = document.getElementById('visitaWizardDots');
+            if (!el) return;
+            var html = '';
+            for (var i = 1; i <= 4; i++) {
+                var cls = 'ios-wizard-dot';
+                if (i === visitaPending.step) cls += ' active';
+                else if (i < visitaPending.step) cls += ' done';
+                html += '<span class="' + cls + '"></span>';
+            }
+            el.innerHTML = html;
+        }
+
+        function syncVisitaWizardButtons() {
+            var next = document.getElementById('btnVisitaWizardNext');
+            var back = document.getElementById('btnVisitaWizardBack');
+            var cancel = document.getElementById('btnVisitaWizardCancel');
+            var closeBtn = document.getElementById('btnVisitaWizardClose');
+            var step = visitaPending.step;
+            if (back) back.classList.toggle('d-none', step === 1 || step === 4);
+            if (cancel) cancel.classList.toggle('d-none', step === 4);
+            if (closeBtn) closeBtn.classList.toggle('d-none', step !== 4);
+            if (next) {
+                next.classList.toggle('d-none', step === 4);
+                if (step === 1) {
+                    next.textContent = 'Continuar';
+                    next.disabled = !visitaPending.gpsOk;
+                } else if (step === 2) {
+                    next.textContent = visitaPending.registrarPago ? 'Continuar' : 'Registrar visita';
+                    next.disabled = false;
+                } else if (step === 3) {
+                    next.textContent = 'Registrar y ver ticket';
+                    next.disabled = false;
+                }
+            }
+            var title = document.getElementById('visitaWizardTitle');
+            if (title) {
+                title.textContent = step === 2 ? 'Pago' : (step === 3 ? 'Folios asignados' : (step === 4 ? 'Ticket' : 'Visita'));
+            }
+        }
+
+        function showVisitaWizardStep(step) {
+            visitaPending.step = step;
+            document.querySelectorAll('.visita-wizard-step').forEach(function(el) {
+                el.classList.toggle('d-none', parseInt(el.getAttribute('data-step'), 10) !== step);
+            });
+            var grouped = document.querySelector('#visitaConfirmModal .ios-grouped');
+            var texto = document.getElementById('visitaConfirmTexto');
+            if (grouped) grouped.classList.toggle('d-none', step === 3 || step === 4);
+            if (texto) texto.classList.toggle('d-none', step === 3 || step === 4);
+            var body = document.querySelector('#visitaConfirmModal .visita-wizard-body');
+            if (body) body.scrollTop = 0;
+            renderVisitaWizardDots();
+            syncVisitaWizardButtons();
+            if (step === 1 && visitaGpsMap) {
+                setTimeout(function() { visitaGpsMap.invalidateSize(); }, 50);
+                setTimeout(function() { if (visitaGpsMap) visitaGpsMap.invalidateSize(); }, 300);
+            }
+        }
+
+        function metodoButtonsHtml(contratoId, selected) {
+            var html = '<div class="visita-metodo-group">';
+            Object.keys(VISITA_METODOS).forEach(function(key, idx) {
+                var id = 'visita-metodo-' + contratoId + '-' + idx;
+                var icon = VISITA_METODO_ICONOS[key] || 'bi-wallet2';
+                html += '<div class="visita-metodo-option">' +
+                    '<input type="radio" class="visita-folio-metodo" name="visita-metodo-' + contratoId + '" id="' + id + '" value="' + key + '"' + (key === selected ? ' checked' : '') + '>' +
+                    '<label for="' + id + '"><i class="bi ' + icon + '"></i><span>' + VISITA_METODOS[key] + '</span></label>' +
+                    '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderFoliosPago() {
+            var wrap = document.getElementById('visitaFoliosPago');
+            if (!wrap) return;
+            wrap.innerHTML = visitaPending.pendientes.map(function(p) {
+                var saldo = typeof p.saldo_raw === 'number' ? p.saldo_raw : parseFloat(String(p.saldo || '0').replace(/,/g, '')) || 0;
+                return '<div class="ios-folio-card" data-contrato-id="' + p.contrato_id + '" data-saldo="' + saldo + '">' +
+                    '<h4>Folio #' + p.contrato_id + '</h4>' +
+                    '<div class="ios-field"><label>Monto de la cuota</label><input type="number" min="0" step="0.01" class="visita-folio-monto" placeholder="0.00"></div>' +
+                    '<div class="ios-field"><label>Método de pago</label>' + metodoButtonsHtml(p.contrato_id, 'efectivo') + '</div>' +
+                    '</div>';
+            }).join('') || '<p class="ios-confirm-msg">No hay folios asignados en esta parada.</p>';
+        }
+
+        function collectPagosWizard() {
+            var pagos = [];
+            document.querySelectorAll('#visitaFoliosPago .ios-folio-card').forEach(function(card) {
+                var monto = parseFloat(card.querySelector('.visita-folio-monto').value);
+                if (!monto || monto <= 0) return;
+                var metodoEl = card.querySelector('.visita-folio-metodo:checked');
+                pagos.push({
+                    contrato_id: parseInt(card.getAttribute('data-contrato-id'), 10),
+                    monto: monto,
+                    metodo_pago: metodoEl ? metodoEl.value : 'efectivo',
+                    tipo_pago: 'cuota'
+                });
+            });
+            return pagos;
+        }
+
+        function validarPagosWizard(pagos) {
+            if (!pagos.length) return 'Indica el pago o abono de al menos un folio asignado.';
+            var cards = document.querySelectorAll('#visitaFoliosPago .ios-folio-card');
+            for (var i = 0; i < pagos.length; i++) {
+                var pago = pagos[i];
+                var card = null;
+                cards.forEach(function(c) {
+                    if (parseInt(c.getAttribute('data-contrato-id'), 10) === pago.contrato_id) card = c;
+                });
+                var saldo = card ? parseFloat(card.getAttribute('data-saldo')) : 0;
+                if (pago.monto - saldo > 0.009) {
+                    return 'El monto del folio #' + pago.contrato_id + ' supera el saldo disponible del contrato.';
+                }
+                if (!pago.metodo_pago) {
+                    return 'Selecciona el método de pago del folio #' + pago.contrato_id + '.';
+                }
+            }
+            return '';
+        }
+
+        function submitVisitaWizard() {
+            var next = document.getElementById('btnVisitaWizardNext');
+            if (!visitaPending.punto || !visitaPending.paradaIds.length) return;
+            var pagos = visitaPending.registrarPago ? collectPagosWizard() : [];
+            if (visitaPending.registrarPago) {
+                var errPago = validarPagosWizard(pagos);
+                if (errPago) {
+                    setVisitaWizardError(errPago);
+                    return;
+                }
+            }
+            setVisitaWizardError('');
+            if (next) {
+                next.disabled = true;
+                next.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registrando...';
+            }
+            var csrf = document.querySelector('meta[name="csrf-token"]');
+            var payload = {
+                ruta_parada_ids: visitaPending.paradaIds,
+                ubicacion_evidencia: visitaPending.punto,
+                en_domicilio: !!visitaPending.enDomicilio,
+                recibido: !!visitaPending.recibido,
+                registrar_pago: !!visitaPending.registrarPago,
+                pagos: pagos
+            };
+            if (visitaPending.titularRecibio) {
+                payload.recibido = true;
+                payload.receptor_nombre = visitaPending.clienteNombre || 'Titular';
+                payload.receptor_parentesco = 'titular';
+            } else if (visitaPending.nadieRecibio) {
+                payload.recibido = false;
+            } else {
+                payload.recibido = true;
+                payload.receptor_nombre = (document.getElementById('visitaReceptorNombre') || {}).value || '';
+                payload.receptor_parentesco = (document.getElementById('visitaReceptorParentesco') || {}).value || '';
+            }
+            fetch('{{ route("visitas.store") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf ? csrf.getAttribute('content') : '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+                if (!res.ok) {
+                    throw new Error((res.data && (res.data.message || (res.data.errors && Object.values(res.data.errors)[0][0]))) || 'No se pudo registrar la visita.');
+                }
+                visitaPending.ticketUrl = (res.data && res.data.ticket_url) || '';
+                var frame = document.getElementById('visitaTicketFrame');
+                if (frame && visitaPending.ticketUrl) frame.src = visitaPending.ticketUrl;
+                showVisitaWizardStep(4);
+            })
+            .catch(function(err) {
+                setVisitaWizardError(err.message || 'Error al registrar la visita.');
+                if (visitaPending.step === 1) {
+                    setVisitaGpsStatus('danger', '<i class="bi bi-exclamation-circle me-1"></i>' + (err.message || 'Error al registrar la visita.'), !!visitaPending.punto);
+                }
+            })
+            .finally(function() {
+                syncVisitaWizardButtons();
+            });
+        }
+
+        function cerrarVisitaWizardYAvanzar() {
+            var modal = visitaModalEl ? bootstrap.Modal.getInstance(visitaModalEl) : null;
+            if (modal) modal.hide();
+        }
+
         function openVisitaConfirm(idx) {
             if (!paradaDesbloqueada(idx)) return;
             var dom = currentDomicilios[idx];
@@ -2840,13 +3475,36 @@
             var pendientes = (dom.paradas || []).filter(function(p) { return p.estado === 'pendiente'; });
             if (!pendientes.length) return;
             visitaPending.paradaIds = pendientes.map(function(p) { return p.id; });
+            visitaPending.pendientes = pendientes;
             visitaPending.domIndex = idx;
             visitaPending.punto = '';
+            visitaPending.gpsOk = false;
+            visitaPending.enDomicilio = false;
+            visitaPending.titularRecibio = true;
+            visitaPending.nadieRecibio = false;
+            visitaPending.recibido = true;
+            visitaPending.clienteNombre = dom.cliente_nombre || '';
+            visitaPending.registrarPago = false;
+            visitaPending.ticketUrl = '';
+            visitaPending.userLat = null;
+            visitaPending.userLng = null;
             visitaPending.paradaLat = (dom.latitud === null || dom.latitud === undefined || dom.latitud === '') ? null : parseFloat(dom.latitud);
             visitaPending.paradaLng = (dom.longitud === null || dom.longitud === undefined || dom.longitud === '') ? null : parseFloat(dom.longitud);
             if (visitaPending.paradaLat != null && isNaN(visitaPending.paradaLat)) visitaPending.paradaLat = null;
             if (visitaPending.paradaLng != null && isNaN(visitaPending.paradaLng)) visitaPending.paradaLng = null;
             setVisitaDistanciaAlert('');
+            setVisitaWizardError('');
+            var nombreInp = document.getElementById('visitaReceptorNombre');
+            var parentescoInp = document.getElementById('visitaReceptorParentesco');
+            if (nombreInp) nombreInp.value = '';
+            if (parentescoInp) parentescoInp.value = '';
+            document.querySelectorAll('#visitaTitularSeg button').forEach(function(b) {
+                b.classList.toggle('active', b.getAttribute('data-value') === '1');
+            });
+            document.querySelectorAll('#visitaPagoSeg button').forEach(function(b) {
+                b.classList.toggle('active', b.getAttribute('data-value') === '0');
+            });
+            syncRecepcionUI();
             var texto = document.getElementById('visitaConfirmTexto');
             if (texto) {
                 texto.textContent = pendientes.length > 1
@@ -2863,6 +3521,8 @@
             setTxt('visitaVinculoContrato', contratosLabel);
             setTxt('visitaVinculoNombre', dom.cliente_nombre);
             setTxt('visitaVinculoDomicilio', dom.domicilio);
+            renderFoliosPago();
+            showVisitaWizardStep(1);
             setVisitaGpsStatus('info', '<span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...', false);
             destroyVisitaGpsMap();
             pedirUbicacionVisita(false);
@@ -2907,16 +3567,24 @@
                 }
             });
             visitaModalEl.addEventListener('hidden.bs.modal', function() {
+                var debeAvanzar = !!visitaPending.ticketUrl;
+                var nextIdx = (visitaPending.domIndex || 0) + 1;
                 destroyVisitaGpsMap();
                 visitaPending.punto = '';
+                visitaPending.gpsOk = false;
                 visitaPending.paradaLat = null;
                 visitaPending.paradaLng = null;
+                visitaPending.ticketUrl = '';
+                var frame = document.getElementById('visitaTicketFrame');
+                if (frame) frame.src = 'about:blank';
                 setVisitaDistanciaAlert('');
+                setVisitaWizardError('');
                 setVisitaGpsStatus('info', '<span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...', false);
                 document.querySelectorAll('.modal-backdrop').forEach(function(el) { el.remove(); });
                 document.body.classList.remove('modal-open');
                 document.body.style.removeProperty('overflow');
                 document.body.style.removeProperty('padding-right');
+                if (debeAvanzar && currentRutaId) openRutaDetalle(currentRutaId, nextIdx);
             });
         }
 
@@ -3013,44 +3681,91 @@
             });
         }
 
-        var btnConfirmarVisita = document.getElementById('btnConfirmarVisita');
-        if (btnConfirmarVisita) {
-            btnConfirmarVisita.addEventListener('click', function() {
-                if (!visitaPending.punto || !visitaPending.paradaIds.length) return;
-                var btn = this;
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registrando...';
-                var csrf = document.querySelector('meta[name="csrf-token"]');
-                fetch('{{ route("visitas.store") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrf ? csrf.getAttribute('content') : '',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        ruta_parada_ids: visitaPending.paradaIds,
-                        ubicacion_evidencia: visitaPending.punto
-                    })
-                })
-                .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
-                .then(function(res) {
-                    if (!res.ok) {
-                        throw new Error((res.data && (res.data.message || (res.data.errors && Object.values(res.data.errors)[0][0]))) || 'No se pudo registrar la visita.');
-                    }
-                    var modal = bootstrap.Modal.getInstance(visitaModalEl);
-                    if (modal) modal.hide();
-                    if (currentRutaId) openRutaDetalle(currentRutaId, (visitaPending.domIndex || 0) + 1);
-                })
-                .catch(function(err) {
-                    setVisitaGpsStatus('danger', '<i class="bi bi-exclamation-circle me-1"></i>' + (err.message || 'Error al registrar la visita.'), !!visitaPending.punto);
-                })
-                .finally(function() {
-                    btn.innerHTML = 'Registrar visita';
-                    if (visitaPending.punto) btn.disabled = false;
+        var visitaTitularSeg = document.getElementById('visitaTitularSeg');
+        if (visitaTitularSeg) {
+            visitaTitularSeg.addEventListener('click', function(e) {
+                var btn = e.target.closest('button');
+                if (!btn) return;
+                visitaPending.titularRecibio = btn.getAttribute('data-value') === '1';
+                if (visitaPending.titularRecibio) visitaPending.nadieRecibio = false;
+                visitaTitularSeg.querySelectorAll('button').forEach(function(b) {
+                    b.classList.toggle('active', b === btn);
                 });
+                syncRecepcionUI();
+                setVisitaWizardError('');
             });
+        }
+        var btnNadieRecibio = document.getElementById('btnNadieRecibio');
+        if (btnNadieRecibio) {
+            btnNadieRecibio.addEventListener('click', function() {
+                visitaPending.nadieRecibio = !visitaPending.nadieRecibio;
+                syncRecepcionUI();
+                setVisitaWizardError('');
+            });
+        }
+        var btnVisitaGpsRecenter = document.getElementById('btnVisitaGpsRecenter');
+        if (btnVisitaGpsRecenter) {
+            btnVisitaGpsRecenter.addEventListener('click', function() {
+                recentrarGpsVisita();
+            });
+        }
+        var visitaPagoSeg = document.getElementById('visitaPagoSeg');
+        if (visitaPagoSeg) {
+            visitaPagoSeg.addEventListener('click', function(e) {
+                var btn = e.target.closest('button');
+                if (!btn) return;
+                visitaPending.registrarPago = btn.getAttribute('data-value') === '1';
+                visitaPagoSeg.querySelectorAll('button').forEach(function(b) {
+                    b.classList.toggle('active', b === btn);
+                });
+                syncVisitaWizardButtons();
+            });
+        }
+        var btnVisitaWizardNext = document.getElementById('btnVisitaWizardNext');
+        if (btnVisitaWizardNext) {
+            btnVisitaWizardNext.addEventListener('click', function() {
+                setVisitaWizardError('');
+                if (visitaPending.step === 1) {
+                    if (!visitaPending.gpsOk) return;
+                    if (!visitaPending.titularRecibio && !visitaPending.nadieRecibio) {
+                        var nom = (document.getElementById('visitaReceptorNombre') || {}).value;
+                        var par = (document.getElementById('visitaReceptorParentesco') || {}).value;
+                        if (!nom || !String(nom).trim()) {
+                            setVisitaWizardError('Indica el nombre de quien recibió.');
+                            return;
+                        }
+                        if (!par) {
+                            setVisitaWizardError('Indica el parentesco de quien recibió.');
+                            return;
+                        }
+                    }
+                    showVisitaWizardStep(2);
+                    return;
+                }
+                if (visitaPending.step === 2) {
+                    if (visitaPending.registrarPago) {
+                        showVisitaWizardStep(3);
+                        return;
+                    }
+                    submitVisitaWizard();
+                    return;
+                }
+                if (visitaPending.step === 3) {
+                    submitVisitaWizard();
+                }
+            });
+        }
+        var btnVisitaWizardBack = document.getElementById('btnVisitaWizardBack');
+        if (btnVisitaWizardBack) {
+            btnVisitaWizardBack.addEventListener('click', function() {
+                setVisitaWizardError('');
+                if (visitaPending.step === 3) showVisitaWizardStep(2);
+                else if (visitaPending.step === 2) showVisitaWizardStep(1);
+            });
+        }
+        var btnVisitaWizardClose = document.getElementById('btnVisitaWizardClose');
+        if (btnVisitaWizardClose) {
+            btnVisitaWizardClose.addEventListener('click', cerrarVisitaWizardYAvanzar);
         }
 
     </script>

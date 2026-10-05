@@ -568,6 +568,11 @@
 
                                                             <!-- Información adicional del estado -->
                                                             @if($esVencida)
+                                                                @php
+                                                                    $adeudoMostrar = ($estadoPagos['monto_vencido'] ?? 0) > 0
+                                                                        ? $estadoPagos['monto_vencido']
+                                                                        : $montoRestante;
+                                                                @endphp
                                                                 <div
                                                                     class="mt-2 p-2 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded">
                                                                     <small class="text-danger">
@@ -578,6 +583,7 @@
                                                                         @else
                                                                             Vencida hoy
                                                                         @endif
+                                                                        · Adeudo de ${{ number_format($adeudoMostrar, 2) }}
                                                                     </small>
                                                                 </div>
                                                             @elseif($diasRestantes <= 7 && $diasRestantes > 0)

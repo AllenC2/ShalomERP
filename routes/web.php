@@ -66,7 +66,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('rutas/geocodificar-cliente', [App\Http\Controllers\RutaController::class, 'geocodificarCliente'])->name('rutas.geocodificarCliente');
     Route::post('rutas/contratos-empleado', [App\Http\Controllers\RutaController::class, 'contratosEmpleado'])->name('rutas.contratosEmpleado');
     Route::put('rutas/{ruta}/ajax', [App\Http\Controllers\RutaController::class, 'updateAjax'])->name('rutas.updateAjax');
-    Route::post('rutas/{ruta}/toggle-cancel', [App\Http\Controllers\RutaController::class, 'toggleCancel'])->name('rutas.toggleCancel');
+    Route::post('rutas/{ruta}/toggle-detener', [App\Http\Controllers\RutaController::class, 'toggleDetener'])->name('rutas.toggleDetener');
     Route::post('rutas/reubicar-cliente', [App\Http\Controllers\RutaController::class, 'reubicarCliente'])->name('rutas.reubicarCliente');
 });
 
@@ -130,6 +130,7 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
 
     // Ruta para registrar visitas
     Route::post('visitas', [App\Http\Controllers\VisitaController::class, 'store'])->name('visitas.store');
+    Route::get('visitas/{visita}/ticket', [App\Http\Controllers\VisitaController::class, 'ticket'])->name('visitas.ticket');
 });
 
 // Rutas de clientes específicas - Solo administrador (deben ir después de las rutas con 'create' para evitar conflictos)

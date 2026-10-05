@@ -114,21 +114,21 @@ class RutaController extends Controller
         $ruta->delete();
 
         return redirect()->route('rutas.index')
-            ->with('success', 'Ruta eliminada correctamente.');
+            ->with('success', 'Ruta eliminada correctamente. Quedó registrada como borrada.');
     }
 
-    public function toggleCancel($id)
+    public function toggleDetener($id)
     {
         $ruta = Ruta::findOrFail($id);
 
-        if ($ruta->estado === Ruta::ESTADO_CANCELADA) {
+        if ($ruta->estado === Ruta::ESTADO_DETENIDA) {
             $paradasPendientes = $ruta->paradas()->where('estado', 'pendiente')->count();
             $nuevoEstado = $paradasPendientes > 0 ? Ruta::ESTADO_PLANEADA : Ruta::ESTADO_EN_CURSO;
             $ruta->update(['estado' => $nuevoEstado]);
             $mensaje = 'Ruta reactivada correctamente.';
         } elseif ($ruta->estado === Ruta::ESTADO_PLANEADA || $ruta->estado === Ruta::ESTADO_EN_CURSO) {
-            $ruta->update(['estado' => Ruta::ESTADO_CANCELADA]);
-            $mensaje = 'Ruta cancelada correctamente.';
+            $ruta->update(['estado' => Ruta::ESTADO_DETENIDA]);
+            $mensaje = 'Ruta detenida correctamente.';
         } else {
             return response()->json(['success' => false, 'message' => 'No se puede cambiar el estado de esta ruta.'], 422);
         }
@@ -169,15 +169,44 @@ class RutaController extends Controller
         $parada->update(['estado' => $request->estado]);
 
         $ruta = Ruta::with('paradas')->findOrFail($rutaId);
-        $todasCompletadas = $ruta->paradas->every(fn($p) => $p->estado !== 'pendiente');
-
-        if ($todasCompletadas && $ruta->estado === Ruta::ESTADO_EN_CURSO) {
-            $ruta->update(['estado' => Ruta::ESTADO_COMPLETADA]);
-        } elseif ($ruta->estado === Ruta::ESTADO_PLANEADA) {
-            $ruta->update(['estado' => Ruta::ESTADO_EN_CURSO]);
-        }
+        $this->sincronizarEstadoRutaPorParadas($ruta);
 
         return back()->with('success', 'Estado de parada actualizado.');
+    }
+
+    /**
+     * Recalcula el estado operativo de la ruta según el avance de paradas.
+     * Al revertir una visitada/omitida a pendiente, vuelve a en_curso o planeada.
+     */
+    protected function sincronizarEstadoRutaPorParadas(Ruta $ruta): void
+    {
+        // Las rutas detenidas no se reactivan al tocar paradas; solo toggleDetener.
+        if ($ruta->estado === Ruta::ESTADO_DETENIDA) {
+            return;
+        }
+
+        $paradas = $ruta->paradas;
+        if ($paradas->isEmpty()) {
+            return;
+        }
+
+        $hayPendientes = $paradas->contains(fn ($p) => $p->estado === RutaParada::ESTADO_PENDIENTE);
+        $hayAvance = $paradas->contains(fn ($p) => in_array($p->estado, [
+            RutaParada::ESTADO_VISITADA,
+            RutaParada::ESTADO_OMITIDA,
+        ], true));
+
+        if (! $hayPendientes) {
+            $nuevo = Ruta::ESTADO_COMPLETADA;
+        } elseif ($hayAvance) {
+            $nuevo = Ruta::ESTADO_EN_CURSO;
+        } else {
+            $nuevo = Ruta::ESTADO_PLANEADA;
+        }
+
+        if ($ruta->estado !== $nuevo) {
+            $ruta->update(['estado' => $nuevo]);
+        }
     }
 
     public function omitirParadas(Request $request, $rutaId)
@@ -385,7 +414,7 @@ class RutaController extends Controller
             return response()->json(['success' => true, 'contratos' => []]);
         }
 
-        $ocupados = $this->generador->contratosEnPlantillasActivas();
+        $ocupados = $this->generador->contratosEnRutasActivas();
 
         $contratos = Contrato::query()
             ->whereRaw('LOWER(TRIM(contratos.estado)) = ?', [Contrato::ESTADO_ACTIVO])
@@ -499,7 +528,7 @@ class RutaController extends Controller
                 ]);
             }
 
-            return [
+            $row = [
                 'id' => $p->id,
                 'contrato_id' => $p->contrato_id,
                 'cliente_id' => $p->cliente_id,
@@ -510,8 +539,16 @@ class RutaController extends Controller
                 'estado' => $p->estado,
                 'orden' => $p->orden,
                 'cuota' => $p->contrato ? number_format($p->contrato->monto_cuota_real, 2) : '0.00',
-                'saldo' => $p->contrato ? number_format($p->contrato->saldo_pendiente, 2) : '0.00',
+                'saldo_raw' => $p->contrato ? (float) $p->contrato->saldo_pendiente : 0,
             ];
+
+            // El saldo total no se expone a empleados en la UI.
+            if (Auth::user()?->role === 'admin') {
+                $row['saldo'] = $p->contrato ? number_format($p->contrato->saldo_pendiente, 2) : '0.00';
+                $row['monto_total'] = $p->contrato ? (float) $p->contrato->monto_total : 0;
+            }
+
+            return $row;
         });
 
         $esPasada = $ruta->fecha && $ruta->fecha->lt(Carbon::today());

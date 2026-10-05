@@ -17,8 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Confiar en el proxy de nginx (gateway Docker)
-        $middleware->trustProxies(at: '172.18.0.1');
+        // Confiar en todos los proxies (Docker/nginx y túneles HTTPS como Cloudflare).
+        // No usar env() aquí: bootstrap corre antes de cargar .env.
+        $middleware->trustProxies(at: '*');
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'empleado.index.access' => \App\Http\Middleware\EmpleadoContratoAccess::class,

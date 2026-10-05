@@ -3,15 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Ruta extends Model
 {
+    use SoftDeletes;
+
     protected $perPage = 20;
 
     const ESTADO_PLANEADA = 'planeada';
     const ESTADO_EN_CURSO = 'en_curso';
     const ESTADO_COMPLETADA = 'completada';
-    const ESTADO_CANCELADA = 'cancelada';
+    const ESTADO_DETENIDA = 'detenida';
     const ESTADO_VENCIDA = 'vencida';
     const ESTADO_INCOMPLETA = 'incompleta';
 
@@ -23,7 +26,7 @@ class Ruta extends Model
             self::ESTADO_COMPLETADA => 'Completada',
             self::ESTADO_INCOMPLETA => 'Incompleta',
             self::ESTADO_VENCIDA => 'Vencida',
-            self::ESTADO_CANCELADA => 'Cancelada',
+            self::ESTADO_DETENIDA => 'Detenida',
         ];
     }
 
@@ -90,7 +93,7 @@ class Ruta extends Model
             self::ESTADO_COMPLETADA => 'bg-success',
             self::ESTADO_INCOMPLETA => 'bg-secondary',
             self::ESTADO_VENCIDA => 'bg-dark',
-            self::ESTADO_CANCELADA => 'bg-danger',
+            self::ESTADO_DETENIDA => 'bg-danger',
             default => 'bg-secondary',
         };
     }

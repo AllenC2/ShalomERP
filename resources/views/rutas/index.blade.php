@@ -21,7 +21,7 @@
                         <i class="fa-solid fa-route"></i>
                     </div>
                     <div class="header-text">
-                        <h1 class="page-title">{{ __('Rutas de Visita') }}</h1>
+                        <h1 class="page-title">{{ __('Rutas de Cobranza') }}</h1>
                         <p class="page-subtitle">Planificación y seguimiento de rutas de cobro</p>
                     </div>
                 </div>
@@ -89,7 +89,7 @@
                                             'planeada' => 'btn-outline-info',
                                             'en_curso' => 'btn-outline-warning',
                                             'completada' => 'btn-outline-success',
-                                            'cancelada' => 'btn-outline-danger',
+                                            'detenida' => 'btn-outline-danger',
                                             default => 'btn-outline-secondary',
                                         };
                                         $activeClass = $isChecked ? str_replace('outline-', '', $btnClass) : '';
@@ -123,9 +123,8 @@
                                 <thead class="modern-header">
                                     <tr>
                                         <th class="ps-4">ID</th>
-                                        <th>Empleado</th>
                                         <th>Nombre</th>
-                                        <th>Fecha</th>
+                                        <th>Empleado</th>
                                         <th>Progreso</th>
                                         <th>Estado</th>
                                         <th class="text-center pe-4">Acciones</th>
@@ -138,6 +137,13 @@
                                                 <span class="badge bg-light text-dark fw-normal">#{{ $ruta->id }}</span>
                                             </td>
                                             <td>
+                                                <div class="fw-semibold text-dark">{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}</div>
+                                                @if($ruta->plantilla)
+                                                    <small class="text-muted">{{ $ruta->plantilla->etiquetaFrecuencia() }}</small>
+                                                @endif
+                                                <div><small class="text-muted">{{ $ruta->fecha instanceof \Carbon\Carbon ? $ruta->fecha->format('d/m/Y') : \Carbon\Carbon::parse($ruta->fecha)->format('d/m/Y') }}</small></div>
+                                            </td>
+                                            <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="avatar-circle me-3 d-flex align-items-center justify-content-center" style="min-width: 40px; min-height: 40px; width: 40px; height: 40px; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border-radius: 50%;">
                                                         {{ strtoupper(substr($ruta->empleado->nombre ?? '?', 0, 1) . substr($ruta->empleado->apellido ?? '?', 0, 1)) }}
@@ -148,13 +154,6 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <div class="fw-semibold text-dark">{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}</div>
-                                                @if($ruta->plantilla)
-                                                    <small class="text-muted">{{ $ruta->plantilla->etiquetaFrecuencia() }}</small>
-                                                @endif
-                                            </td>
-                                            <td>{{ $ruta->fecha instanceof \Carbon\Carbon ? $ruta->fecha->format('d/m/Y') : \Carbon\Carbon::parse($ruta->fecha)->format('d/m/Y') }}</td>
                                             <td>
                                                 @php
                                                     $total = $ruta->paradas->count();
@@ -180,14 +179,24 @@
                                                     </button>
                                                     @endif
                                                     @if($ruta->estado === \App\Models\Ruta::ESTADO_PLANEADA || $ruta->estado === \App\Models\Ruta::ESTADO_EN_CURSO)
-                                                    <button type="button" class="btn btn-outline-warning btn-sm action-btn btn-toggle-cancel" data-ruta-id="{{ $ruta->id }}" title="Cancelar ruta" onclick="event.stopPropagation(); toggleCancelRuta({{ $ruta->id }}, this);">
+                                                    <button type="button" class="btn btn-outline-warning btn-sm action-btn btn-toggle-detener" data-ruta-id="{{ $ruta->id }}" title="Detener ruta" onclick="event.stopPropagation(); toggleDetenerRuta({{ $ruta->id }}, this);">
                                                         <i class="bi bi-stop-fill"></i>
                                                     </button>
-                                                    @elseif($ruta->estado === \App\Models\Ruta::ESTADO_CANCELADA)
-                                                    <button type="button" class="btn btn-outline-info btn-sm action-btn btn-toggle-cancel" data-ruta-id="{{ $ruta->id }}" title="Reactivar ruta" onclick="event.stopPropagation(); toggleCancelRuta({{ $ruta->id }}, this);">
+                                                    @elseif($ruta->estado === \App\Models\Ruta::ESTADO_DETENIDA)
+                                                    <button type="button" class="btn btn-outline-info btn-sm action-btn btn-toggle-detener" data-ruta-id="{{ $ruta->id }}" title="Reactivar ruta" onclick="event.stopPropagation(); toggleDetenerRuta({{ $ruta->id }}, this);">
                                                         <i class="bi bi-play-fill"></i>
                                                     </button>
                                                     @endif
+                                                    <button type="button"
+                                                        class="btn btn-outline-danger btn-sm action-btn"
+                                                        title="Eliminar ruta"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#eliminarRutaModal"
+                                                        data-ruta-id="{{ $ruta->id }}"
+                                                        data-ruta-nombre="{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}"
+                                                        onclick="event.stopPropagation();">
+                                                        Eliminar
+                                                    </button>
                                                     @endif
                                                 </div>
                                             </td>
@@ -206,8 +215,36 @@
     </div>
 </div>
 
-<!-- Modal Nueva Ruta (multi-paso) -->
 @if(auth()->user()->role === 'admin')
+<!-- Modal Eliminar Ruta -->
+<div class="modal fade" id="eliminarRutaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-trash text-danger me-2"></i>Eliminar ruta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <p class="mb-2">¿Seguro que deseas eliminar <strong id="eliminarRutaNombre">esta ruta</strong>?</p>
+                <p class="text-muted small mb-0">El borrado es lógico: la ruta quedará registrada en la base de datos, pero ya no se mostrará en el listado ni para el cobrador.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <form id="eliminarRutaForm" method="POST" action="#">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Sí, eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nueva Ruta (multi-paso) -->
 <div class="modal fade" id="nuevaRutaModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -1450,14 +1487,22 @@ $(document).ready(function() {
         loadRutaData(rutaId);
     };
 
-    // Toggle cancel/uncancel
-    window.toggleCancelRuta = function(rutaId, btn) {
+    $('#eliminarRutaModal').on('show.bs.modal', function(e) {
+        var btn = $(e.relatedTarget);
+        var rutaId = btn.data('ruta-id');
+        var nombre = btn.data('ruta-nombre') || ('Ruta #' + rutaId);
+        $('#eliminarRutaNombre').text(nombre);
+        $('#eliminarRutaForm').attr('action', '{{ url('/rutas') }}/' + rutaId);
+    });
+
+    // Toggle detener/reactivar
+    window.toggleDetenerRuta = function(rutaId, btn) {
         var csrf = $('meta[name="csrf-token"]').attr('content');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
         $.ajax({
-            url: '/rutas/' + rutaId + '/toggle-cancel',
+            url: '/rutas/' + rutaId + '/toggle-detener',
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
             success: function(response) {

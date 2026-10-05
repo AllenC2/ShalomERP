@@ -87,6 +87,19 @@
                             @php
                                 $maxMonto = null;
                                 $valorPorDefecto = '';
+                                $saldoDisponiblePago = null;
+                                $contratoSaldo = (isset($contrato) && $contrato) ? $contrato : ($pago->exists ? $pago->contrato : null);
+
+                                if ($contratoSaldo && $contratoSaldo->monto_total !== null) {
+                                    $pagosParaSaldo = $contratoSaldo->relationLoaded('pagos')
+                                        ? $contratoSaldo->pagos
+                                        : $contratoSaldo->pagos()->get();
+                                    if ($pago->exists) {
+                                        $pagosParaSaldo = $pagosParaSaldo->reject(fn ($pagoContrato) => $pagoContrato->id === $pago->id)->values();
+                                    }
+                                    $yaPagado = calcularMontoPagadoContrato($pagosParaSaldo);
+                                    $saldoDisponiblePago = max(0, round((float) $contratoSaldo->monto_total - $yaPagado, 2));
+                                }
 
                                 if (!$pago->exists && isset($contrato) && $contrato) {
                                     // Para nuevos pagos desde contrato (parcialidades)
@@ -104,14 +117,38 @@
                                         $valorPorDefecto = $cuotaSugerida > 0 ? number_format($cuotaSugerida, 2, '.', '') : '';
                                         $maxMonto = $cuotaSugerida;
                                     }
+
+                                    if ($saldoDisponiblePago !== null && $valorPorDefecto !== '') {
+                                        $montoSugeridoNumerico = (float) $valorPorDefecto;
+                                        if ($montoSugeridoNumerico > $saldoDisponiblePago) {
+                                            $valorPorDefecto = $saldoDisponiblePago > 0
+                                                ? number_format($saldoDisponiblePago, 2, '.', '')
+                                                : '';
+                                        }
+                                    }
                                 } else {
                                     // Para edición de pagos existentes o pagos sin contrato
                                     $valorPorDefecto = old('monto', $pago?->monto ?? (isset($montoSugerido) ? number_format($montoSugerido, 2, '.', '') : ''));
                                 }
                             @endphp
                             <input type="text" name="monto" class="form-control @error('monto') is-invalid @enderror"
-                                value="{{ old('monto', $valorPorDefecto) }}" id="monto" placeholder="$0.00">
+                                value="{{ old('monto', $valorPorDefecto) }}" id="monto" placeholder="$0.00"
+                                @if($saldoDisponiblePago !== null) data-saldo-max="{{ number_format($saldoDisponiblePago, 2, '.', '') }}" @endif
+                                @if($pago->exists) data-monto-original="{{ number_format((float) $pago->monto, 2, '.', '') }}" @endif>
                             @error('monto')<div class="error-text">{{ $message }}</div>@enderror
+                            @if($saldoDisponiblePago !== null)
+                                <small class="text-muted d-block mt-1">
+                                    Saldo disponible del contrato: ${{ number_format($saldoDisponiblePago, 2) }}
+                                </small>
+                                @if($saldoDisponiblePago <= 0 && !$pago->exists)
+                                    <div class="mt-2 p-2 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded">
+                                        <small class="text-warning-emphasis">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Este contrato ya está cubierto. No se puede registrar un pago adicional.
+                                        </small>
+                                    </div>
+                                @endif
+                            @endif
 
                             <!-- Información de parcialidades aplicadas -->
                             @if(!$pago->exists && isset($proximoPagoPendiente) && $proximoPagoPendiente && isset($proximoPagoPendiente->parcialidades_aplicadas) && $proximoPagoPendiente->parcialidades_aplicadas > 0)
@@ -407,6 +444,22 @@
                         montoInput.focus();
                         return;
                     }
+
+                    const saldoMax = parseFloat(montoInput.dataset.saldoMax);
+                    const montoOriginal = parseFloat(montoInput.dataset.montoOriginal);
+                    const superaSaldo = !isNaN(saldoMax) && monto > saldoMax + 0.009;
+                    const aumentaMonto = isNaN(montoOriginal) || monto > montoOriginal + 0.009;
+                    if (superaSaldo && aumentaMonto) {
+                        e.preventDefault();
+                        const saldoTexto = saldoMax.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        });
+                        alert('Este pago supera el saldo del contrato. El máximo que puedes registrar es $' + saldoTexto + '.');
+                        montoInput.focus();
+                        return;
+                    }
+
                     montoInput.value = monto.toFixed(2); // Enviar limpio
                 }
 

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('empleado_id')->references('id')->on('empleados')->onDelete('cascade');
             $table->date('fecha');
             $table->date('fecha_limite');
-            $table->enum('estado', ['planeada', 'en_curso', 'completada', 'cancelada'])->default('planeada');
+            $table->enum('estado', ['planeada', 'en_curso', 'completada', 'detenida'])->default('planeada');
             $table->text('notas')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');

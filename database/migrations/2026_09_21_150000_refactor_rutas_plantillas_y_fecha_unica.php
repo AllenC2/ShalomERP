@@ -99,7 +99,7 @@ return new class extends Migration
 
         $driver = Schema::getConnection()->getDriverName();
         if ($driver === 'mysql') {
-            DB::statement("ALTER TABLE rutas MODIFY COLUMN estado ENUM('planeada','en_curso','completada','cancelada','vencida','incompleta') NOT NULL DEFAULT 'planeada'");
+            DB::statement("ALTER TABLE rutas MODIFY COLUMN estado ENUM('planeada','en_curso','completada','detenida','vencida','incompleta') NOT NULL DEFAULT 'planeada'");
         }
     }
 
@@ -107,7 +107,7 @@ return new class extends Migration
     {
         $driver = Schema::getConnection()->getDriverName();
         if ($driver === 'mysql') {
-            DB::statement("ALTER TABLE rutas MODIFY COLUMN estado ENUM('planeada','en_curso','completada','cancelada') NOT NULL DEFAULT 'planeada'");
+            DB::statement("ALTER TABLE rutas MODIFY COLUMN estado ENUM('planeada','en_curso','completada','detenida') NOT NULL DEFAULT 'planeada'");
         }
 
         Schema::table('rutas', function (Blueprint $table) {

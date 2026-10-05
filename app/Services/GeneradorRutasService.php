@@ -36,7 +36,7 @@ class GeneradorRutasService
             $this->geocodificarEmpleado($empleado);
 
             $contratoIds = array_values(array_unique($datos['contratos']));
-            $ocupados = $this->contratosEnPlantillasActivas($contratoIds);
+            $ocupados = $this->contratosEnRutasActivas($contratoIds);
             if (!empty($ocupados)) {
                 throw new InvalidArgumentException('Uno o más contratos ya están en una ruta activa: ' . implode(', ', $ocupados));
             }
@@ -163,16 +163,28 @@ class GeneradorRutasService
         return $cerradas;
     }
 
-    public function contratosEnPlantillasActivas(array $contratoIds = []): array
+    /**
+     * Contratos presentes en instancias de ruta aún operativas (planeada / en curso).
+     * Rutas detenidas, completadas, vencidas o incompletas no bloquean la selección.
+     */
+    public function contratosEnRutasActivas(array $contratoIds = []): array
     {
-        $query = RutaPlantillaParada::query()
-            ->whereHas('plantilla', fn ($q) => $q->where('activa', true));
+        $query = RutaParada::query()
+            ->whereHas('ruta', function ($q) {
+                $q->whereIn('estado', [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO]);
+            });
 
-        if (!empty($contratoIds)) {
+        if (! empty($contratoIds)) {
             $query->whereIn('contrato_id', $contratoIds);
         }
 
         return $query->pluck('contrato_id')->unique()->values()->all();
+    }
+
+    /** @deprecated Usa contratosEnRutasActivas() */
+    public function contratosEnPlantillasActivas(array $contratoIds = []): array
+    {
+        return $this->contratosEnRutasActivas($contratoIds);
     }
 
     public function asegurarFechaCoincide(array $datos, Carbon $fecha): void

@@ -195,7 +195,7 @@
                                                         data-ruta-id="{{ $ruta->id }}"
                                                         data-ruta-nombre="{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}"
                                                         onclick="event.stopPropagation();">
-                                                        Eliminar
+                                                        <i class="bi bi-trash"></i>
                                                     </button>
                                                     @endif
                                                 </div>
@@ -556,6 +556,9 @@
                                         <span class="fw-bold small" style="color: #79481D;" id="editStep2Empleado"></span>
                                         <span class="text-muted small ms-2" id="editStep2Fecha"></span>
                                     </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="editBtnOptimizar" title="Reordenar por cercanía">
+                                        <i class="bi bi-signpost-2 me-1"></i> Optimizar
+                                    </button>
                                 </div>
 
                                 <div class="px-3 py-2 border-bottom bg-white flex-shrink-0" id="editPuntoCasaWrap">
@@ -1207,6 +1210,10 @@ $(document).ready(function() {
         if (empleado && empleado.latitud && empleado.longitud) {
             empleadoHome = { lat: parseFloat(empleado.latitud), lng: parseFloat(empleado.longitud), domicilio: empleado.domicilio || '' };
             domicilios = ordenarPorCercania(domicilios, empleadoHome.lat, empleadoHome.lng);
+            // Misma regla que la app: NN desde casa; si punto final, invertir.
+            if (getPuntoCasaModo('#puntoCasaTabs') === 'final') {
+                domicilios.reverse();
+            }
         } else {
             empleadoHome = null;
         }
@@ -1396,7 +1403,15 @@ $(document).ready(function() {
         if ($(this).prop('disabled')) return;
         setPuntoCasaModo('#puntoCasaTabs', $(this).data('value'));
         $('#formPuntoCasa').val(getPuntoCasaModo('#puntoCasaTabs'));
-        actualizarRutaModal();
+        if (contratosAgregados.length && empleadoHome) {
+            renderContratos(contratosAgregados, {
+                latitud: empleadoHome.lat,
+                longitud: empleadoHome.lng,
+                domicilio: empleadoHome.domicilio || ''
+            });
+        } else {
+            actualizarRutaModal();
+        }
     });
 
     $('#nuevaRutaForm').on('submit', function() {
@@ -1687,11 +1702,58 @@ $(document).ready(function() {
         updateEditStepIndicator(1);
     });
 
+    function ordenarParadasEditPorCercania(paradas, ruta) {
+        var items = (paradas || []).map(function(p) {
+            return Object.assign({}, p, {
+                latitud: p.latitud != null ? parseFloat(p.latitud) : null,
+                longitud: p.longitud != null ? parseFloat(p.longitud) : null,
+                group_key: String(p.cliente_id || ('p_' + p.id))
+            });
+        });
+
+        // Agrupar por cliente para mantener contratos del mismo domicilio juntos
+        var gruposMap = {};
+        var grupos = [];
+        items.forEach(function(p) {
+            var key = p.group_key;
+            if (!gruposMap[key]) {
+                gruposMap[key] = {
+                    group_key: key,
+                    latitud: p.latitud,
+                    longitud: p.longitud,
+                    paradas: []
+                };
+                grupos.push(gruposMap[key]);
+            }
+            gruposMap[key].paradas.push(p);
+            if (gruposMap[key].latitud == null && p.latitud != null) {
+                gruposMap[key].latitud = p.latitud;
+                gruposMap[key].longitud = p.longitud;
+            }
+        });
+
+        var originLat = ruta && ruta.empleado_lat != null ? parseFloat(ruta.empleado_lat) : null;
+        var originLng = ruta && ruta.empleado_lng != null ? parseFloat(ruta.empleado_lng) : null;
+        var ordenados = ordenarPorCercania(grupos, originLat, originLng);
+        var modo = getPuntoCasaModo('#editPuntoCasaTabs') || (ruta && ruta.punto_casa) || 'inicio';
+        if (modo === 'final') {
+            ordenados.reverse();
+        }
+        var flat = [];
+        ordenados.forEach(function(g) {
+            g.paradas.forEach(function(p) { flat.push(p); });
+        });
+        return flat;
+    }
+
     function renderEditParadas(paradas, ruta) {
         var container = $('#editListaParadas');
         container.empty();
         clearEditMap();
         $('#editPuntoCasaTabs .seg-tab').prop('disabled', !(ruta.empleado_lat && ruta.empleado_lng));
+
+        // Conserva el orden guardado; solo Optimizar reordena por cercanía.
+        if (editRutaData) editRutaData.paradas = paradas;
 
         // Home marker
         if (ruta.empleado_lat && ruta.empleado_lng && editMap) {
@@ -1794,6 +1856,13 @@ $(document).ready(function() {
         if ($(this).prop('disabled')) return;
         setPuntoCasaModo('#editPuntoCasaTabs', $(this).data('value'));
         actualizarEditRutaLine();
+    });
+
+    $('#editBtnOptimizar').on('click', function() {
+        if (!editRutaData || !editRutaData.ruta) return;
+        var ordenadas = ordenarParadasEditPorCercania(editRutaData.paradas, editRutaData.ruta);
+        editRutaData.paradas = ordenadas;
+        renderEditParadas(ordenadas, editRutaData.ruta);
     });
 
     // Cambiar estado de parada

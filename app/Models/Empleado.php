@@ -75,6 +75,11 @@ class Empleado extends Model
         return $this->hasMany(Ruta::class, 'empleado_id');
     }
 
+    public function rutaActividades()
+    {
+        return $this->hasMany(RutaActividad::class, 'empleado_id');
+    }
+
     public function getTieneCoordenadasAttribute()
     {
         return $this->latitud !== null && $this->longitud !== null;

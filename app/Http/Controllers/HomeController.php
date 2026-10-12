@@ -9,6 +9,7 @@ use App\Models\Empleado;
 use App\Models\Pago;
 use App\Models\Ruta;
 use App\Models\RutaPlantilla;
+use App\Services\GeneradorRutasService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -330,6 +331,62 @@ class HomeController extends Controller
         ]);
     }
 
+    /**
+     * Instancia más cercana (hoy o futura) de una plantilla del empleado.
+     * Genera la ejecución si aún no existe.
+     */
+    public function rutaProximaPlantilla(RutaPlantilla $plantilla)
+    {
+        $user = Auth::user();
+        if ($user->role === 'admin') {
+            return response()->json(['success' => false, 'message' => 'No disponible.'], 403);
+        }
+
+        $empleado = Empleado::where('user_id', $user->id)->first();
+        if (! $empleado || (int) $plantilla->empleado_id !== (int) $empleado->id || ! $plantilla->activa) {
+            return response()->json(['success' => false, 'message' => 'Ruta no encontrada.'], 404);
+        }
+
+        $hoy = Carbon::today()->startOfDay();
+        $fechaObjetivo = null;
+        for ($i = 0; $i < 62; $i++) {
+            $candidato = $hoy->copy()->addDays($i);
+            if ($plantilla->correspondeA($candidato)) {
+                $fechaObjetivo = $candidato;
+                break;
+            }
+        }
+
+        if (! $fechaObjetivo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No hay una ejecución próxima para esta ruta.',
+            ], 404);
+        }
+
+        $ruta = Ruta::where('plantilla_id', $plantilla->id)
+            ->where('empleado_id', $empleado->id)
+            ->whereDate('fecha', $fechaObjetivo->toDateString())
+            ->where('estado', '!=', Ruta::ESTADO_DETENIDA)
+            ->orderBy('id')
+            ->first();
+
+        if (! $ruta) {
+            $plantilla->load(['paradas.contrato.cliente', 'empleado']);
+            $ruta = app(GeneradorRutasService::class)->clonarInstancia($plantilla, $fechaObjetivo);
+        }
+
+        Carbon::setLocale('es');
+
+        return response()->json([
+            'success' => true,
+            'ruta_id' => $ruta->id,
+            'fecha' => $fechaObjetivo->toDateString(),
+            'fecha_label' => $this->etiquetaDiaCorta($fechaObjetivo),
+            'es_hoy' => $fechaObjetivo->isToday(),
+        ]);
+    }
+
     private function etiquetaDiaCorta(Carbon $fecha): string
     {
         if ($fecha->isToday()) {
@@ -357,7 +414,12 @@ class HomeController extends Controller
             return collect();
         }
 
-        return RutaPlantilla::withCount('paradas')
+        return RutaPlantilla::with([
+                'paradas' => fn ($q) => $q->orderBy('orden'),
+                'paradas.cliente',
+                'paradas.contrato.cliente',
+            ])
+            ->withCount('paradas')
             ->where('empleado_id', $empleado->id)
             ->where('activa', true)
             ->orderBy('nombre')
@@ -366,6 +428,8 @@ class HomeController extends Controller
 
     /**
      * Instancias del empleado para un día.
+     * Si la plantilla es diaria/semanal/mensual, genera la ejecución del día
+     * cuando aún no existe (respaldo si el cron no corrió).
      */
     private function getEmpleadoRutas(?Carbon $fecha = null)
     {
@@ -381,11 +445,16 @@ class HomeController extends Controller
             return collect();
         }
 
-        $fecha = ($fecha ?? Carbon::today())->toDateString();
+        $fecha = ($fecha ?? Carbon::today())->copy()->startOfDay();
+
+        // Plantillas activas → instancia del día (hoy o futuro).
+        if ($fecha->greaterThanOrEqualTo(Carbon::today()->startOfDay())) {
+            app(GeneradorRutasService::class)->generarInstanciasDelDia($fecha);
+        }
 
         return Ruta::with(['paradas.contrato.cliente', 'empleado', 'plantilla'])
             ->where('empleado_id', $empleado->id)
-            ->whereDate('fecha', $fecha)
+            ->whereDate('fecha', $fecha->toDateString())
             ->where('estado', '!=', Ruta::ESTADO_DETENIDA)
             ->orderBy('nombre')
             ->orderBy('id')

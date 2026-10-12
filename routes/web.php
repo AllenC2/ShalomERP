@@ -13,6 +13,7 @@ Auth::routes(['register' => true]);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::middleware('auth')->get('/home/rutas-dia', [App\Http\Controllers\HomeController::class, 'rutasDia'])->name('home.rutasDia');
+Route::middleware('auth')->get('/home/plantillas/{plantilla}/ruta-proxima', [App\Http\Controllers\HomeController::class, 'rutaProximaPlantilla'])->name('home.rutaProximaPlantilla');
 
 // Rutas restringidas - Solo acceso para administradores
 Route::middleware(['auth', 'role:admin'])->group(function () {
@@ -32,6 +33,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     // Rutas de empleados
     Route::resource('empleados', App\Http\Controllers\EmpleadoController::class);
+    Route::get('empleados/{id}/actividad-rutas', [App\Http\Controllers\EmpleadoController::class, 'actividadRutas'])->name('empleados.actividadRutas');
     Route::patch('empleados/{id}/dar-de-baja', [App\Http\Controllers\EmpleadoController::class, 'darDeBaja'])->name('empleados.darDeBaja');
     Route::patch('empleados/{id}/reactivar', [App\Http\Controllers\EmpleadoController::class, 'reactivar'])->name('empleados.reactivar');
     Route::patch('empleados/{id}/toggle-rol', [App\Http\Controllers\EmpleadoController::class, 'toggleRol'])->name('empleados.toggleRol');
@@ -62,6 +64,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('rutas/empleado-datos', [App\Http\Controllers\RutaController::class, 'empleadoDatos'])->name('rutas.empleadoDatos');
     Route::resource('rutas', App\Http\Controllers\RutaController::class);
     Route::post('rutas/{ruta}/orden', [App\Http\Controllers\RutaController::class, 'actualizarOrden'])->name('rutas.actualizarOrden');
+    Route::post('rutas/{ruta}/optimizar-orden', [App\Http\Controllers\RutaController::class, 'optimizarOrden'])->name('rutas.optimizarOrden');
     Route::post('rutas/{ruta}/paradas/{parada}/estado', [App\Http\Controllers\RutaController::class, 'actualizarEstadoParada'])->name('rutas.actualizarEstadoParada');
     Route::post('rutas/geocodificar-cliente', [App\Http\Controllers\RutaController::class, 'geocodificarCliente'])->name('rutas.geocodificarCliente');
     Route::post('rutas/contratos-empleado', [App\Http\Controllers\RutaController::class, 'contratosEmpleado'])->name('rutas.contratosEmpleado');
@@ -131,6 +134,7 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     // Ruta para registrar visitas
     Route::post('visitas', [App\Http\Controllers\VisitaController::class, 'store'])->name('visitas.store');
     Route::get('visitas/{visita}/ticket', [App\Http\Controllers\VisitaController::class, 'ticket'])->name('visitas.ticket');
+    Route::post('visitas/{visita}/deshacer', [App\Http\Controllers\VisitaController::class, 'deshacer'])->name('visitas.deshacer');
 });
 
 // Rutas de clientes específicas - Solo administrador (deben ir después de las rutas con 'create' para evitar conflictos)

@@ -14,8 +14,10 @@ use InvalidArgumentException;
 
 class GeneradorRutasService
 {
-    public function __construct(protected GeocodingService $geocoding)
-    {
+    public function __construct(
+        protected GeocodingService $geocoding,
+        protected OptimizadorOrdenRutaService $optimizador,
+    ) {
     }
 
     public function crearPlantillaEInstancia(array $datos): Ruta
@@ -41,13 +43,32 @@ class GeneradorRutasService
                 throw new InvalidArgumentException('Uno o más contratos ya están en una ruta activa: ' . implode(', ', $ocupados));
             }
 
+            // Geocodificar clientes antes de ordenar por cercanía.
+            foreach ($contratoIds as $contratoId) {
+                $contrato = Contrato::with('cliente')->findOrFail($contratoId);
+                $cliente = $contrato->cliente;
+                if ($cliente && ! $cliente->tiene_coordenadas && $cliente->domicilio_completo) {
+                    $coords = $this->geocoding->geocode($cliente->domicilio_completo);
+                    if ($coords) {
+                        $cliente->update([
+                            'latitud' => $coords['lat'],
+                            'longitud' => $coords['lng'],
+                        ]);
+                    }
+                }
+            }
+
+            $empleado->refresh();
+            $puntoCasa = $datos['punto_casa'] ?? 'inicio';
+            $contratoIds = $this->optimizador->ordenarContratosPorCercania($contratoIds, $empleado, $puntoCasa);
+
             $plantilla = RutaPlantilla::create([
                 'nombre' => $datos['nombre'],
                 'empleado_id' => $empleado->id,
                 'frecuencia' => $datos['frecuencia'],
                 'dia_semana' => $datos['frecuencia'] === RutaPlantilla::FRECUENCIA_SEMANAL ? (int) $datos['dia_semana'] : null,
                 'dia_mes' => $datos['frecuencia'] === RutaPlantilla::FRECUENCIA_MENSUAL ? (int) $datos['dia_mes'] : null,
-                'punto_casa' => $datos['punto_casa'] ?? 'inicio',
+                'punto_casa' => $puntoCasa,
                 'activa' => true,
                 'user_id' => $datos['user_id'] ?? null,
             ]);
@@ -108,6 +129,7 @@ class GeneradorRutasService
             ]);
         }
 
+        // Respeta el orden de la plantilla (ya optimizado al crear / al optimizar a mano).
         return $ruta->load('paradas.contrato.cliente', 'empleado', 'plantilla');
     }
 
@@ -136,31 +158,13 @@ class GeneradorRutasService
         return $creadas;
     }
 
+    /**
+     * @deprecated Ya no se cambian estados al terminar el día.
+     * Se conserva por compatibilidad; no altera rutas.
+     */
     public function cerrarEjecucionesPasadas(?Carbon $hoy = null): int
     {
-        $hoy = ($hoy ?? now())->startOfDay();
-        $cerradas = 0;
-
-        $rutas = Ruta::with('paradas')
-            ->whereDate('fecha', '<', $hoy->toDateString())
-            ->whereIn('estado', [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO])
-            ->get();
-
-        foreach ($rutas as $ruta) {
-            $visitadas = $ruta->paradas->where('estado', RutaParada::ESTADO_VISITADA)->count();
-            $total = $ruta->paradas->count();
-
-            if ($total > 0 && $visitadas === $total) {
-                $ruta->update(['estado' => Ruta::ESTADO_COMPLETADA]);
-            } elseif ($visitadas === 0) {
-                $ruta->update(['estado' => Ruta::ESTADO_VENCIDA]);
-            } else {
-                $ruta->update(['estado' => Ruta::ESTADO_INCOMPLETA]);
-            }
-            $cerradas++;
-        }
-
-        return $cerradas;
+        return 0;
     }
 
     /**

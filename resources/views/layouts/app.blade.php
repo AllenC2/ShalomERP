@@ -44,6 +44,37 @@
             box-shadow: 0 2px 8px rgba(225, 178, 64, 0.35);
         }
 
+        .nav-user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            max-width: min(58vw, 220px);
+            padding: 6px 12px 6px 6px;
+            border-radius: 980px;
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(121, 72, 29, 0.12);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            color: #1c1c1e;
+            line-height: 1.1;
+        }
+
+        .nav-user-pill .nav-user-avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 0.78rem;
+            box-shadow: none;
+            flex-shrink: 0;
+        }
+
+        .nav-user-pill-name {
+            font-size: 0.84rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .nav-link.nav-user-avatar-link {
             padding: 0;
             line-height: 0;
@@ -277,12 +308,13 @@
                                 <li class="nav-item dropdown">
                                     <a id="navbarDropdown" class="nav-link nav-user-avatar-link" href="#" role="button" data-bs-toggle="dropdown" data-bs-display="dynamic" data-bs-offset="0,8"
                                         aria-haspopup="true" aria-expanded="false" aria-label="{{ $navNombre }}">
-                                        <span class="nav-user-avatar">{{ $navInicial }}</span>
+                                        <span class="nav-user-pill">
+                                            <span class="nav-user-avatar">{{ $navInicial }}</span>
+                                            <span class="nav-user-pill-name">{{ $navNombre }}</span>
+                                        </span>
                                     </a>
 
                                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                        <div class="dropdown-item-text text-muted small">{{ $navNombre }}</div>
-                                        <div class="dropdown-divider"></div>
                                         <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault();
                                                                              document.getElementById('logout-form').submit();">
                                             {{ __('Cerrar sesión') }}

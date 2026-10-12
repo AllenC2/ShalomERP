@@ -42,6 +42,14 @@
                 <span class="text-muted small" title="{{ $ruta->notas }}"><i class="bi bi-chat-text me-1"></i>Notas</span>
             @endif
             @if(auth()->user()->role === 'admin')
+                @if(in_array($ruta->estado, [\App\Models\Ruta::ESTADO_PLANEADA, \App\Models\Ruta::ESTADO_EN_CURSO, \App\Models\Ruta::ESTADO_DETENIDA], true))
+                <form method="POST" action="{{ route('rutas.optimizarOrden', $ruta->id) }}" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Reordenar paradas por cercanía">
+                        <i class="bi bi-signpost-2 me-1"></i> Optimizar recorrido
+                    </button>
+                </form>
+                @endif
                 <a href="{{ route('rutas.edit', $ruta->id) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-pencil me-1"></i> Editar
                 </a>
@@ -232,27 +240,116 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            @if($totalGrupo === 1)
-                                                @php $parada = $paradasGrupo->first(); @endphp
-                                                <div class="mt-2">
-                                                    <span class="parada-cuota-pill">
-                                                        Cuota ${{ number_format($parada->contrato->monto_cuota_real, 2) }}
-                                                    </span>
-                                                    @if($parada->notas)
-                                                        <span class="text-muted ms-2" style="font-size: 0.75rem;"><i class="bi bi-chat-dots"></i> {{ $parada->notas }}</span>
-                                                    @endif
-                                                </div>
-                                            @else
-                                                <div class="mt-2" style="font-size: 0.72rem;">
-                                                    @foreach($paradasGrupo as $parada)
-                                                        <div class="d-flex align-items-center gap-2 {{ !$loop->last ? 'mb-1' : '' }}" style="padding-left: 4px; border-left: 2px solid {{ $parada->estado === 'visitada' ? '#28a745' : ($parada->estado === 'omitida' ? '#dc3545' : '#e9ecef') }};">
-                                                            <span class="text-muted">C#{{ $parada->contrato_id }}</span>
-                                                            <span class="parada-cuota-pill parada-cuota-pill-sm">Cuota ${{ number_format($parada->contrato->monto_cuota_real, 2) }}</span>
+                                            @foreach($paradasGrupo as $parada)
+                                                @php
+                                                    $visita = $parada->visitas->sortByDesc('id')->first();
+                                                    $cuota = (float) ($parada->contrato->monto_cuota_real ?? 0);
+                                                    $pagosVisita = $visita ? $visita->pagos->where('estado', 'hecho') : collect();
+                                                    $montoPagado = (float) $pagosVisita->sum('monto');
+                                                    $parentescoLabel = $visita && $visita->receptor_parentesco
+                                                        ? (\App\Models\Visita::PARENTESCOS[$visita->receptor_parentesco] ?? $visita->receptor_parentesco)
+                                                        : null;
+
+                                                    if ($pagosVisita->isEmpty()) {
+                                                        $pagoEstado = 'sin_pago';
+                                                        $pagoTexto = 'Sin pago de cuota';
+                                                        $pagoClass = 'text-muted';
+                                                    } elseif ($montoPagado > $cuota + 0.009) {
+                                                        $pagoEstado = 'de_mas';
+                                                        $pagoTexto = 'Pago de más (+$' . number_format($montoPagado - $cuota, 2) . ')';
+                                                        $pagoClass = 'text-primary';
+                                                    } elseif ($montoPagado + 0.009 >= $cuota) {
+                                                        $pagoEstado = 'completo';
+                                                        $pagoTexto = 'Pago completo';
+                                                        $pagoClass = 'text-success';
+                                                    } else {
+                                                        $pagoEstado = 'parcial';
+                                                        $pagoTexto = 'Pago parcial';
+                                                        $pagoClass = 'text-warning';
+                                                    }
+                                                @endphp
+                                                <div class="parada-detalle mt-2 {{ $totalGrupo > 1 && !$loop->last ? 'mb-2' : '' }}">
+                                                    @if($totalGrupo > 1)
+                                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                                            <span class="text-muted small fw-semibold">Contrato #{{ $parada->contrato_id }}</span>
                                                             <span class="badge {{ $parada->estado_badge }}" style="font-size: 0.55rem;">{{ $parada->estado_label }}</span>
                                                         </div>
-                                                    @endforeach
+                                                    @endif
+
+                                                    <div class="parada-detalle-box">
+                                                        <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+                                                            <span class="parada-cuota-pill parada-cuota-pill-sm">
+                                                                Cuota ${{ number_format($cuota, 2) }}
+                                                            </span>
+                                                            @if($parada->estado === 'pendiente')
+                                                                <span class="small text-muted"><i class="bi bi-hourglass-split me-1"></i>Sin visita registrada</span>
+                                                            @elseif($parada->estado === 'omitida')
+                                                                <span class="small text-danger"><i class="bi bi-x-circle me-1"></i>Omitida</span>
+                                                            @elseif($visita)
+                                                                <span class="small text-success"><i class="bi bi-check-circle me-1"></i>Visitada</span>
+                                                            @else
+                                                                <span class="small text-success"><i class="bi bi-check-circle me-1"></i>Marcada visitada</span>
+                                                            @endif
+                                                        </div>
+
+                                                        @if($visita)
+                                                            <div class="parada-detalle-meta">
+                                                                @if($visita->recibido)
+                                                                    <div>
+                                                                        <i class="bi bi-person-check me-1"></i>
+                                                                        Recibió: <strong>{{ $visita->receptor_nombre ?: 'Sin nombre' }}</strong>
+                                                                        @if($parentescoLabel)
+                                                                            <span class="text-muted">({{ $parentescoLabel }})</span>
+                                                                        @endif
+                                                                    </div>
+                                                                @else
+                                                                    <div class="text-warning">
+                                                                        <i class="bi bi-person-x me-1"></i>
+                                                                        Nadie recibió
+                                                                    </div>
+                                                                @endif
+
+                                                                <div class="{{ $pagoClass }}">
+                                                                    <i class="bi bi-cash-coin me-1"></i>
+                                                                    @if($pagoEstado === 'sin_pago')
+                                                                        {{ $pagoTexto }}
+                                                                    @else
+                                                                        {{ $pagoTexto }} · ${{ number_format($montoPagado, 2) }}
+                                                                        @if($pagosVisita->count() === 1 && $pagosVisita->first()->metodo_pago)
+                                                                            <span class="text-muted">({{ ucfirst($pagosVisita->first()->metodo_pago) }})</span>
+                                                                        @endif
+                                                                    @endif
+                                                                </div>
+
+                                                                @if($visita->comentarios)
+                                                                    <div class="text-muted">
+                                                                        <i class="bi bi-chat-dots me-1"></i>{{ $visita->comentarios }}
+                                                                    </div>
+                                                                @endif
+
+                                                                @if($visita->created_at)
+                                                                    <div class="text-muted" style="font-size: 0.68rem;">
+                                                                        <i class="bi bi-clock me-1"></i>{{ $visita->created_at->format('d/m/Y H:i') }}
+                                                                        @if($visita->user)
+                                                                            · {{ $visita->user->name }}
+                                                                        @endif
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        @elseif($parada->estado === 'visitada')
+                                                            <div class="parada-detalle-meta text-muted">
+                                                                <i class="bi bi-info-circle me-1"></i>Visitada sin detalle de recepción ni pago.
+                                                            </div>
+                                                        @endif
+
+                                                        @if($parada->notas)
+                                                            <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                                                                <i class="bi bi-sticky me-1"></i>{{ $parada->notas }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
                                                 </div>
-                                            @endif
+                                            @endforeach
                                         </div>
                                     </div>
                                 </div>
@@ -363,6 +460,46 @@ document.addEventListener('DOMContentLoaded', function() {
             points.push([{{ $lat }}, {{ $lng }}]);
             routeCoords.push([{{ $lat }}, {{ $lng }}]);
         })();
+    @endforeach
+
+    function makeRegistroFlagIcon(color) {
+        color = color || '#007AFF';
+        return L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="position:relative;width:28px;height:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));">' +
+                '<svg viewBox="0 0 24 34" width="28" height="34" xmlns="http://www.w3.org/2000/svg">' +
+                '<path d="M6 2v30" stroke="#3a3a3c" stroke-width="2.2" stroke-linecap="round"/>' +
+                '<path d="M7 3h11.5c.8 0 1.2.9.7 1.5L16 9l3.2 4.5c.5.6.1 1.5-.7 1.5H7V3z" fill="' + color + '"/>' +
+                '</svg></div>',
+            iconSize: [28, 34],
+            iconAnchor: [6, 34],
+            popupAnchor: [8, -30]
+        });
+    }
+
+    @foreach($ruta->paradas as $paradaShow)
+        @foreach($paradaShow->visitas as $visitaShow)
+            @php
+                $coordsReg = $visitaShow->coordinates;
+                if (!$coordsReg) {
+                    continue;
+                }
+                $flagColor = $visitaShow->pagos->isNotEmpty() ? '#007AFF' : '#FF9500';
+                $flagLabel = $visitaShow->pagos->isNotEmpty() ? 'Abono registrado aquí' : 'Visita registrada aquí';
+                $clienteFlag = $paradaShow->contrato?->cliente;
+                $nombreFlag = $clienteFlag
+                    ? addslashes(trim(($clienteFlag->nombre ?? '') . ' ' . ($clienteFlag->apellido ?? '')))
+                    : 'Cliente';
+            @endphp
+            (function() {
+                var f = L.marker([{{ $coordsReg['lat'] }}, {{ $coordsReg['lng'] }}], {
+                    icon: makeRegistroFlagIcon('{{ $flagColor }}'),
+                    zIndexOffset: 850
+                }).addTo(map);
+                f.bindPopup('<div style="min-width:140px"><strong style="color:{{ $flagColor }}">{{ $flagLabel }}</strong><br><small>{{ $nombreFlag }}</small><br><small>Folio #{{ $paradaShow->contrato_id }}</small></div>');
+                points.push([{{ $coordsReg['lat'] }}, {{ $coordsReg['lng'] }}]);
+            })();
+        @endforeach
     @endforeach
 
     if (homeLatLng) {
@@ -509,6 +646,20 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 0.15rem 0.5rem;
         font-size: 0.7rem;
         font-weight: 600;
+    }
+
+    .parada-detalle-box {
+        background: #f8f7f5;
+        border: 1px solid #eee8df;
+        border-radius: 10px;
+        padding: 0.55rem 0.7rem;
+    }
+    .parada-detalle-meta {
+        font-size: 0.72rem;
+        line-height: 1.45;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
     }
 
     .min-width-0 { min-width: 0; }

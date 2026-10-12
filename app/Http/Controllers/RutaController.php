@@ -7,9 +7,11 @@ use App\Models\Cliente;
 use App\Models\Contrato;
 use App\Models\Empleado;
 use App\Models\Ruta;
+use App\Models\RutaActividad;
 use App\Models\RutaParada;
 use App\Services\GeocodingService;
 use App\Services\GeneradorRutasService;
+use App\Services\OptimizadorOrdenRutaService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,7 +84,15 @@ class RutaController extends Controller
 
     public function show($id): View
     {
-        $ruta = Ruta::with(['empleado', 'user', 'plantilla', 'paradas.contrato.cliente', 'paradas.contrato.pagos', 'paradas.visitas'])->findOrFail($id);
+        $ruta = Ruta::with([
+            'empleado',
+            'user',
+            'plantilla',
+            'paradas.contrato.cliente',
+            'paradas.contrato.pagos',
+            'paradas.visitas.pagos',
+            'paradas.visitas.user',
+        ])->findOrFail($id);
 
         return view('rutas.show', compact('ruta'));
     }
@@ -159,6 +169,18 @@ class RutaController extends Controller
             ->with('success', 'Orden de paradas actualizado.');
     }
 
+    public function optimizarOrden($id, OptimizadorOrdenRutaService $optimizador): RedirectResponse
+    {
+        $ruta = Ruta::with(['paradas.cliente', 'empleado', 'plantilla.paradas'])->findOrFail($id);
+        $cambios = $optimizador->optimizarRuta($ruta, sincronizarPlantilla: true);
+
+        $mensaje = $cambios > 0
+            ? 'Recorrido optimizado: cada parada apunta ahora a la más cercana.'
+            : 'El orden ya era óptimo por cercanía (o faltan coordenadas).';
+
+        return redirect()->route('rutas.show', $ruta->id)->with('success', $mensaje);
+    }
+
     public function actualizarEstadoParada(Request $request, $rutaId, $paradaId): RedirectResponse
     {
         $request->validate([
@@ -229,34 +251,11 @@ class RutaController extends Controller
             ], 422);
         }
 
-        $grupos = $this->gruposDomicilio($ruta);
-        $grupoIdx = null;
-        foreach ($grupos as $i => $grupo) {
-            if ($grupo->pluck('id')->intersect($ids)->isNotEmpty()) {
-                $grupoIdx = $i;
-                break;
-            }
-        }
-
-        if ($grupoIdx === null) {
-            return response()->json(['success' => false, 'message' => 'No se encontró la parada.'], 422);
-        }
-
-        if ($grupoIdx > 0) {
-            $anteriorPendiente = $grupos[$grupoIdx - 1]->contains(
-                fn (RutaParada $p) => $p->estado === RutaParada::ESTADO_PENDIENTE
-            );
-            if ($anteriorPendiente) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Debes visitar u omitir la parada anterior primero.',
-                ], 422);
-            }
-        }
-
+        $omitidasIds = [];
         foreach ($paradas as $parada) {
             if ($parada->estado === RutaParada::ESTADO_PENDIENTE) {
                 $parada->update(['estado' => RutaParada::ESTADO_OMITIDA]);
+                $omitidasIds[] = $parada->id;
             }
         }
 
@@ -268,9 +267,33 @@ class RutaController extends Controller
             $ruta->update(['estado' => Ruta::ESTADO_EN_CURSO]);
         }
 
+        if ($omitidasIds !== []) {
+            $omitidas = RutaParada::with('contrato.cliente')->whereIn('id', $omitidasIds)->get();
+            $primera = $omitidas->first();
+            $cliente = $primera?->contrato?->cliente;
+            $nombreCliente = $cliente
+                ? trim(($cliente->nombre ?? '').' '.($cliente->apellido ?? ''))
+                : ($primera?->direccion_destino ?: 'Parada');
+            $folios = $omitidas->pluck('contrato_id')->filter()->unique()->values();
+            RutaActividad::registrar([
+                'empleado_id' => $ruta->empleado_id,
+                'ruta_id' => $ruta->id,
+                'ruta_parada_id' => $primera?->id,
+                'tipo' => RutaActividad::TIPO_OMITIR,
+                'titulo' => 'Omitir parada · '.$nombreCliente,
+                'detalle' => 'Folio'.($folios->count() === 1 ? '' : 's').' '.
+                    $folios->map(fn ($id) => '#'.$id)->implode(', ').'.',
+                'meta' => [
+                    'cliente' => $nombreCliente,
+                    'contratos' => $folios->all(),
+                    'ruta_nombre' => $ruta->nombre,
+                ],
+            ]);
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Parada omitida. La siguiente queda desbloqueada.',
+            'message' => 'Parada omitida.',
         ]);
     }
 
@@ -505,7 +528,12 @@ class RutaController extends Controller
 
     public function getRutaData($id, GeocodingService $geocoding)
     {
-        $ruta = Ruta::with(['empleado', 'plantilla', 'paradas.contrato.cliente'])->findOrFail($id);
+        $ruta = Ruta::with([
+            'empleado',
+            'plantilla',
+            'paradas.contrato.cliente',
+            'paradas.visitas' => fn ($q) => $q->latest('id')->with('pagos'),
+        ])->findOrFail($id);
 
         $paradas = $ruta->paradas->map(function ($p) use ($geocoding) {
             $cliente = $p->contrato->cliente ?? null;
@@ -528,6 +556,26 @@ class RutaController extends Controller
                 ]);
             }
 
+            $ultimaVisita = $p->visitas->sortByDesc('id')->first();
+            $registrosUbicacion = $p->visitas
+                ->map(function ($visita) {
+                    $coords = $visita->coordinates;
+                    if (! $coords) {
+                        return null;
+                    }
+
+                    return [
+                        'visita_id' => $visita->id,
+                        'latitud' => $coords['lat'],
+                        'longitud' => $coords['lng'],
+                        'tiene_pago' => $visita->pagos->isNotEmpty(),
+                        'created_at' => optional($visita->created_at)->toIso8601String(),
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+
             $row = [
                 'id' => $p->id,
                 'contrato_id' => $p->contrato_id,
@@ -539,7 +587,11 @@ class RutaController extends Controller
                 'estado' => $p->estado,
                 'orden' => $p->orden,
                 'cuota' => $p->contrato ? number_format($p->contrato->monto_cuota_real, 2) : '0.00',
+                'cuota_raw' => $p->contrato ? (float) $p->contrato->monto_cuota_real : 0,
                 'saldo_raw' => $p->contrato ? (float) $p->contrato->saldo_pendiente : 0,
+                'visita_id' => $ultimaVisita?->id,
+                'ticket_url' => $ultimaVisita ? route('visitas.ticket', $ultimaVisita) : null,
+                'registros_ubicacion' => $registrosUbicacion,
             ];
 
             // El saldo total no se expone a empleados en la UI.
@@ -575,6 +627,8 @@ class RutaController extends Controller
     }
 
     /**
+     * Progreso de la ruta (domicilios), sin narrativa de “no se terminó”.
+     *
      * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $paradas
      * @return array<string, mixed>
      */
@@ -584,10 +638,7 @@ class RutaController extends Controller
         foreach ($paradas as $p) {
             $key = ($p['cliente_id'] ?? '') . '_' . ($p['domicilio'] ?? '');
             if (! isset($grupos[$key])) {
-                $grupos[$key] = [
-                    'nombre' => $p['cliente_nombre'] ?? 'Sin cliente',
-                    'paradas' => [],
-                ];
+                $grupos[$key] = ['paradas' => []];
             }
             $grupos[$key]['paradas'][] = $p;
         }
@@ -595,11 +646,8 @@ class RutaController extends Controller
         $visitados = 0;
         $omitidos = 0;
         $pendientes = 0;
-        $hastaNombre = null;
-        $hastaOrden = 0;
-        $secuenciaRota = false;
 
-        foreach (array_values($grupos) as $i => $grupo) {
+        foreach ($grupos as $grupo) {
             $totalGrupo = count($grupo['paradas']);
             $vis = collect($grupo['paradas'])->where('estado', RutaParada::ESTADO_VISITADA)->count();
             $omi = collect($grupo['paradas'])->where('estado', RutaParada::ESTADO_OMITIDA)->count();
@@ -614,54 +662,18 @@ class RutaController extends Controller
             } else {
                 $pendientes++;
             }
-
-            if (! $secuenciaRota && $cerrada) {
-                $hastaNombre = $grupo['nombre'];
-                $hastaOrden = $i + 1;
-            } elseif (! $cerrada) {
-                $secuenciaRota = true;
-            }
         }
 
         $total = count($grupos);
         $hechos = $visitados + $omitidos;
-        $comenzada = $hechos > 0 || collect($paradas)->contains(function ($p) {
-            return in_array($p['estado'] ?? '', [RutaParada::ESTADO_VISITADA, RutaParada::ESTADO_OMITIDA], true);
-        });
-        $completada = $total > 0 && $pendientes === 0;
-
-        if ($total === 0) {
-            $headline = 'Sin paradas';
-            $detalle = 'Esta ruta no tiene domicilios registrados.';
-        } elseif (! $comenzada) {
-            $headline = 'No se comenzó';
-            $detalle = 'No se visitó ni se omitió ningún domicilio.';
-        } elseif ($completada && $omitidos === 0) {
-            $headline = 'Ruta completada';
-            $detalle = $total === 1
-                ? 'Se visitó el domicilio asignado.'
-                : 'Se visitaron los '.$total.' domicilios.';
-        } elseif ($completada) {
-            $headline = 'Ruta completada';
-            $detalle = $visitados.' visitado'.($visitados === 1 ? '' : 's').' · '.$omitidos.' omitido'.($omitidos === 1 ? '' : 's').'.';
-        } elseif ($hastaNombre) {
-            $headline = 'Se comenzó y no se terminó';
-            $detalle = 'Llegó hasta '.$hastaNombre.' ('.$hastaOrden.' de '.$total.'). Quedaron '.$pendientes.' pendiente'.($pendientes === 1 ? '' : 's').'.';
-        } else {
-            $headline = 'Se comenzó y no se terminó';
-            $detalle = 'Hubo avance parcial. Quedaron '.$pendientes.' domicilio'.($pendientes === 1 ? '' : 's').' pendiente'.($pendientes === 1 ? '' : 's').'.';
-        }
+        $porcentaje = $total > 0 ? (int) round(($hechos / $total) * 100) : 0;
 
         return [
-            'comenzada' => $comenzada,
-            'completada' => $completada,
-            'headline' => $headline,
-            'detalle' => $detalle,
-            'hasta' => $hastaNombre,
             'total' => $total,
             'visitados' => $visitados,
             'omitidos' => $omitidos,
             'pendientes' => $pendientes,
+            'porcentaje' => $porcentaje,
             'estado' => $ruta->estado,
         ];
     }

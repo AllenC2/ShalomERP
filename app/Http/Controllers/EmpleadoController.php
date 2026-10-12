@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Empleado;
+use App\Models\RutaActividad;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\EmpleadoRequest;
@@ -104,6 +106,59 @@ class EmpleadoController extends Controller
                 'comisiones' => collect([])
             ])->with('error', 'Error al cargar el empleado: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Historial de movimientos de rutas del empleado (solo admin).
+     */
+    public function actividadRutas($id): JsonResponse
+    {
+        $empleado = Empleado::findOrFail($id);
+
+        $actividades = RutaActividad::query()
+            ->where('empleado_id', $empleado->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get();
+
+        $grupos = $actividades
+            ->groupBy(fn (RutaActividad $a) => optional($a->created_at)->format('Y-m') ?: 'sin-fecha')
+            ->map(function ($items, $ym) {
+                $fecha = $items->first()?->created_at;
+                $etiqueta = $fecha
+                    ? ucfirst($fecha->translatedFormat('F Y'))
+                    : 'Sin fecha';
+
+                return [
+                    'key' => $ym,
+                    'label' => $etiqueta,
+                    'items' => $items->map(fn (RutaActividad $a) => [
+                        'id' => $a->id,
+                        'tipo' => $a->tipo,
+                        'tipo_label' => $a->etiquetaTipo(),
+                        'badge' => $a->badgeClass(),
+                        'titulo' => $a->titulo,
+                        'detalle' => $a->detalle,
+                        'monto_total' => $a->monto_total !== null ? (float) $a->monto_total : null,
+                        'ruta_nombre' => $a->meta['ruta_nombre'] ?? null,
+                        'fecha' => optional($a->created_at)->format('d/m/Y'),
+                        'hora' => optional($a->created_at)->format('H:i'),
+                        'created_at' => optional($a->created_at)->toIso8601String(),
+                    ])->values(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'empleado' => [
+                'id' => $empleado->id,
+                'nombre' => trim($empleado->nombre.' '.$empleado->apellido),
+            ],
+            'total' => $actividades->count(),
+            'grupos' => $grupos,
+        ]);
     }
 
     /**

@@ -315,7 +315,8 @@
 #visitaGpsMap .leaflet-top,
 #visitaGpsMap .leaflet-bottom { z-index: 1; }
 #visitaConfirmModal,
-#omitirConfirmModal { z-index: 1065; }
+#omitirConfirmModal,
+#misRutasModal { z-index: 1065; }
 
 .ios-confirm-dialog { max-width: 360px; margin: 1rem auto; }
 .ios-confirm-card {
@@ -344,6 +345,55 @@
 .ios-confirm-msg {
     font-size: 0.84rem; color: #636366; line-height: 1.35;
     margin: 0 0 14px; letter-spacing: -0.01em;
+}
+.visita-form-header {
+    display: flex; align-items: flex-start; gap: 12px;
+    text-align: left; margin: 0 0 14px;
+    padding: 12px; border-radius: 16px;
+    background: rgba(242,242,247,0.95);
+}
+.visita-form-header .ios-confirm-icon {
+    width: 44px; height: 44px; border-radius: 12px; margin: 0;
+    font-size: 1.15rem; flex-shrink: 0;
+}
+.visita-form-header-body { min-width: 0; flex: 1; }
+.visita-form-header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 2px;
+}
+.visita-form-header .ios-confirm-title {
+    font-size: 1.05rem; margin: 0; line-height: 1.2;
+}
+.visita-form-contrato {
+    font-size: 0.68rem; font-weight: 700; color: #79481D;
+    background: rgba(121,72,29,0.1); border-radius: 980px;
+    padding: 3px 8px; white-space: nowrap; flex-shrink: 0;
+}
+.visita-form-nombre {
+    font-size: 0.92rem; font-weight: 700; color: #1c1c1e;
+    letter-spacing: -0.02em; line-height: 1.25;
+    margin: 0 0 2px;
+}
+.visita-form-domicilio {
+    font-size: 0.75rem; color: #8e8e93; line-height: 1.3;
+    margin: 0; display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+}
+.visita-abono-confirm {
+    margin-top: 10px;
+    text-align: left;
+}
+.visita-abono-confirm .ios-banner {
+    margin-bottom: 0;
+}
+.visita-abono-confirm-title {
+    display: block; font-weight: 700; margin-bottom: 6px;
+}
+.visita-abono-confirm-resumen {
+    font-size: 0.8rem; line-height: 1.4;
+}
+.visita-abono-confirm-resumen strong {
+    font-weight: 700; color: #1c1c1e;
 }
 .ios-grouped {
     list-style: none; margin: 0 0 12px; padding: 0;
@@ -438,8 +488,71 @@
 }
 .ios-folio-card h4 { font-size: 0.88rem; font-weight: 700; margin: 0 0 4px; color: #1c1c1e; }
 .ios-folio-card .saldo { font-size: 0.75rem; color: #8e8e93; margin-bottom: 8px; }
+.visita-monto-field { margin: 10px 0 12px; }
+.visita-monto-field > label {
+    display: block; font-size: 0.72rem; font-weight: 700; color: #79481D;
+    margin: 0 0 6px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.visita-monto-wrap {
+    display: flex; align-items: center; gap: 4px;
+    background: #fff;
+    border: 2px solid #79481D;
+    border-radius: 16px;
+    padding: 4px 14px;
+    box-shadow: 0 4px 16px rgba(121, 72, 29, 0.12);
+}
+.visita-monto-wrap:focus-within {
+    border-color: #E1B240;
+    box-shadow: 0 0 0 4px rgba(225, 178, 64, 0.25);
+}
+.visita-monto-prefix {
+    font-size: 1.55rem; font-weight: 800; color: #79481D;
+    letter-spacing: -0.03em; line-height: 1;
+}
+.visita-folio-monto {
+    flex: 1; width: 100%; border: none !important; background: transparent !important;
+    font-size: 2rem !important; font-weight: 800 !important; color: #1c1c1e !important;
+    letter-spacing: -0.04em; padding: 10px 0 !important; border-radius: 0 !important;
+    outline: none; -moz-appearance: textfield;
+}
+.visita-folio-monto::-webkit-outer-spin-button,
+.visita-folio-monto::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+}
+.visita-folio-monto::placeholder { color: #c7c7cc; font-weight: 700; }
+.visita-ticket-preview {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 280px;
+    max-height: min(62vh, 520px);
+    overflow: hidden;
+    border-radius: 12px;
+    background: #f2f2f7;
+    border: 1px solid rgba(60, 60, 67, 0.12);
+}
+.visita-ticket-preview-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
 .visita-ticket-frame {
-    width: 100%; height: 380px; border: none; background: #fff; border-radius: 12px;
+    display: block;
+    width: 100%;
+    min-height: 100%;
+    height: 420px;
+    border: none;
+    background: #fff;
+}
+@media (hover: none) and (pointer: coarse) {
+    .visita-ticket-frame {
+        /* En touch el iframe no captura el gesto; el scroll vive en el wrapper. */
+        pointer-events: none;
+    }
 }
 .visita-wizard-card {
     display: flex;
@@ -453,6 +566,26 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+}
+.visita-wizard-step {
+    width: 100%;
+}
+.visita-wizard-step[data-step="2"]:not(.d-none) {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.visita-wizard-card.is-ticket-step .visita-wizard-body {
+    overflow: hidden;
+    padding-bottom: 0;
+}
+.visita-wizard-card.is-ticket-step .visita-ticket-preview {
+    max-height: none;
+    height: 100%;
+    border-radius: 12px;
 }
 .visita-wizard-actions {
     flex-shrink: 0;
@@ -483,9 +616,13 @@
         overflow: hidden;
     }
     #visitaConfirmModal .visita-wizard-body {
-        padding: max(14px, env(safe-area-inset-top)) 18px 12px;
+        padding: max(14px, env(safe-area-inset-top)) 16px 12px;
         overscroll-behavior: contain;
         touch-action: pan-y;
+    }
+    #visitaConfirmModal .visita-wizard-card.is-ticket-step .visita-wizard-body {
+        padding: max(8px, env(safe-area-inset-top)) 0 0;
+        overflow: hidden;
     }
     #visitaConfirmModal .visita-wizard-actions {
         margin: 0;
@@ -496,9 +633,18 @@
     #visitaConfirmModal .ios-confirm-map {
         height: min(28vh, 200px);
     }
-    #visitaConfirmModal .visita-ticket-frame {
-        height: min(52vh, 460px);
+    #visitaConfirmModal .visita-ticket-preview {
+        min-height: 0;
+        max-height: none;
         border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        background: #fff;
+    }
+    #visitaConfirmModal .visita-ticket-frame {
+        min-height: 100%;
+        height: auto;
     }
     #visitaConfirmModal .ios-confirm-icon {
         margin-top: 4px;
@@ -603,6 +749,233 @@ body.shlom-ruta-detalle-open .rainbow-background {
     text-transform: uppercase; letter-spacing: 0.06em;
     padding: 4px 20px 8px;
 }
+.shlom-btn-mis-rutas {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: none; border-radius: 980px;
+    background: rgba(121, 72, 29, 0.1); color: #79481D;
+    font-size: 0.78rem; font-weight: 600; letter-spacing: -0.01em;
+    padding: 7px 12px 7px 10px;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+.shlom-btn-mis-rutas:active { opacity: 0.7; transform: scale(0.96); }
+.shlom-btn-mis-rutas .badge {
+    background: #79481D; color: #fff;
+    font-size: 0.65rem; font-weight: 700;
+    min-width: 18px; padding: 2px 5px; border-radius: 980px;
+}
+#misRutasModal .modal-dialog { max-width: 400px; margin: 1rem auto; }
+#misRutasModal .modal-content {
+    border: none; border-radius: 22px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.22);
+    overflow: hidden;
+}
+#misRutasModal .modal-header {
+    border-bottom: 0.5px solid rgba(60,60,67,0.12);
+    padding: 16px 18px 12px;
+}
+#misRutasModal .modal-title {
+    font-size: 1.1rem; font-weight: 700; color: #1c1c1e;
+    letter-spacing: -0.02em;
+}
+#misRutasModal .modal-body {
+    padding: 12px 14px 18px;
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
+}
+#misRutasModal .mis-rutas-search {
+    display: flex; align-items: center; gap: 8px;
+    background: #f2f2f7; border-radius: 12px;
+    padding: 0 12px; margin-bottom: 10px;
+    border: 1px solid transparent;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+#misRutasModal .mis-rutas-search:focus-within {
+    background: #fff;
+    border-color: rgba(121,72,29,0.35);
+}
+#misRutasModal .mis-rutas-search > i {
+    color: #8e8e93; font-size: 0.9rem; flex-shrink: 0;
+}
+#misRutasModal .mis-rutas-search input {
+    flex: 1; min-width: 0; border: none; background: transparent;
+    font-size: 0.9rem; color: #1c1c1e; padding: 11px 0;
+    outline: none; box-shadow: none;
+}
+#misRutasModal .mis-rutas-search input::placeholder { color: #8e8e93; }
+#misRutasModal .mis-rutas-search-clear {
+    border: none; background: rgba(60,60,67,0.12); color: #636366;
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; line-height: 1; padding: 0; flex-shrink: 0;
+}
+#misRutasModal .mis-rutas-search-clear.d-none { display: none !important; }
+#misRutasModal .mis-rutas-search-wrap.d-none { display: none !important; }
+#misRutasModal .mis-rutas-search-results {
+    display: none; flex-direction: column; gap: 10px;
+}
+#misRutasModal .mis-rutas-search-results.active { display: flex; }
+#misRutasModal .mis-rutas-search-hit {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #fff; border: 1px solid rgba(60,60,67,0.12);
+    border-radius: 14px; padding: 12px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    text-align: left; width: 100%;
+}
+#misRutasModal .mis-rutas-search-hit:active {
+    transform: scale(0.98);
+    border-color: rgba(121,72,29,0.35);
+}
+#misRutasModal .mis-rutas-search-hit-route {
+    font-size: 0.68rem; font-weight: 600; color: #79481D;
+    margin: 0 0 4px;
+}
+#misRutasModal .mis-rutas-page {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+#misRutasModal .mis-rutas-page.active {
+    display: flex;
+}
+#misRutasModal .mis-rutas-page.mis-rutas-page-dimmed {
+    display: none !important;
+}
+#misRutasModal .shlom-plantilla-card {
+    box-shadow: none;
+    background: #fff;
+    border: 1px solid rgba(60,60,67,0.12);
+    margin-bottom: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+#misRutasModal .shlom-plantilla-card:active {
+    transform: scale(0.98);
+    border-color: rgba(121,72,29,0.35);
+}
+#misRutasModal .shlom-plantilla-chevron {
+    color: #c7c7cc; font-size: 1rem; flex-shrink: 0;
+}
+#misRutasModal .mis-rutas-parada {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #fff; border: 1px solid rgba(60,60,67,0.12);
+    border-radius: 14px; padding: 12px;
+}
+#misRutasModal .mis-rutas-parada-num {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: #79481D; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700;
+}
+#misRutasModal .mis-rutas-parada-body { min-width: 0; flex: 1; }
+#misRutasModal .mis-rutas-parada-name {
+    font-size: 0.9rem; font-weight: 700; color: #1c1c1e;
+    letter-spacing: -0.02em; line-height: 1.25; margin: 0 0 2px;
+}
+#misRutasModal .mis-rutas-parada-addr {
+    font-size: 0.74rem; color: #8e8e93; line-height: 1.35; margin: 0;
+}
+#misRutasModal .mis-rutas-parada-meta {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+}
+#misRutasModal .mis-rutas-parada-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.68rem; font-weight: 600; color: #636366;
+    background: rgba(242,242,247,0.95); border-radius: 980px; padding: 3px 8px;
+}
+#misRutasModal .mis-rutas-detail-empty {
+    text-align: center; color: #8e8e93; font-size: 0.85rem; padding: 24px 8px;
+}
+#misRutasModal .btn-mis-rutas-back {
+    display: inline-flex; align-items: center; gap: 4px;
+    border: none; background: transparent; color: #007AFF;
+    font-size: 0.9rem; font-weight: 600; padding: 0; margin: 0 0 4px;
+}
+#misRutasModal .mis-rutas-detail-title {
+    font-size: 1.05rem; font-weight: 700; color: #1c1c1e;
+    letter-spacing: -0.02em; margin: 0 0 2px;
+}
+#misRutasModal .mis-rutas-detail-sub {
+    font-size: 0.78rem; color: #8e8e93; margin: 0 0 6px;
+}
+#misRutasModal #misRutasDetailList {
+    display: flex; flex-direction: column; gap: 10px;
+}
+#misRutasModal .btn-ver-ruta-plantilla {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; border: none; border-radius: 12px;
+    background: #79481D; color: #fff;
+    font-size: 0.92rem; font-weight: 700; letter-spacing: -0.01em;
+    padding: 12px 14px; margin: 2px 0 4px;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+#misRutasModal .btn-ver-ruta-plantilla:active { transform: scale(0.98); }
+#misRutasModal .btn-ver-ruta-plantilla:disabled {
+    opacity: 0.65; cursor: wait;
+}
+#misRutasModal .shlom-empty-state { padding: 28px 12px; }
+
+/* Mis rutas: pantalla completa en celular */
+@media (max-width: 767.98px) {
+    #misRutasModal {
+        padding: 0 !important;
+    }
+    #misRutasModal .modal-dialog {
+        max-width: 100%;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        max-height: none;
+    }
+    #misRutasModal .modal-content {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        height: 100%;
+        height: 100dvh;
+        max-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: #fff;
+    }
+    #misRutasModal .modal-header {
+        flex-shrink: 0;
+        border-bottom: 0.5px solid rgba(60,60,67,0.12);
+        padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+        background: #fff;
+    }
+    #misRutasModal .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none !important;
+        height: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
+        padding: 12px 16px max(20px, env(safe-area-inset-bottom));
+        background: #fff;
+    }
+    #misRutasModal .mis-rutas-search-wrap {
+        position: sticky;
+        top: -12px;
+        z-index: 3;
+        background: #fff;
+        margin: -12px -16px 10px;
+        padding: 12px 16px 8px;
+    }
+    #misRutasModal .mis-rutas-search {
+        margin-bottom: 0;
+    }
+    #misRutasModal .mis-rutas-page,
+    #misRutasModal .mis-rutas-search-results {
+        padding-bottom: 8px;
+    }
+}
 .shlom-route-list {
     display: flex;
     flex-direction: column;
@@ -610,21 +983,34 @@ body.shlom-ruta-detalle-open .rainbow-background {
     padding: 0 16px 40px;
 }
 .shlom-plantilla-card {
-    background: white; border-radius: 16px; padding: 14px 16px;
+    background: white; border-radius: 16px; padding: 12px 14px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     display: flex; align-items: center; gap: 12px;
 }
 .shlom-plantilla-icon {
     width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-    background: rgba(121,72,29,0.1); color: #79481D;
-    display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+    background: linear-gradient(135deg, rgba(225,178,64,0.18) 0%, rgba(121,72,29,0.14) 100%);
+    color: #79481D;
+    display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
 }
 .shlom-plantilla-body { min-width: 0; flex: 1; }
 .shlom-plantilla-name {
-    font-size: 0.95rem; font-weight: 600; color: #1c1c1e;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 0.98rem; font-weight: 700; color: #1c1c1e;
+    letter-spacing: -0.02em; line-height: 1.25;
+    margin: 0 0 3px;
 }
-.shlom-plantilla-meta { font-size: 0.75rem; color: #8e8e93; margin-top: 2px; }
+.shlom-plantilla-meta {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    font-size: 0.74rem; color: #8e8e93; font-weight: 500; line-height: 1.2;
+}
+.shlom-plantilla-meta-item {
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.shlom-plantilla-meta-item i { font-size: 0.7rem; opacity: 0.9; }
+.shlom-plantilla-meta-sep {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: #c7c7cc; flex-shrink: 0;
+}
 .shlom-route-card {
     background: white; border-radius: 18px; padding: 16px; position: relative;
     box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -682,10 +1068,23 @@ body.shlom-ruta-detalle-open .rainbow-background {
     color: #79481D; border-radius: 50%; -webkit-tap-highlight-color: transparent;
 }
 .shlom-back-btn:active { background: rgba(121,72,29,0.1); }
-.shlom-detail-info { flex-grow: 1; display: flex; flex-direction: column; }
-.shlom-detail-title { font-size: 1.05rem; font-weight: 700; color: #1c1c1e; line-height: 1.2; }
-.shlom-detail-date { font-size: 0.78rem; color: #8E8E93; }
-.shlom-detail-badge {
+.shlom-detail-info { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+.shlom-detail-title {
+    font-size: 1.05rem; font-weight: 700; color: #1c1c1e; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.shlom-ruta-meta {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
+    padding: 0 16px;
+    flex-shrink: 0;
+}
+.shlom-ruta-meta-item {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.78rem; font-weight: 500; color: #636366;
+}
+.shlom-ruta-meta-item i { font-size: 0.72rem; color: #8e8e93; }
+.shlom-ruta-meta-badge {
+    margin-left: auto;
     padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600;
 }
 
@@ -698,7 +1097,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
     background: white; border-radius: 20px 20px 0 0;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-    height: 280px;
+    height: var(--shlom-sheet-collapsed, 320px);
     max-height: 85vh;
     overflow: hidden;
     display: flex;
@@ -715,7 +1114,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
     transform: none;
 }
 .shlom-sheet-handle {
-    display: flex; justify-content: center; padding: 12px 0 8px; cursor: grab;
+    display: flex; justify-content: center; padding: 10px 0 6px; cursor: grab;
     -webkit-tap-highlight-color: transparent;
     flex-shrink: 0;
 }
@@ -724,7 +1123,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
     width: 40px; height: 5px; border-radius: 3px; background: rgba(60,60,67,0.25);
 }
 .shlom-sheet-content {
-    padding: 0 0 16px;
+    padding: 0 0 14px;
     flex: 1;
     min-height: 0;
     overflow-x: hidden;
@@ -732,6 +1131,9 @@ body.shlom-ruta-detalle-open .rainbow-background {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: none;
     touch-action: pan-y;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 .shlom-bottom-sheet:not(.expanded) .shlom-sheet-content {
     overflow-y: hidden;
@@ -743,15 +1145,20 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-bottom-sheet.expanded .shlom-slider-track {
     touch-action: pan-x pan-y;
 }
+.shlom-bottom-sheet:not(.expanded) .shlom-ruta-meta,
+.shlom-bottom-sheet:not(.expanded) .shlom-slider-track,
+.shlom-bottom-sheet:not(.expanded) .shlom-slider-controls {
+    flex-shrink: 0;
+}
 .shlom-seg-label {
     font-size: 0.65rem; color: #8e8e93; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.05em;
-    padding: 0 20px 6px;
+    padding: 0 16px 6px;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
 }
 .shlom-seg {
     display: flex; background: rgba(118,118,128,0.12); border-radius: 9px;
-    padding: 2px; margin: 0 20px 8px;
+    padding: 2px; margin: 0 16px;
 }
 .shlom-seg-tab {
     flex: 1; border: none; background: transparent; border-radius: 7px;
@@ -763,10 +1170,11 @@ body.shlom-ruta-detalle-open .rainbow-background {
     background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 .shlom-seg-tab:disabled { opacity: 0.4; }
+.shlom-punto-casa-block { margin: 0; }
 .shlom-punto-casa-block.d-none { display: none !important; }
 .shlom-ruta-resumen {
-    margin: 0 16px 12px;
-    padding: 14px 16px 10px;
+    margin: 0 16px;
+    padding: 12px 14px 10px;
     background: #f2f2f7;
     border-radius: 16px;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
@@ -785,19 +1193,13 @@ body.shlom-ruta-detalle-open .rainbow-background {
     margin: 0 0 10px;
 }
 .shlom-resumen-stats { margin-bottom: 0 !important; }
-.shlom-bottom-sheet.historica {
-    height: 360px;
-}
-.shlom-bottom-sheet.historica.expanded {
-    height: 85vh;
-}
-
 /* ====== SLIDER (inside sheet) ====== */
 .shlom-slider-track {
     display: flex; gap: 12px; overflow-x: auto; overflow-y: visible;
     scroll-snap-type: x mandatory;
-    padding: 8px 20px 4px; scrollbar-width: none; -ms-overflow-style: none;
-    touch-action: pan-x pan-y;
+    padding: 0 16px; scrollbar-width: none; -ms-overflow-style: none;
+    touch-action: pan-x;
+    flex-shrink: 0;
 }
 .shlom-slider-track::-webkit-scrollbar { display: none; }
 
@@ -865,7 +1267,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-card-btn i { font-size: 0.85rem; }
 .shlom-card-btn-maps { background: rgba(0,122,255,0.1); color: #007AFF; }
 .shlom-card-btn-visit { background: rgba(52,199,89,0.1); color: #34C759; }
-.shlom-card-btn-skip { background: rgba(255,59,48,0.1); color: #FF3B30; }
+.shlom-card-btn-ausente { background: rgba(255,59,48,0.1); color: #FF3B30; }
 
 .shlom-card-content {
     display: flex; flex-direction: column; min-width: 0;
@@ -884,7 +1286,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-contract-amount { font-weight: 600; color: #1c1c1e; }
 
 /* Slider controls */
-.shlom-slider-controls { display: flex; justify-content: center; padding: 6px 0 2px; }
+.shlom-slider-controls { display: flex; justify-content: center; padding: 0; margin-top: -4px; flex-shrink: 0; }
 .shlom-slider-dots { display: flex; gap: 6px; align-items: center; }
 .shlom-dot {
     width: 7px; height: 7px; border-radius: 50%; background: rgba(60,60,67,0.2);
@@ -919,11 +1321,14 @@ body.shlom-ruta-detalle-open .rainbow-background {
 </div>
 
 <div class="container" style="position: relative; z-index: 10;">
+    {{-- Saludo solo para administradores --}}
+    @if(Auth::user()->role === 'admin')
     <div class="mb-4 text-start">
         <h3 class="display-2 fw-bold" style="line-height: 0.8; opacity: 0.6; letter-spacing: -2px;">¡{{ $greeting }}, 
             <br>
         {{ Auth::user()->name }}!</h3>
     </div>
+    @endif
     
     {{-- Agenda Minimalista - Solo para administradores --}}
     @if(Auth::user()->role === 'admin')
@@ -1100,8 +1505,15 @@ body.shlom-ruta-detalle-open .rainbow-background {
             <div class="shlom-header-top">
                 <div>
                     <h1 class="shlom-title">Rutas</h1>
-                    <p class="shlom-subtitle">Tu trabajo del día</p>
+                    <p class="shlom-subtitle">Rutas agendadas a tu nombre</p>
                 </div>
+                <button type="button" class="shlom-btn-mis-rutas" data-bs-toggle="modal" data-bs-target="#misRutasModal">
+                    <i class="fa-solid fa-route"></i>
+                    Mis rutas
+                    @if($empleadoPlantillas->count() > 0)
+                        <span class="badge">{{ $empleadoPlantillas->count() }}</span>
+                    @endif
+                </button>
             </div>
         </div>
 
@@ -1119,7 +1531,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
         </div>
 
         <div class="shlom-section-label">Del día</div>
-        <div class="shlom-route-list" id="listaRutasDia" style="padding-bottom: 16px;">
+        <div class="shlom-route-list" id="listaRutasDia">
             @forelse($empleadoRutas as $ruta)
                 @php
                         $domiciliosUnicos = [];
@@ -1199,35 +1611,129 @@ body.shlom-ruta-detalle-open .rainbow-background {
                         <i class="fa-solid fa-route"></i>
                     </div>
                     <h3>Sin rutas este día</h3>
-                    <p>Cambia de día o revisa tus rutas asignadas abajo.</p>
+                    <p>Cambia de día o abre <strong>Mis rutas</strong> para ver tus asignaciones.</p>
                 </div>
             @endforelse
         </div>
+    </div>
 
-        <div class="shlom-section-label">Rutas asignadas</div>
-        <div class="shlom-route-list" id="listaPlantillas" style="padding-top: 0;">
-            @forelse($empleadoPlantillas as $plantilla)
-                <div class="shlom-plantilla-card">
-                    <div class="shlom-plantilla-icon">
-                        <i class="fa-solid fa-route"></i>
-                    </div>
-                    <div class="shlom-plantilla-body">
-                        <div class="shlom-plantilla-name">{{ $plantilla->nombre ?: ('Ruta #' . $plantilla->id) }}</div>
-                        <div class="shlom-plantilla-meta">
-                            {{ $plantilla->etiquetaFrecuencia() }}
-                            · {{ $plantilla->paradas_count }} parada{{ $plantilla->paradas_count === 1 ? '' : 's' }}
+    {{-- Modal: rutas asignadas --}}
+    <div class="modal fade" id="misRutasModal" tabindex="-1" aria-labelledby="misRutasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="misRutasModalLabel">Mis rutas</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body" id="listaPlantillas">
+                    @php
+                        $misRutasParadasById = [];
+                        foreach ($empleadoPlantillas as $plantillaForParadas) {
+                            $misRutasParadasById[(string) $plantillaForParadas->id] = $plantillaForParadas->paradas->map(function ($parada) {
+                                $cliente = $parada->cliente ?: $parada->contrato?->cliente;
+                                $nombre = $cliente
+                                    ? trim(($cliente->nombre ?? '') . ' ' . ($cliente->apellido ?? ''))
+                                    : 'Sin cliente';
+                                $domicilio = $cliente
+                                    ? (
+                                        $cliente->domicilio_completo
+                                        ?: collect([
+                                            $cliente->calle_y_numero,
+                                            $cliente->colonia,
+                                            $cliente->municipio,
+                                        ])->filter()->implode(', ')
+                                    )
+                                    : '';
+
+                                return [
+                                    'orden' => (int) ($parada->orden ?: 0),
+                                    'contrato_id' => $parada->contrato_id,
+                                    'cliente' => $nombre !== '' ? $nombre : 'Sin cliente',
+                                    'domicilio' => $domicilio !== '' ? $domicilio : 'Sin domicilio',
+                                ];
+                            })->values()->all();
+                        }
+                    @endphp
+                    <script type="application/json" id="misRutasParadasData">@json($misRutasParadasById)</script>
+                    <div class="mis-rutas-search-wrap" id="misRutasSearchWrap">
+                        <div class="mis-rutas-search">
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <input type="search"
+                                   id="misRutasSearch"
+                                   placeholder="Folio, titular o domicilio"
+                                   autocomplete="off"
+                                   enterkeyhint="search">
+                            <button type="button" class="mis-rutas-search-clear d-none" id="misRutasSearchClear" aria-label="Limpiar">
+                                <i class="bi bi-x"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
-            @empty
-                <div class="shlom-empty-state">
-                    <div class="shlom-empty-icon">
-                        <i class="fa-solid fa-map"></i>
+                    <div class="mis-rutas-search-results" id="misRutasSearchResults" hidden></div>
+                    <div class="mis-rutas-page active" id="misRutasPageList" data-page="list">
+                        @forelse($empleadoPlantillas as $plantilla)
+                            @php
+                                $freqIcon = match ($plantilla->frecuencia) {
+                                    \App\Models\RutaPlantilla::FRECUENCIA_DIARIA => 'bi-sun',
+                                    \App\Models\RutaPlantilla::FRECUENCIA_SEMANAL => 'bi-calendar-week',
+                                    \App\Models\RutaPlantilla::FRECUENCIA_MENSUAL => 'bi-calendar-month',
+                                    default => 'bi-calendar3',
+                                };
+                            @endphp
+                            <div class="shlom-plantilla-card"
+                                 role="button"
+                                 tabindex="0"
+                                 data-plantilla-id="{{ $plantilla->id }}"
+                                 data-plantilla-nombre="{{ e($plantilla->nombre ?: ('Ruta #' . $plantilla->id)) }}"
+                                 data-plantilla-freq="{{ e($plantilla->etiquetaFrecuencia()) }}">
+                                <div class="shlom-plantilla-icon">
+                                    <i class="fa-solid fa-route"></i>
+                                </div>
+                                <div class="shlom-plantilla-body">
+                                    <div class="shlom-plantilla-name">{{ $plantilla->nombre ?: ('Ruta #' . $plantilla->id) }}</div>
+                                    <div class="shlom-plantilla-meta">
+                                        <span class="shlom-plantilla-meta-item">
+                                            <i class="bi {{ $freqIcon }}"></i>
+                                            {{ $plantilla->etiquetaFrecuencia() }}
+                                        </span>
+                                        <span class="shlom-plantilla-meta-sep" aria-hidden="true"></span>
+                                        <span class="shlom-plantilla-meta-item">
+                                            <i class="bi bi-geo-alt-fill"></i>
+                                            {{ $plantilla->paradas_count }} parada{{ $plantilla->paradas_count === 1 ? '' : 's' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <i class="bi bi-chevron-right shlom-plantilla-chevron"></i>
+                            </div>
+                        @empty
+                            <div class="shlom-empty-state">
+                                <div class="shlom-empty-icon">
+                                    <i class="fa-solid fa-map"></i>
+                                </div>
+                                <h3>Sin rutas asignadas</h3>
+                                <p>Cuando te asignen una ruta, aparecerá aquí.</p>
+                            </div>
+                        @endforelse
                     </div>
-                    <h3>Sin rutas asignadas</h3>
-                    <p>Cuando te asignen una ruta, aparecerá aquí.</p>
+
+                    <div class="mis-rutas-page" id="misRutasPageDetail" data-page="detail">
+                        <button type="button" class="btn-mis-rutas-back" id="btnMisRutasBack">
+                            <i class="bi bi-chevron-left"></i> Mis rutas
+                        </button>
+                        <div>
+                            <h3 class="mis-rutas-detail-title" id="misRutasDetailTitle">Ruta</h3>
+                            <p class="mis-rutas-detail-sub" id="misRutasDetailSub"></p>
+                        </div>
+                        <button type="button"
+                                class="btn-ver-ruta-plantilla"
+                                id="btnVerRutaPlantilla"
+                                data-plantilla-id="">
+                            <i class="bi bi-signpost-2-fill"></i>
+                            <span>Ver ruta</span>
+                        </button>
+                        <div id="misRutasDetailList"></div>
+                    </div>
                 </div>
-            @endforelse
+            </div>
         </div>
     </div>
 
@@ -1240,9 +1746,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
             </button>
             <div class="shlom-detail-info">
                 <span class="shlom-detail-title" id="detailRutaTitle">Ruta</span>
-                <span class="shlom-detail-date" id="detailRutaDate"></span>
             </div>
-            <span class="shlom-detail-badge" id="detailRutaEstado"></span>
         </div>
 
         {{-- Mapa (full screen behind sheet) --}}
@@ -1256,10 +1760,35 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 <div class="shlom-handle-bar"></div>
             </div>
             <div class="shlom-sheet-content">
+                <div class="shlom-ruta-meta" id="rutaDetalleMeta">
+                    <span class="shlom-ruta-meta-item" id="detailRutaFechaWrap">
+                        <i class="bi bi-calendar3"></i>
+                        <span id="detailRutaFecha">—</span>
+                    </span>
+                    <span class="shlom-ruta-meta-item d-none" id="detailRutaFreqWrap">
+                        <i class="bi bi-arrow-repeat"></i>
+                        <span id="detailRutaFreq"></span>
+                    </span>
+                    <span class="shlom-ruta-meta-badge" id="detailRutaEstado">—</span>
+                </div>
+                <div class="shlom-slider-track" id="paradasSlider"></div>
+                <div class="shlom-slider-controls">
+                    <div class="shlom-slider-dots" id="sliderDots"></div>
+                </div>
+                <div id="puntoCasaBlock" class="shlom-punto-casa-block">
+                    <div class="shlom-seg-label">Tu domicilio como</div>
+                    <div class="shlom-seg" id="puntoCasaTabs" role="tablist">
+                        <button type="button" class="shlom-seg-tab active" data-value="inicio">Inicio</button>
+                        <button type="button" class="shlom-seg-tab" data-value="final">Final</button>
+                        <button type="button" class="shlom-seg-tab" data-value="ambos">Ambos</button>
+                    </div>
+                </div>
                 <div id="rutaResumenHistorico" class="shlom-ruta-resumen d-none">
-                    <div class="shlom-resumen-kicker">Resumen</div>
-                    <div class="shlom-resumen-title" id="rutaResumenHeadline">—</div>
-                    <p class="shlom-resumen-text" id="rutaResumenDetalle"></p>
+                    <div class="shlom-resumen-kicker">Progreso</div>
+                    <div class="shlom-progress-track mb-2">
+                        <div class="shlom-progress-fill" id="rutaResumenProgressFill" style="width: 0%;"></div>
+                    </div>
+                    <div class="shlom-resumen-text mb-2" id="rutaResumenPorcentaje">0%</div>
                     <ul class="ios-grouped shlom-resumen-stats">
                         <li>
                             <span>Visitados</span>
@@ -1275,18 +1804,6 @@ body.shlom-ruta-detalle-open .rainbow-background {
                         </li>
                     </ul>
                 </div>
-                <div id="puntoCasaBlock" class="shlom-punto-casa-block">
-                    <div class="shlom-seg-label">Tu domicilio como</div>
-                    <div class="shlom-seg" id="puntoCasaTabs" role="tablist">
-                        <button type="button" class="shlom-seg-tab active" data-value="inicio">Partida</button>
-                        <button type="button" class="shlom-seg-tab" data-value="final">Final</button>
-                        <button type="button" class="shlom-seg-tab" data-value="ambos">Ambos</button>
-                    </div>
-                </div>
-                <div class="shlom-slider-track" id="paradasSlider"></div>
-                <div class="shlom-slider-controls">
-                    <div class="shlom-slider-dots" id="sliderDots"></div>
-                </div>
             </div>
         </div>
     </div>
@@ -1296,26 +1813,19 @@ body.shlom-ruta-detalle-open .rainbow-background {
             <div class="modal-content ios-confirm-card visita-wizard-card">
                 <div class="visita-wizard-body">
                     <div id="visitaWizardError" class="ios-banner ios-banner-danger d-none"></div>
-                    <div class="ios-wizard-dots" id="visitaWizardDots"></div>
-                    <div class="ios-confirm-icon ios-confirm-icon-visit">
-                        <i class="bi bi-geo-alt-fill"></i>
+                    <div class="visita-form-header" id="visitaFormHeader">
+                        <div class="ios-confirm-icon ios-confirm-icon-visit" id="visitaWizardIcon">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
+                        <div class="visita-form-header-body">
+                            <div class="visita-form-header-top">
+                                <h2 class="ios-confirm-title" id="visitaWizardTitle">Abono</h2>
+                                <span class="visita-form-contrato" id="visitaVinculoContrato">—</span>
+                            </div>
+                            <p class="visita-form-nombre" id="visitaVinculoNombre">—</p>
+                            <p class="visita-form-domicilio" id="visitaVinculoDomicilio">—</p>
+                        </div>
                     </div>
-                    <h2 class="ios-confirm-title" id="visitaWizardTitle">Visita</h2>
-                    <p class="ios-confirm-msg" id="visitaConfirmTexto">Se registrará una visita hecha en este domicilio.</p>
-                    <ul class="ios-grouped">
-                        <li>
-                            <span>Contrato</span>
-                            <strong id="visitaVinculoContrato">—</strong>
-                        </li>
-                        <li>
-                            <span>Nombre</span>
-                            <strong id="visitaVinculoNombre">—</strong>
-                        </li>
-                        <li>
-                            <span>Domicilio</span>
-                            <strong id="visitaVinculoDomicilio">—</strong>
-                        </li>
-                    </ul>
 
                     <div class="visita-wizard-step" data-step="1">
                         <div class="ios-confirm-map-wrap">
@@ -1328,60 +1838,31 @@ body.shlom-ruta-detalle-open .rainbow-background {
                             <span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...
                         </div>
                         <div id="visitaDistanciaAlert" class="ios-banner ios-banner-warning d-none"></div>
-                        <div class="ios-field">
-                            <label>¿Recibió el titular?</label>
-                            <div class="ios-seg-mini" id="visitaTitularSeg">
-                                <button type="button" class="active" data-value="1">Sí</button>
-                                <button type="button" data-value="0">No</button>
-                            </div>
-                        </div>
-                        <div id="visitaOtroReceptorBlock" class="d-none">
-                            <button type="button" class="ios-chip-btn" id="btnNadieRecibio">
-                                <i class="bi bi-slash-circle"></i> Nadie recibió
-                            </button>
-                            <div id="visitaReceptorFields">
-                                <div class="ios-field">
-                                    <label for="visitaReceptorNombre">Nombre de quien recibió</label>
-                                    <input type="text" id="visitaReceptorNombre" maxlength="120" autocomplete="name">
-                                </div>
-                                <div class="ios-field">
-                                    <label for="visitaReceptorParentesco">Parentesco</label>
-                                    <select id="visitaReceptorParentesco">
-                                        <option value="">Selecciona</option>
-                                        @foreach(\App\Models\Visita::PARENTESCOS as $valor => $etiqueta)
-                                            @if($valor !== 'titular')
-                                                <option value="{{ $valor }}">{{ $etiqueta }}</option>
-                                            @endif
-                                        @endforeach
-                                    </select>
-                                </div>
+                        <div id="visitaFoliosPago" class="mt-2"></div>
+                        <div id="visitaAbonoConfirmPanel" class="visita-abono-confirm d-none">
+                            <div class="ios-banner ios-banner-warning">
+                                <span class="visita-abono-confirm-title"><i class="bi bi-exclamation-triangle-fill me-1"></i>¿Confirmas el abono?</span>
+                                <div class="visita-abono-confirm-resumen" id="visitaAbonoConfirmResumen"></div>
+                                <div class="mt-1">Esta acción no se puede deshacer fácilmente.</div>
                             </div>
                         </div>
                     </div>
 
                     <div class="visita-wizard-step d-none" data-step="2">
-                        <div class="ios-field">
-                            <label>¿Registrar pago o abono?</label>
-                            <div class="ios-seg-mini" id="visitaPagoSeg">
-                                <button type="button" class="active" data-value="0">No</button>
-                                <button type="button" data-value="1">Sí</button>
+                        <div class="visita-ticket-preview">
+                            <div class="visita-ticket-preview-scroll" id="visitaTicketPreviewScroll">
+                                <iframe id="visitaTicketFrame" class="visita-ticket-frame" title="Ticket de visita" scrolling="no"></iframe>
                             </div>
                         </div>
-                        <p class="ios-confirm-msg mb-0">Solo puedes cobrar los folios asignados a esta parada.</p>
-                    </div>
-
-                    <div class="visita-wizard-step d-none" data-step="3">
-                        <div id="visitaFoliosPago"></div>
-                    </div>
-
-                    <div class="visita-wizard-step d-none" data-step="4">
-                        <iframe id="visitaTicketFrame" class="visita-ticket-frame" title="Ticket de visita"></iframe>
                     </div>
                 </div>
                 <div class="ios-confirm-actions visita-wizard-actions">
-                    <button type="button" class="ios-btn ios-btn-primary" id="btnVisitaWizardNext" disabled>Continuar</button>
-                    <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardBack">Atrás</button>
+                    <button type="button" class="ios-btn ios-btn-primary" id="btnVisitaWizardNext" disabled>Registrar abono</button>
+                    <button type="button" class="ios-btn ios-btn-primary d-none" id="btnVisitaWizardConfirm">Sí, confirmar</button>
+                    <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardReview">Revisar</button>
                     <button type="button" class="ios-btn ios-btn-plain" id="btnVisitaWizardCancel" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="ios-btn ios-btn-primary d-none" id="btnVisitaWizardPrint">Imprimir</button>
+                    <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardUndo" style="color:#FF3B30;">Deshacer la visita</button>
                     <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardClose">Cerrar</button>
                 </div>
             </div>
@@ -1395,7 +1876,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     <i class="bi bi-skip-forward-fill"></i>
                 </div>
                 <h2 class="ios-confirm-title">Omitir parada</h2>
-                <p class="ios-confirm-msg" id="omitirConfirmTexto">Esta parada se omitirá y se desbloqueará la siguiente.</p>
+                <p class="ios-confirm-msg" id="omitirConfirmTexto">Esta parada se marcará como omitida.</p>
                 <ul class="ios-grouped">
                     <li>
                         <span>Contrato</span>
@@ -1646,6 +2127,20 @@ body.shlom-ruta-detalle-open .rainbow-background {
 
         function formatearFecha(fecha) {
             return fecha.toISOString().split('T')[0];
+        }
+
+        function formatearFechaLargaEs(fechaStr) {
+            var parts = String(fechaStr || '').split('-');
+            if (parts.length !== 3) return fechaStr || '—';
+            var y = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10) - 1;
+            var d = parseInt(parts[2], 10);
+            var date = new Date(y, m, d);
+            if (isNaN(date.getTime())) return fechaStr;
+            var dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            return dias[date.getDay()] + ' ' + d + ' de ' + meses[m] + ' de ' + y;
         }
 
         function esMismaFecha(fecha1, fecha2) {
@@ -2176,6 +2671,270 @@ body.shlom-ruta-detalle-open .rainbow-background {
             });
         }
 
+        // El container tiene z-index:10; el backdrop va a body y tapaba el modal.
+        (function setupMisRutasModal() {
+            var modal = document.getElementById('misRutasModal');
+            if (!modal) return;
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+
+            var pageList = document.getElementById('misRutasPageList');
+            var pageDetail = document.getElementById('misRutasPageDetail');
+            var titleEl = document.getElementById('misRutasModalLabel');
+            var detailTitle = document.getElementById('misRutasDetailTitle');
+            var detailSub = document.getElementById('misRutasDetailSub');
+            var detailList = document.getElementById('misRutasDetailList');
+            var btnVerRuta = document.getElementById('btnVerRutaPlantilla');
+            var searchWrap = document.getElementById('misRutasSearchWrap');
+            var searchInput = document.getElementById('misRutasSearch');
+            var searchClear = document.getElementById('misRutasSearchClear');
+            var searchResults = document.getElementById('misRutasSearchResults');
+            var rutaProximaUrlTpl = @json(route('home.rutaProximaPlantilla', ['plantilla' => '__ID__'], absolute: false));
+            var paradasById = {};
+            var dataEl = document.getElementById('misRutasParadasData');
+            if (dataEl) {
+                try {
+                    paradasById = JSON.parse(dataEl.textContent || '{}') || {};
+                } catch (e) {
+                    paradasById = {};
+                }
+            }
+
+            function normTxt(s) {
+                return String(s == null ? '' : s)
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim();
+            }
+
+            function plantillaMeta(id) {
+                var card = pageList
+                    ? pageList.querySelector('.shlom-plantilla-card[data-plantilla-id="' + id + '"]')
+                    : null;
+                return {
+                    id: String(id),
+                    nombre: card ? (card.getAttribute('data-plantilla-nombre') || ('Ruta #' + id)) : ('Ruta #' + id),
+                    freq: card ? (card.getAttribute('data-plantilla-freq') || '') : '',
+                    card: card
+                };
+            }
+
+            function showMisRutasPage(page) {
+                if (pageList) pageList.classList.toggle('active', page === 'list');
+                if (pageDetail) pageDetail.classList.toggle('active', page === 'detail');
+                if (titleEl) titleEl.textContent = page === 'detail' ? 'Paradas' : 'Mis rutas';
+                if (searchWrap) searchWrap.classList.toggle('d-none', page !== 'list');
+                if (page === 'detail') {
+                    clearSearch(true);
+                } else {
+                    applySearch();
+                }
+                if (modal.querySelector('.modal-body')) {
+                    modal.querySelector('.modal-body').scrollTop = 0;
+                }
+            }
+
+            function setVerRutaLoading(loading) {
+                if (!btnVerRuta) return;
+                btnVerRuta.disabled = !!loading;
+                var label = btnVerRuta.querySelector('span');
+                if (label) label.textContent = loading ? 'Abriendo…' : 'Ver ruta';
+            }
+
+            function renderParadasList(paradas) {
+                if (!detailList) return;
+                if (!paradas.length) {
+                    detailList.innerHTML = '<div class="mis-rutas-detail-empty">Esta ruta no tiene paradas asignadas.</div>';
+                    return;
+                }
+                detailList.innerHTML = paradas.map(function(p, idx) {
+                    var orden = p.orden || (idx + 1);
+                    return '<div class="mis-rutas-parada">' +
+                        '<div class="mis-rutas-parada-num">' + orden + '</div>' +
+                        '<div class="mis-rutas-parada-body">' +
+                        '<p class="mis-rutas-parada-name">' + escHtml(p.cliente) + '</p>' +
+                        '<p class="mis-rutas-parada-addr"><i class="bi bi-geo-alt me-1"></i>' + escHtml(p.domicilio) + '</p>' +
+                        (p.contrato_id ? '<div class="mis-rutas-parada-meta"><span class="mis-rutas-parada-chip">Folio #' + p.contrato_id + '</span></div>' : '') +
+                        '</div></div>';
+                }).join('');
+            }
+
+            function openPlantillaDetailById(id) {
+                var meta = plantillaMeta(id);
+                var paradas = Array.isArray(paradasById[id]) ? paradasById[id] : [];
+                if (detailTitle) detailTitle.textContent = meta.nombre;
+                if (detailSub) {
+                    detailSub.textContent = meta.freq
+                        + (paradas.length ? (' · ' + paradas.length + ' parada' + (paradas.length === 1 ? '' : 's')) : '');
+                }
+                if (btnVerRuta) {
+                    btnVerRuta.setAttribute('data-plantilla-id', id);
+                    setVerRutaLoading(false);
+                }
+                renderParadasList(paradas);
+                showMisRutasPage('detail');
+            }
+
+            function openPlantillaDetail(card) {
+                openPlantillaDetailById(String(card.getAttribute('data-plantilla-id') || ''));
+            }
+
+            function clearSearch(silent) {
+                if (searchInput && searchInput.value) searchInput.value = '';
+                if (searchClear) searchClear.classList.add('d-none');
+                if (!silent) applySearch();
+                else {
+                    if (searchResults) {
+                        searchResults.classList.remove('active');
+                        searchResults.hidden = true;
+                        searchResults.innerHTML = '';
+                    }
+                    if (pageList) pageList.classList.remove('mis-rutas-page-dimmed');
+                }
+            }
+
+            function applySearch() {
+                var q = searchInput ? normTxt(searchInput.value) : '';
+                if (searchClear) searchClear.classList.toggle('d-none', !q);
+                if (!searchResults || !pageList) return;
+
+                if (!q) {
+                    searchResults.classList.remove('active');
+                    searchResults.hidden = true;
+                    searchResults.innerHTML = '';
+                    pageList.classList.remove('mis-rutas-page-dimmed');
+                    pageList.classList.add('active');
+                    return;
+                }
+
+                var hits = [];
+                Object.keys(paradasById).forEach(function(pid) {
+                    var meta = plantillaMeta(pid);
+                    (paradasById[pid] || []).forEach(function(p, idx) {
+                        var folio = String(p.contrato_id == null ? '' : p.contrato_id);
+                        var hay = normTxt(folio) + ' ' + normTxt(p.cliente) + ' ' + normTxt(p.domicilio);
+                        if (hay.indexOf(q) === -1) return;
+                        hits.push({
+                            plantillaId: pid,
+                            plantillaNombre: meta.nombre,
+                            orden: p.orden || (idx + 1),
+                            cliente: p.cliente,
+                            domicilio: p.domicilio,
+                            contrato_id: p.contrato_id
+                        });
+                    });
+                });
+
+                pageList.classList.add('mis-rutas-page-dimmed');
+                pageList.classList.remove('active');
+                searchResults.hidden = false;
+                searchResults.classList.add('active');
+
+                if (!hits.length) {
+                    searchResults.innerHTML = '<div class="mis-rutas-detail-empty">Sin paradas para “' + escHtml(searchInput.value.trim()) + '”.</div>';
+                    return;
+                }
+
+                searchResults.innerHTML = hits.map(function(h) {
+                    return '<button type="button" class="mis-rutas-search-hit" data-plantilla-id="' + escHtml(h.plantillaId) + '">' +
+                        '<div class="mis-rutas-parada-num">' + h.orden + '</div>' +
+                        '<div class="mis-rutas-parada-body">' +
+                        '<p class="mis-rutas-search-hit-route">' + escHtml(h.plantillaNombre) + '</p>' +
+                        '<p class="mis-rutas-parada-name">' + escHtml(h.cliente) + '</p>' +
+                        '<p class="mis-rutas-parada-addr"><i class="bi bi-geo-alt me-1"></i>' + escHtml(h.domicilio) + '</p>' +
+                        (h.contrato_id ? '<div class="mis-rutas-parada-meta"><span class="mis-rutas-parada-chip">Folio #' + h.contrato_id + '</span></div>' : '') +
+                        '</div></button>';
+                }).join('');
+            }
+
+            function abrirRutaProxima(plantillaId) {
+                if (!plantillaId || typeof openRutaDetalle !== 'function') return;
+                setVerRutaLoading(true);
+                var url = rutaProximaUrlTpl.replace('__ID__', encodeURIComponent(plantillaId));
+                fetch(url, { headers: { 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+                    .then(function(res) {
+                        if (!res.ok || !res.data || !res.data.success || !res.data.ruta_id) {
+                            throw new Error((res.data && res.data.message) || 'No se pudo abrir la ruta.');
+                        }
+                        var modalInst = bootstrap.Modal.getInstance(modal);
+                        if (modalInst) modalInst.hide();
+                        else {
+                            var closeBtn = modal.querySelector('[data-bs-dismiss="modal"]');
+                            if (closeBtn) closeBtn.click();
+                        }
+                        openRutaDetalle(res.data.ruta_id);
+                    })
+                    .catch(function(err) {
+                        alert(err && err.message ? err.message : 'No se pudo abrir la ruta.');
+                    })
+                    .finally(function() {
+                        setVerRutaLoading(false);
+                    });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', applySearch);
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        clearSearch();
+                    }
+                });
+            }
+            if (searchClear) {
+                searchClear.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    clearSearch();
+                    if (searchInput) searchInput.focus();
+                });
+            }
+
+            modal.addEventListener('click', function(e) {
+                var hit = e.target.closest('.mis-rutas-search-hit');
+                if (hit) {
+                    e.preventDefault();
+                    openPlantillaDetailById(String(hit.getAttribute('data-plantilla-id') || ''));
+                    return;
+                }
+                var card = e.target.closest('.shlom-plantilla-card');
+                if (card && pageList && pageList.contains(card)) {
+                    e.preventDefault();
+                    openPlantillaDetail(card);
+                    return;
+                }
+                if (e.target.closest('#btnMisRutasBack')) {
+                    e.preventDefault();
+                    showMisRutasPage('list');
+                    return;
+                }
+                var verBtn = e.target.closest('#btnVerRutaPlantilla');
+                if (verBtn) {
+                    e.preventDefault();
+                    if (verBtn.disabled) return;
+                    abrirRutaProxima(verBtn.getAttribute('data-plantilla-id'));
+                }
+            });
+
+            modal.addEventListener('keydown', function(e) {
+                if (e.target && e.target.id === 'misRutasSearch') return;
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                var card = e.target.closest('.shlom-plantilla-card');
+                if (card && pageList && pageList.contains(card)) {
+                    e.preventDefault();
+                    openPlantillaDetail(card);
+                }
+            });
+
+            modal.addEventListener('hidden.bs.modal', function() {
+                showMisRutasPage('list');
+                clearSearch();
+                setVerRutaLoading(false);
+            });
+        })();
+
         var rutasDiaOffset = {{ (int) $currentDayOffset }};
         var rutasDiaEndpoint = @json(route('home.rutasDia', absolute: false));
 
@@ -2206,7 +2965,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
             if (sub) sub.textContent = data.subtitulo;
             if (!lista) return;
             if (!data.rutas || !data.rutas.length) {
-                lista.innerHTML = '<div class="shlom-empty-state"><div class="shlom-empty-icon"><i class="fa-solid fa-route"></i></div><h3>Sin rutas este día</h3><p>Cambia de día o revisa tus rutas asignadas abajo.</p></div>';
+                lista.innerHTML = '<div class="shlom-empty-state"><div class="shlom-empty-icon"><i class="fa-solid fa-route"></i></div><h3>Sin rutas este día</h3><p>Cambia de día o abre <strong>Mis rutas</strong> para ver tus asignaciones.</p></div>';
                 return;
             }
             lista.innerHTML = data.rutas.map(htmlRutaDiaCard).join('');
@@ -2310,13 +3069,45 @@ body.shlom-ruta-detalle-open .rainbow-background {
             var moved = false;
             var fromHandle = false;
 
+            function measureCollapsedSheetHeight() {
+                var meta = document.getElementById('rutaDetalleMeta');
+                var slider = document.getElementById('paradasSlider');
+                var controls = sheet.querySelector('.shlom-slider-controls');
+                var handleH = handle.getBoundingClientRect().height || 28;
+                var gap = 10;
+                var padBottom = 14;
+                var controlsPull = 4;
+                var parts = [meta, slider, controls].filter(Boolean);
+                var contentH = 0;
+                parts.forEach(function(el, i) {
+                    contentH += el.getBoundingClientRect().height;
+                    if (i < parts.length - 1) contentH += gap;
+                });
+                contentH = Math.max(contentH - controlsPull, 0);
+                var h = Math.ceil(handleH + contentH + padBottom);
+                var minH = 240;
+                var maxH = Math.round(window.innerHeight * 0.68);
+                return Math.max(minH, Math.min(maxH, h || 320));
+            }
+
+            function syncCollapsedSheetHeight() {
+                var h = measureCollapsedSheetHeight();
+                sheet.style.setProperty('--shlom-sheet-collapsed', h + 'px');
+                return h;
+            }
+
             function collapsedSheetHeight() {
-                return sheet.classList.contains('historica') ? 360 : 280;
+                var raw = getComputedStyle(sheet).getPropertyValue('--shlom-sheet-collapsed').trim();
+                var parsed = parseFloat(raw);
+                if (parsed && !isNaN(parsed)) return parsed;
+                return measureCollapsedSheetHeight();
             }
 
             function expandedSheetHeight() {
                 return Math.round(window.innerHeight * 0.85);
             }
+
+            window.syncBottomSheetCollapsedHeight = syncCollapsedSheetHeight;
 
             function contentAtTop() {
                 return content.scrollTop <= 1;
@@ -2463,8 +3254,17 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 sheet.style.transform = '';
                 content.scrollTop = 0;
                 sheet.offsetHeight;
+                syncCollapsedSheetHeight();
                 sheet.style.transition = '';
             };
+
+            window.addEventListener('resize', function() {
+                if (!document.getElementById('screenRutaDetalle') ||
+                    !document.getElementById('screenRutaDetalle').classList.contains('active')) {
+                    return;
+                }
+                syncCollapsedSheetHeight();
+            });
 
             sheet.addEventListener('transitionend', function() {
                 if (typeof homeMap !== 'undefined' && homeMap) {
@@ -2480,9 +3280,8 @@ body.shlom-ruta-detalle-open .rainbow-background {
         }
 
         function paradaDesbloqueada(idx, domicilios) {
-            var list = domicilios || currentDomicilios;
-            if (idx <= 0) return true;
-            return !!(list[idx - 1] && domicilioCerrada(list[idx - 1]));
+            // Todas las paradas son accionables; el orden es solo una sugerencia de recorrido.
+            return true;
         }
 
         function pintarResumenHistorico(ruta) {
@@ -2490,14 +3289,20 @@ body.shlom-ruta-detalle-open .rainbow-background {
             var puntoCasa = document.getElementById('puntoCasaBlock');
             if (!box) return;
             var pasada = !!ruta.es_pasada;
+            // En días pasados se muestra progreso, pero se puede seguir abonando.
             box.classList.toggle('d-none', !pasada);
-            if (puntoCasa) puntoCasa.classList.toggle('d-none', pasada);
+            if (puntoCasa) puntoCasa.classList.toggle('d-none', false);
+            setPuntoCasaUI(
+                (ruta && ruta.punto_casa) || 'inicio',
+                !!(ruta && ruta.empleado_lat && ruta.empleado_lng)
+            );
             if (!pasada) return;
             var r = ruta.resumen || {};
-            var headline = document.getElementById('rutaResumenHeadline');
-            var detalle = document.getElementById('rutaResumenDetalle');
-            if (headline) headline.textContent = r.headline || 'Resumen';
-            if (detalle) detalle.textContent = r.detalle || '';
+            var pct = r.porcentaje != null ? r.porcentaje : 0;
+            var fill = document.getElementById('rutaResumenProgressFill');
+            var pctLabel = document.getElementById('rutaResumenPorcentaje');
+            if (fill) fill.style.width = pct + '%';
+            if (pctLabel) pctLabel.textContent = pct + '% completado';
             var vis = document.getElementById('rutaResumenVisitados');
             var omi = document.getElementById('rutaResumenOmitidos');
             var pen = document.getElementById('rutaResumenPendientes');
@@ -2529,7 +3334,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
             currentRutaId = ruta.id;
             currentDomicilios = ordenarDomiciliosPorCasa(groupParadasByDomicilio(paradas), ruta);
             var esPasada = !!ruta.es_pasada;
-            setPuntoCasaUI(ruta.punto_casa || 'inicio', !esPasada && !!(ruta.empleado_lat && ruta.empleado_lng));
+            setPuntoCasaUI(ruta.punto_casa || 'inicio', !!(ruta.empleado_lat && ruta.empleado_lng));
             sliderIndex = 0;
 
             // Transición de pantallas
@@ -2537,18 +3342,28 @@ body.shlom-ruta-detalle-open .rainbow-background {
             document.getElementById('screenRutaDetalle').classList.add('active');
             setRutaDetalleBodyLock(true);
 
-            // Reset bottom sheet to collapsed
-            if (window.resetBottomSheet) window.resetBottomSheet(esPasada);
+            // Reset bottom sheet to collapsed (pasadas también permiten acciones)
+            if (window.resetBottomSheet) window.resetBottomSheet(false);
 
             pintarResumenHistorico(ruta);
 
-            // Topbar info
+            // Topbar: solo nombre
             document.getElementById('detailRutaTitle').textContent = ruta.nombre || ('Ruta #' + ruta.id);
-            var fechaStr = ruta.fecha.split('-').reverse().join('/');
-            if (ruta.frecuencia) fechaStr += ' · ' + ruta.frecuencia;
-            document.getElementById('detailRutaDate').textContent = fechaStr;
 
-            // Estado badge
+            // Meta en bottom sheet: fecha, frecuencia, estado
+            var fechaEl = document.getElementById('detailRutaFecha');
+            if (fechaEl) fechaEl.textContent = ruta.fecha ? formatearFechaLargaEs(ruta.fecha) : '—';
+            var freqWrap = document.getElementById('detailRutaFreqWrap');
+            var freqEl = document.getElementById('detailRutaFreq');
+            if (freqWrap && freqEl) {
+                if (ruta.frecuencia) {
+                    freqEl.textContent = ruta.frecuencia;
+                    freqWrap.classList.remove('d-none');
+                } else {
+                    freqEl.textContent = '';
+                    freqWrap.classList.add('d-none');
+                }
+            }
             var estadoConfig = {
                 'planeada': { color: '#007AFF', label: 'Planeada' },
                 'en_curso': { color: '#FF9500', label: 'En Curso' },
@@ -2557,18 +3372,24 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 'incompleta': { color: '#8E8E93', label: 'Incompleta' },
                 'vencida': { color: '#1C1C1E', label: 'Vencida' }
             };
-            var ec = estadoConfig[ruta.estado] || { color: '#8E8E93', label: ruta.estado };
+            var ec = estadoConfig[ruta.estado] || { color: '#8E8E93', label: ruta.estado || '—' };
             var badge = document.getElementById('detailRutaEstado');
-            badge.textContent = ec.label;
-            badge.style.background = ec.color + '20';
-            badge.style.color = ec.color;
+            if (badge) {
+                badge.textContent = ec.label;
+                badge.style.background = ec.color + '20';
+                badge.style.color = ec.color;
+            }
 
             // Render slider
             renderSlider(currentDomicilios, focusIdx);
 
-            // Init map
+            // Init map; si casa es destino, reordena desde GPS actual.
             setTimeout(function() {
                 initHomeMap();
+                if ((ruta.punto_casa || 'inicio') === 'final') {
+                    aplicarPuntoCasa('final', false);
+                    return;
+                }
                 clearHomeMap();
                 renderHomeParadas(ruta);
                 centerOnDomicilio(sliderIndex);
@@ -2659,14 +3480,23 @@ body.shlom-ruta-detalle-open .rainbow-background {
             return 'Punto de partida';
         }
 
-        function ordenarDomiciliosPorCasa(domicilios, ruta) {
-            var modo = (ruta && ruta.punto_casa) || 'inicio';
+        function origenParaOrdenRuta(ruta, modo) {
+            // Destino = casa: partir de la ubicación actual del cobrador.
+            if (modo === 'final' && lastKnownGps && lastKnownGps.lat && lastKnownGps.lng) {
+                return { lat: lastKnownGps.lat, lng: lastKnownGps.lng, source: 'gps' };
+            }
             var lat = ruta && parseFloat(ruta.empleado_lat);
             var lng = ruta && parseFloat(ruta.empleado_lng);
-            if (!lat || !lng) return domicilios.slice();
-            var nn = ordenarPorCercania(domicilios.slice(), lat, lng);
-            if (modo === 'final') nn.reverse();
-            return nn;
+            if (lat && lng) return { lat: lat, lng: lng, source: 'casa' };
+            return null;
+        }
+
+        function ordenarDomiciliosPorCasa(domicilios, ruta) {
+            var modo = (ruta && ruta.punto_casa) || 'inicio';
+            var origen = origenParaOrdenRuta(ruta, modo);
+            if (!origen) return domicilios.slice();
+            // NN desde el origen (GPS si destino=casa; domicilio si partida/ambos).
+            return ordenarPorCercania(domicilios.slice(), origen.lat, origen.lng);
         }
 
         function setPuntoCasaUI(modo, enabled) {
@@ -2682,16 +3512,35 @@ body.shlom-ruta-detalle-open .rainbow-background {
         function aplicarPuntoCasa(modo, persist) {
             if (!currentRutaMeta) return;
             currentRutaMeta.punto_casa = modo;
-            currentDomicilios = ordenarDomiciliosPorCasa(groupParadasByDomicilio(currentParadas), currentRutaMeta);
-            setPuntoCasaUI(modo, !currentRutaMeta.es_pasada && !!(currentRutaMeta.empleado_lat && currentRutaMeta.empleado_lng));
-            renderSlider(currentDomicilios);
-            if (homeMap) {
-                clearHomeMap();
-                renderHomeParadas(currentRutaMeta);
-                centerOnDomicilio(sliderIndex);
-                updateSliderControls();
+
+            var finish = function() {
+                currentDomicilios = ordenarDomiciliosPorCasa(groupParadasByDomicilio(currentParadas), currentRutaMeta);
+                setPuntoCasaUI(modo, !!(currentRutaMeta.empleado_lat && currentRutaMeta.empleado_lng));
+                renderSlider(currentDomicilios);
+                if (homeMap) {
+                    clearHomeMap();
+                    renderHomeParadas(currentRutaMeta);
+                    centerOnDomicilio(sliderIndex);
+                    updateSliderControls();
+                }
+                if (persist) guardarPuntoCasa();
+            };
+
+            // Si eligen casa como destino, pide GPS fresco para usarlo como primer punto.
+            if (modo === 'final' && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    rememberGps(pos);
+                    if (homeMap && lastKnownGps) {
+                        applyHomeGpsMarker(lastKnownGps.lat, lastKnownGps.lng, lastKnownGps.acc);
+                    }
+                    finish();
+                }, function() {
+                    finish();
+                }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 15000 });
+                return;
             }
-            if (persist && !currentRutaMeta.es_pasada) guardarPuntoCasa();
+
+            finish();
         }
 
         function guardarPuntoCasa() {
@@ -2723,6 +3572,12 @@ body.shlom-ruta-detalle-open .rainbow-background {
             var modo = (ruta && ruta.punto_casa) || 'inicio';
             var homeLat = ruta && parseFloat(ruta.empleado_lat);
             var homeLng = ruta && parseFloat(ruta.empleado_lng);
+
+            // Destino = casa: la ubicación actual es el primer punto del recorrido.
+            if (modo === 'final' && lastKnownGps && lastKnownGps.lat && lastKnownGps.lng) {
+                routePts.push([lastKnownGps.lat, lastKnownGps.lng]);
+                pts.push([lastKnownGps.lat, lastKnownGps.lng]);
+            }
 
             if (homeLat && homeLng) {
                 homeHomeMarker = L.marker([homeLat, homeLng], {
@@ -2757,6 +3612,29 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     homeMarkerLayer.addLayer(m);
                     paradaMarkers.push(m);
                 }
+
+                // Banderas: ubicación real donde se registró la visita/abono
+                (dom.paradas || []).forEach(function(p) {
+                    (p.registros_ubicacion || []).forEach(function(reg) {
+                        var rLat = parseFloat(reg.latitud);
+                        var rLng = parseFloat(reg.longitud);
+                        if (!rLat || !rLng) return;
+                        pts.push([rLat, rLng]);
+                        var flagColor = reg.tiene_pago ? '#007AFF' : '#FF9500';
+                        var flagLabel = reg.tiene_pago ? 'Abono registrado aquí' : 'Visita registrada aquí';
+                        var flag = L.marker([rLat, rLng], {
+                            icon: makeRegistroFlagIcon(flagColor),
+                            zIndexOffset: 850
+                        });
+                        flag.bindPopup(
+                            '<div style="min-width:140px"><strong style="color:' + flagColor + '">' + flagLabel + '</strong>' +
+                            '<br><small>' + escHtml(dom.cliente_nombre || '') + '</small>' +
+                            (p.contrato_id ? '<br><small>Folio #' + p.contrato_id + '</small>' : '') +
+                            '</div>'
+                        );
+                        homeMarkerLayer.addLayer(flag);
+                    });
+                });
             });
 
             if (homeLat && homeLng) {
@@ -2771,6 +3649,21 @@ body.shlom-ruta-detalle-open .rainbow-background {
             }
         }
 
+        function makeRegistroFlagIcon(color) {
+            color = color || '#007AFF';
+            return L.divIcon({
+                className: 'custom-marker shlom-registro-flag',
+                html: '<div style="position:relative;width:28px;height:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));">' +
+                    '<svg viewBox="0 0 24 34" width="28" height="34" xmlns="http://www.w3.org/2000/svg">' +
+                    '<path d="M6 2v30" stroke="#3a3a3c" stroke-width="2.2" stroke-linecap="round"/>' +
+                    '<path d="M7 3h11.5c.8 0 1.2.9.7 1.5L16 9l3.2 4.5c.5.6.1 1.5-.7 1.5H7V3z" fill="' + color + '"/>' +
+                    '</svg></div>',
+                iconSize: [28, 34],
+                iconAnchor: [6, 34],
+                popupAnchor: [8, -30]
+            });
+        }
+
         function renderSlider(domicilios, focusIdx) {
             var container = document.getElementById('paradasSlider');
             var dots = document.getElementById('sliderDots');
@@ -2780,9 +3673,9 @@ body.shlom-ruta-detalle-open .rainbow-background {
             if (typeof focusIdx === 'number' && focusIdx >= 0) {
                 sliderIndex = Math.min(focusIdx, Math.max(domicilios.length - 1, 0));
             } else {
-            sliderIndex = 0;
+                sliderIndex = 0;
                 for (var i = 0; i < domicilios.length; i++) {
-                    if (paradaDesbloqueada(i, domicilios) && !domicilioCerrada(domicilios[i])) {
+                    if (!domicilioCerrada(domicilios[i])) {
                         sliderIndex = i;
                         break;
                     }
@@ -2815,32 +3708,42 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 var pendientes = dom.paradas.filter(function(p) { return p.estado === 'pendiente'; }).length;
                 var visitada = estadoDom === 'visitada';
                 var historica = !!(currentRutaMeta && currentRutaMeta.es_pasada);
-                var desbloqueada = historica || paradaDesbloqueada(idx, domicilios);
                 var visitBtn = '';
-                var skipBtn = '';
-                var lockNote = '';
-                if (historica) {
-                    lockNote = '';
-                } else if (!desbloqueada) {
-                    lockNote = '<div class="shlom-card-lock-note"><i class="bi bi-lock-fill"></i> Visita u omite la parada anterior para desbloquear</div>';
-                } else if (pendientes > 0) {
+                var ausenteBtn = '';
+                // Abonos permitidos también en fechas anteriores.
+                if (pendientes > 0) {
                     visitBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-visit" data-dom-index="${idx}">
                                 <i class="bi bi-geo-alt-fill"></i>
-                                <span>Visita</span>
+                                <span>Abono</span>
                             </button>`;
-                    skipBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-skip" data-dom-index="${idx}">
-                                <i class="bi bi-skip-forward"></i>
-                                <span>Omitir</span>
+                    ausenteBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-ausente" data-dom-index="${idx}">
+                                <i class="bi bi-x-lg"></i>
+                                <span>Ausente</span>
                             </button>`;
                 } else if (visitada) {
-                    visitBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-visit" disabled style="opacity:.45;">
-                                <i class="bi bi-check-circle"></i>
-                                <span>Visitada</span>
-                            </button>`;
+                    var ticketUrl = '';
+                    var visitaId = '';
+                    (dom.paradas || []).forEach(function(p) {
+                        if (p.estado === 'visitada' && p.ticket_url && !ticketUrl) {
+                            ticketUrl = p.ticket_url;
+                            visitaId = p.visita_id || '';
+                        }
+                    });
+                    if (ticketUrl) {
+                        visitBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-visit shlom-card-btn-ticket" data-dom-index="${idx}" data-ticket-url="${ticketUrl}" data-visita-id="${visitaId}">
+                                    <i class="bi bi-receipt"></i>
+                                    <span>Visitada</span>
+                                </button>`;
+                    } else {
+                        visitBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-visit" disabled style="opacity:.45;">
+                                    <i class="bi bi-check-circle"></i>
+                                    <span>Visitada</span>
+                                </button>`;
+                    }
                 }
 
                 var card = document.createElement('div');
-                card.className = 'shlom-slider-card' + (desbloqueada ? '' : ' shlom-slider-card-locked');
+                card.className = 'shlom-slider-card';
                 card.dataset.index = idx;
                 var histBadge = historica
                     ? '<span class="shlom-route-status" style="background:' + ec.bg + ';color:' + ec.color + ';margin-left:auto;">' + ec.label + '</span>'
@@ -2859,14 +3762,13 @@ body.shlom-ruta-detalle-open .rainbow-background {
                             <i class="bi bi-location"></i>
                             <span>${dom.domicilio}</span>
                         </div>
-                        ${lockNote}
                         <div class="shlom-card-actions">
                             <button class="shlom-card-btn shlom-card-btn-maps" data-lat="${dom.latitud}" data-lng="${dom.longitud}" onclick="event.stopPropagation(); openMapsApp(${dom.latitud}, ${dom.longitud})">
                                 <i class="bi bi-map"></i>
                                 <span>Mapa</span>
                             </button>
                             ${visitBtn}
-                            ${skipBtn}
+                            ${ausenteBtn}
                         </div>
                         ${totalP > 1 ? '<div class="shlom-card-contracts">' + subItems + '</div>' : ''}
                     </div>
@@ -2888,6 +3790,11 @@ body.shlom-ruta-detalle-open .rainbow-background {
 
             updateSliderPosition();
             updateSliderControls();
+            requestAnimationFrame(function() {
+                if (typeof window.syncBottomSheetCollapsedHeight === 'function') {
+                    window.syncBottomSheetCollapsedHeight();
+                }
+            });
         }
 
         function goToSlide(index) {
@@ -2994,13 +3901,13 @@ body.shlom-ruta-detalle-open .rainbow-background {
         var visitaGpsMarker = null;
         var visitaParadaMarker = null;
         var VISITA_DISTANCIA_MAX_M = 150;
-        var VISITA_METODOS = @json(\App\Models\Pago::METODOS_PAGO);
+        var VISITA_METODOS = {
+            'efectivo': 'Efectivo',
+            'tarjeta credito/debito': 'Tarjeta'
+        };
         var VISITA_METODO_ICONOS = {
             'efectivo': 'bi-cash-coin',
-            'transferencia bancaria': 'bi-bank',
-            'tarjeta credito/debito': 'bi-credit-card',
-            'cheque': 'bi-journal-check',
-            'otro': 'bi-three-dots'
+            'tarjeta credito/debito': 'bi-credit-card'
         };
         var visitaPending = {
             paradaIds: [],
@@ -3010,16 +3917,24 @@ body.shlom-ruta-detalle-open .rainbow-background {
             step: 1,
             gpsOk: false,
             enDomicilio: false,
-            titularRecibio: true,
-            nadieRecibio: false,
-            recibido: true,
             clienteNombre: '',
-            registrarPago: false,
             ticketUrl: '',
+            visitaId: null,
             pendientes: [],
             userLat: null,
-            userLng: null
+            userLng: null,
+            confirmando: false,
+            modo: 'abono',
+            enviandoAusente: false,
+            soloVistaTicket: false,
+            deshaciendo: false
         };
+
+        function visitaIdDesdeTicketUrl(url) {
+            if (!url) return null;
+            var m = String(url).match(/\/visitas\/(\d+)\/ticket/);
+            return m ? parseInt(m[1], 10) : null;
+        }
 
         function setVisitaGpsStatus(type, html, canConfirm) {
             var el = document.getElementById('visitaGpsStatus');
@@ -3144,6 +4059,9 @@ body.shlom-ruta-detalle-open .rainbow-background {
             initVisitaGpsMap(lat, lng);
             setVisitaGpsStatus('success', '', true);
             advertirSiNoCoincideConParada(lat, lng);
+            if (visitaPending.modo === 'ausente' && !visitaPending.enviandoAusente && visitaPending.step === 1) {
+                submitVisitaAusente();
+            }
         }
 
         function recentrarGpsVisita() {
@@ -3255,63 +4173,101 @@ body.shlom-ruta-detalle-open .rainbow-background {
             el.textContent = msg;
         }
 
-        function syncRecepcionUI() {
-            var otro = document.getElementById('visitaOtroReceptorBlock');
-            var fields = document.getElementById('visitaReceptorFields');
-            var nadieBtn = document.getElementById('btnNadieRecibio');
-            var showOtro = !visitaPending.titularRecibio;
-            if (otro) otro.classList.toggle('d-none', !showOtro);
-            if (fields) fields.classList.toggle('d-none', !showOtro || visitaPending.nadieRecibio);
-            if (nadieBtn) nadieBtn.classList.toggle('active', !!visitaPending.nadieRecibio);
-            if (visitaPending.titularRecibio) {
-                visitaPending.nadieRecibio = false;
-                visitaPending.recibido = true;
-            } else if (visitaPending.nadieRecibio) {
-                visitaPending.recibido = false;
-            } else {
-                visitaPending.recibido = true;
-            }
+        function setVisitaConfirmando(on) {
+            visitaPending.confirmando = !!on;
+            var panel = document.getElementById('visitaAbonoConfirmPanel');
+            if (panel) panel.classList.toggle('d-none', !visitaPending.confirmando);
+            var folios = document.getElementById('visitaFoliosPago');
+            if (folios) folios.classList.toggle('d-none', !!visitaPending.confirmando);
+            syncVisitaWizardButtons();
         }
 
-        function renderVisitaWizardDots() {
-            var el = document.getElementById('visitaWizardDots');
-            if (!el) return;
-            var html = '';
-            for (var i = 1; i <= 4; i++) {
-                var cls = 'ios-wizard-dot';
-                if (i === visitaPending.step) cls += ' active';
-                else if (i < visitaPending.step) cls += ' done';
-                html += '<span class="' + cls + '"></span>';
-            }
-            el.innerHTML = html;
+        function resumenAbonoConfirm(pagos) {
+            return pagos.map(function(pago) {
+                var metodo = VISITA_METODOS[pago.metodo_pago] || pago.metodo_pago;
+                return 'Folio #' + pago.contrato_id + ': <strong>$' + pago.monto + '</strong> · ' + metodo;
+            }).join('<br>');
         }
 
         function syncVisitaWizardButtons() {
             var next = document.getElementById('btnVisitaWizardNext');
-            var back = document.getElementById('btnVisitaWizardBack');
+            var confirmBtn = document.getElementById('btnVisitaWizardConfirm');
+            var reviewBtn = document.getElementById('btnVisitaWizardReview');
             var cancel = document.getElementById('btnVisitaWizardCancel');
+            var printBtn = document.getElementById('btnVisitaWizardPrint');
+            var undoBtn = document.getElementById('btnVisitaWizardUndo');
             var closeBtn = document.getElementById('btnVisitaWizardClose');
             var step = visitaPending.step;
-            if (back) back.classList.toggle('d-none', step === 1 || step === 4);
-            if (cancel) cancel.classList.toggle('d-none', step === 4);
-            if (closeBtn) closeBtn.classList.toggle('d-none', step !== 4);
-            if (next) {
-                next.classList.toggle('d-none', step === 4);
-                if (step === 1) {
-                    next.textContent = 'Continuar';
-                    next.disabled = !visitaPending.gpsOk;
-                } else if (step === 2) {
-                    next.textContent = visitaPending.registrarPago ? 'Continuar' : 'Registrar visita';
-                    next.disabled = false;
-                } else if (step === 3) {
-                    next.textContent = 'Registrar y ver ticket';
-                    next.disabled = false;
-                }
+            var enTicket = step === 2;
+            var esAusente = visitaPending.modo === 'ausente';
+            var confirmando = !enTicket && !!visitaPending.confirmando;
+            if (cancel) cancel.classList.toggle('d-none', enTicket || confirmando || (esAusente && visitaPending.enviandoAusente));
+            if (printBtn) printBtn.classList.toggle('d-none', !enTicket);
+            if (undoBtn) {
+                undoBtn.classList.toggle('d-none', !enTicket || !visitaPending.visitaId);
+                undoBtn.disabled = !!visitaPending.deshaciendo;
+                undoBtn.textContent = visitaPending.deshaciendo ? 'Deshaciendo...' : 'Deshacer la visita';
             }
+            if (closeBtn) closeBtn.classList.toggle('d-none', !enTicket);
+            if (next) {
+                next.classList.toggle('d-none', enTicket || confirmando || esAusente);
+                next.textContent = 'Registrar abono';
+                next.disabled = !visitaPending.gpsOk;
+            }
+            if (confirmBtn) confirmBtn.classList.toggle('d-none', !confirmando || esAusente);
+            if (reviewBtn) reviewBtn.classList.toggle('d-none', !confirmando || esAusente);
             var title = document.getElementById('visitaWizardTitle');
             if (title) {
-                title.textContent = step === 2 ? 'Pago' : (step === 3 ? 'Folios asignados' : (step === 4 ? 'Ticket' : 'Visita'));
+                if (enTicket) title.textContent = 'Ticket';
+                else if (esAusente) title.textContent = 'Ausente';
+                else if (confirmando) title.textContent = 'Confirmar';
+                else title.textContent = 'Abono';
             }
+            var icon = document.querySelector('#visitaWizardIcon i');
+            if (icon) {
+                icon.className = esAusente && !enTicket ? 'bi bi-person-x-fill' : 'bi bi-cash-coin';
+            }
+            var header = document.getElementById('visitaFormHeader');
+            if (header) header.classList.toggle('d-none', enTicket);
+        }
+
+        function ajustarAlturaTicketFrame() {
+            var frame = document.getElementById('visitaTicketFrame');
+            var scrollWrap = document.getElementById('visitaTicketPreviewScroll');
+            if (!frame) return;
+            try {
+                var doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+                if (!doc) return;
+                var root = doc.documentElement;
+                var body = doc.body;
+                var height = Math.max(
+                    root ? root.scrollHeight : 0,
+                    root ? root.offsetHeight : 0,
+                    body ? body.scrollHeight : 0,
+                    body ? body.offsetHeight : 0,
+                    320
+                );
+                frame.style.height = height + 'px';
+                if (scrollWrap) scrollWrap.scrollTop = 0;
+            } catch (e) {
+                frame.style.height = '70vh';
+            }
+        }
+
+        function bindTicketFrameResize(frame) {
+            if (!frame || frame.dataset.resizeBound === '1') return;
+            frame.dataset.resizeBound = '1';
+            frame.addEventListener('load', function() {
+                ajustarAlturaTicketFrame();
+                setTimeout(ajustarAlturaTicketFrame, 80);
+                setTimeout(ajustarAlturaTicketFrame, 320);
+                try {
+                    var doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+                    if (doc && doc.fonts && doc.fonts.ready) {
+                        doc.fonts.ready.then(ajustarAlturaTicketFrame).catch(function() {});
+                    }
+                } catch (e) {}
+            });
         }
 
         function showVisitaWizardStep(step) {
@@ -3319,17 +4275,19 @@ body.shlom-ruta-detalle-open .rainbow-background {
             document.querySelectorAll('.visita-wizard-step').forEach(function(el) {
                 el.classList.toggle('d-none', parseInt(el.getAttribute('data-step'), 10) !== step);
             });
-            var grouped = document.querySelector('#visitaConfirmModal .ios-grouped');
-            var texto = document.getElementById('visitaConfirmTexto');
-            if (grouped) grouped.classList.toggle('d-none', step === 3 || step === 4);
-            if (texto) texto.classList.toggle('d-none', step === 3 || step === 4);
+            var card = document.querySelector('#visitaConfirmModal .visita-wizard-card');
+            if (card) card.classList.toggle('is-ticket-step', step === 2);
             var body = document.querySelector('#visitaConfirmModal .visita-wizard-body');
             if (body) body.scrollTop = 0;
-            renderVisitaWizardDots();
+            var ticketScroll = document.getElementById('visitaTicketPreviewScroll');
+            if (ticketScroll) ticketScroll.scrollTop = 0;
             syncVisitaWizardButtons();
             if (step === 1 && visitaGpsMap) {
                 setTimeout(function() { visitaGpsMap.invalidateSize(); }, 50);
                 setTimeout(function() { if (visitaGpsMap) visitaGpsMap.invalidateSize(); }, 300);
+            }
+            if (step === 2) {
+                setTimeout(ajustarAlturaTicketFrame, 40);
             }
         }
 
@@ -3352,41 +4310,65 @@ body.shlom-ruta-detalle-open .rainbow-background {
             if (!wrap) return;
             wrap.innerHTML = visitaPending.pendientes.map(function(p) {
                 var saldo = typeof p.saldo_raw === 'number' ? p.saldo_raw : parseFloat(String(p.saldo || '0').replace(/,/g, '')) || 0;
-                return '<div class="ios-folio-card" data-contrato-id="' + p.contrato_id + '" data-saldo="' + saldo + '">' +
+                var cuota = typeof p.cuota_raw === 'number' ? p.cuota_raw : parseFloat(String(p.cuota || '0').replace(/,/g, '')) || 0;
+                var sugeridoNum = cuota > 0 ? Math.min(cuota, saldo > 0 ? saldo : cuota) : (saldo > 0 ? saldo : 0);
+                var sugerido = sugeridoNum > 0 ? String(Math.round(sugeridoNum)) : '';
+                var saldoEntero = Math.round(saldo);
+                var cuotaEntera = Math.round(cuota);
+                return '<div class="ios-folio-card" data-contrato-id="' + p.contrato_id + '" data-saldo="' + saldoEntero + '">' +
                     '<h4>Folio #' + p.contrato_id + '</h4>' +
-                    '<div class="ios-field"><label>Monto de la cuota</label><input type="number" min="0" step="0.01" class="visita-folio-monto" placeholder="0.00"></div>' +
-                    '<div class="ios-field"><label>Método de pago</label>' + metodoButtonsHtml(p.contrato_id, 'efectivo') + '</div>' +
+                    '<div class="saldo">Saldo disponible: $' + saldoEntero + (cuotaEntera > 0 ? ' · Cuota $' + cuotaEntera : '') + '</div>' +
+                    '<div class="visita-monto-field">' +
+                        '<label>Monto del pago</label>' +
+                        '<div class="visita-monto-wrap">' +
+                            '<span class="visita-monto-prefix">$</span>' +
+                            '<input type="number" inputmode="numeric" pattern="[0-9]*" min="1" step="1" class="visita-folio-monto" placeholder="0" value="' + sugerido + '">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="ios-field"><label>Método de pago *</label>' + metodoButtonsHtml(p.contrato_id, 'efectivo') + '</div>' +
+                    '<div class="ios-field"><label>Observaciones</label><input type="text" class="visita-folio-obs" maxlength="500" placeholder="Opcional"></div>' +
                     '</div>';
             }).join('') || '<p class="ios-confirm-msg">No hay folios asignados en esta parada.</p>';
+            wrap.querySelectorAll('.visita-folio-monto').forEach(function(inp) {
+                inp.addEventListener('input', function() {
+                    var raw = String(inp.value || '').replace(/[^\d]/g, '');
+                    if (inp.value !== raw) inp.value = raw;
+                });
+            });
         }
 
         function collectPagosWizard() {
             var pagos = [];
             document.querySelectorAll('#visitaFoliosPago .ios-folio-card').forEach(function(card) {
-                var monto = parseFloat(card.querySelector('.visita-folio-monto').value);
+                var monto = parseInt(card.querySelector('.visita-folio-monto').value, 10);
                 if (!monto || monto <= 0) return;
                 var metodoEl = card.querySelector('.visita-folio-metodo:checked');
+                var obsEl = card.querySelector('.visita-folio-obs');
                 pagos.push({
                     contrato_id: parseInt(card.getAttribute('data-contrato-id'), 10),
                     monto: monto,
                     metodo_pago: metodoEl ? metodoEl.value : 'efectivo',
-                    tipo_pago: 'cuota'
+                    tipo_pago: 'parcialidad',
+                    observaciones: obsEl && obsEl.value ? String(obsEl.value).trim() : null
                 });
             });
             return pagos;
         }
 
         function validarPagosWizard(pagos) {
-            if (!pagos.length) return 'Indica el pago o abono de al menos un folio asignado.';
+            if (!pagos.length) return 'Indica el monto de al menos un folio.';
             var cards = document.querySelectorAll('#visitaFoliosPago .ios-folio-card');
             for (var i = 0; i < pagos.length; i++) {
                 var pago = pagos[i];
+                if (!Number.isInteger(pago.monto)) {
+                    return 'El monto del folio #' + pago.contrato_id + ' debe ser un número entero.';
+                }
                 var card = null;
                 cards.forEach(function(c) {
                     if (parseInt(c.getAttribute('data-contrato-id'), 10) === pago.contrato_id) card = c;
                 });
-                var saldo = card ? parseFloat(card.getAttribute('data-saldo')) : 0;
-                if (pago.monto - saldo > 0.009) {
+                var saldo = card ? parseInt(card.getAttribute('data-saldo'), 10) : 0;
+                if (pago.monto > saldo) {
                     return 'El monto del folio #' + pago.contrato_id + ' supera el saldo disponible del contrato.';
                 }
                 if (!pago.metodo_pago) {
@@ -3396,42 +4378,104 @@ body.shlom-ruta-detalle-open .rainbow-background {
             return '';
         }
 
-        function submitVisitaWizard() {
-            var next = document.getElementById('btnVisitaWizardNext');
+        function pedirConfirmacionAbono() {
             if (!visitaPending.punto || !visitaPending.paradaIds.length) return;
-            var pagos = visitaPending.registrarPago ? collectPagosWizard() : [];
-            if (visitaPending.registrarPago) {
-                var errPago = validarPagosWizard(pagos);
-                if (errPago) {
-                    setVisitaWizardError(errPago);
-                    return;
-                }
+            var pagos = collectPagosWizard();
+            var errPago = validarPagosWizard(pagos);
+            if (errPago) {
+                setVisitaWizardError(errPago);
+                return;
             }
             setVisitaWizardError('');
-            if (next) {
-                next.disabled = true;
-                next.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registrando...';
+            var resumen = document.getElementById('visitaAbonoConfirmResumen');
+            if (resumen) resumen.innerHTML = resumenAbonoConfirm(pagos);
+            setVisitaConfirmando(true);
+            var body = document.querySelector('#visitaConfirmModal .visita-wizard-body');
+            if (body) body.scrollTop = body.scrollHeight;
+        }
+
+        function submitVisitaWizard() {
+            var confirmBtn = document.getElementById('btnVisitaWizardConfirm');
+            if (!visitaPending.punto || !visitaPending.paradaIds.length) return;
+            var pagos = collectPagosWizard();
+            var errPago = validarPagosWizard(pagos);
+            if (errPago) {
+                setVisitaConfirmando(false);
+                setVisitaWizardError(errPago);
+                return;
+            }
+            setVisitaWizardError('');
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registrando...';
             }
             var csrf = document.querySelector('meta[name="csrf-token"]');
             var payload = {
                 ruta_parada_ids: visitaPending.paradaIds,
                 ubicacion_evidencia: visitaPending.punto,
                 en_domicilio: !!visitaPending.enDomicilio,
-                recibido: !!visitaPending.recibido,
-                registrar_pago: !!visitaPending.registrarPago,
+                registrar_pago: true,
                 pagos: pagos
             };
-            if (visitaPending.titularRecibio) {
-                payload.recibido = true;
-                payload.receptor_nombre = visitaPending.clienteNombre || 'Titular';
-                payload.receptor_parentesco = 'titular';
-            } else if (visitaPending.nadieRecibio) {
-                payload.recibido = false;
-            } else {
-                payload.recibido = true;
-                payload.receptor_nombre = (document.getElementById('visitaReceptorNombre') || {}).value || '';
-                payload.receptor_parentesco = (document.getElementById('visitaReceptorParentesco') || {}).value || '';
-            }
+            fetch('{{ route("visitas.store") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf ? csrf.getAttribute('content') : '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+                if (!res.ok) {
+                    throw new Error((res.data && (res.data.message || (res.data.errors && Object.values(res.data.errors)[0][0]))) || 'No se pudo registrar el abono.');
+                }
+                visitaPending.ticketUrl = (res.data && res.data.ticket_url) || '';
+                visitaPending.visitaId = (res.data && res.data.visita_id) || visitaIdDesdeTicketUrl(visitaPending.ticketUrl);
+                var frame = document.getElementById('visitaTicketFrame');
+                if (frame && visitaPending.ticketUrl) {
+                    bindTicketFrameResize(frame);
+                    frame.src = visitaPending.ticketUrl;
+                }
+                setVisitaConfirmando(false);
+                showVisitaWizardStep(2);
+            })
+            .catch(function(err) {
+                setVisitaConfirmando(false);
+                setVisitaWizardError(err.message || 'Error al registrar el abono.');
+            })
+            .finally(function() {
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = 'Sí, confirmar';
+                }
+                syncVisitaWizardButtons();
+            });
+        }
+
+        function submitVisitaAusente() {
+            if (visitaPending.enviandoAusente) return;
+            if (!visitaPending.punto || !visitaPending.paradaIds.length) return;
+            visitaPending.enviandoAusente = true;
+            setVisitaWizardError('');
+            setVisitaGpsStatus(
+                'info',
+                '<span class="spinner-border spinner-border-sm me-2"></span>Registrando visita sin recepción...',
+                false
+            );
+            syncVisitaWizardButtons();
+            var csrf = document.querySelector('meta[name="csrf-token"]');
+            var payload = {
+                ruta_parada_ids: visitaPending.paradaIds,
+                ubicacion_evidencia: visitaPending.punto,
+                en_domicilio: !!visitaPending.enDomicilio,
+                ausente: true,
+                recibido: false,
+                registrar_pago: false,
+                pagos: []
+            };
             fetch('{{ route("visitas.store") }}', {
                 method: 'POST',
                 headers: {
@@ -3448,17 +4492,28 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     throw new Error((res.data && (res.data.message || (res.data.errors && Object.values(res.data.errors)[0][0]))) || 'No se pudo registrar la visita.');
                 }
                 visitaPending.ticketUrl = (res.data && res.data.ticket_url) || '';
+                visitaPending.visitaId = (res.data && res.data.visita_id) || visitaIdDesdeTicketUrl(visitaPending.ticketUrl);
                 var frame = document.getElementById('visitaTicketFrame');
-                if (frame && visitaPending.ticketUrl) frame.src = visitaPending.ticketUrl;
-                showVisitaWizardStep(4);
+                if (frame && visitaPending.ticketUrl) {
+                    bindTicketFrameResize(frame);
+                    frame.src = visitaPending.ticketUrl;
+                }
+                showVisitaWizardStep(2);
             })
             .catch(function(err) {
-                setVisitaWizardError(err.message || 'Error al registrar la visita.');
-                if (visitaPending.step === 1) {
-                    setVisitaGpsStatus('danger', '<i class="bi bi-exclamation-circle me-1"></i>' + (err.message || 'Error al registrar la visita.'), !!visitaPending.punto);
+                visitaPending.enviandoAusente = false;
+                setVisitaGpsStatus('warning', '<i class="bi bi-exclamation-triangle me-1"></i>' + (err.message || 'Error al registrar la visita.') +
+                    ' <button type="button" class="ios-retry" id="btnRetryAusente">Reintentar</button>', !!visitaPending.punto);
+                var retry = document.getElementById('btnRetryAusente');
+                if (retry) {
+                    retry.addEventListener('click', function() {
+                        if (visitaPending.punto) submitVisitaAusente();
+                        else pedirUbicacionVisita(true);
+                    });
                 }
             })
             .finally(function() {
+                if (visitaPending.step === 2) visitaPending.enviandoAusente = false;
                 syncVisitaWizardButtons();
             });
         }
@@ -3468,49 +4523,34 @@ body.shlom-ruta-detalle-open .rainbow-background {
             if (modal) modal.hide();
         }
 
-        function openVisitaConfirm(idx) {
-            if (!paradaDesbloqueada(idx)) return;
+        function prepararVisitaWizard(idx, modo) {
+            if (!paradaDesbloqueada(idx)) return false;
             var dom = currentDomicilios[idx];
-            if (!dom) return;
+            if (!dom) return false;
             var pendientes = (dom.paradas || []).filter(function(p) { return p.estado === 'pendiente'; });
-            if (!pendientes.length) return;
+            if (!pendientes.length) return false;
+            visitaPending.modo = modo || 'abono';
+            visitaPending.enviandoAusente = false;
+            visitaPending.soloVistaTicket = false;
             visitaPending.paradaIds = pendientes.map(function(p) { return p.id; });
             visitaPending.pendientes = pendientes;
             visitaPending.domIndex = idx;
             visitaPending.punto = '';
             visitaPending.gpsOk = false;
             visitaPending.enDomicilio = false;
-            visitaPending.titularRecibio = true;
-            visitaPending.nadieRecibio = false;
-            visitaPending.recibido = true;
             visitaPending.clienteNombre = dom.cliente_nombre || '';
-            visitaPending.registrarPago = false;
             visitaPending.ticketUrl = '';
+            visitaPending.visitaId = null;
+            visitaPending.deshaciendo = false;
             visitaPending.userLat = null;
             visitaPending.userLng = null;
             visitaPending.paradaLat = (dom.latitud === null || dom.latitud === undefined || dom.latitud === '') ? null : parseFloat(dom.latitud);
             visitaPending.paradaLng = (dom.longitud === null || dom.longitud === undefined || dom.longitud === '') ? null : parseFloat(dom.longitud);
             if (visitaPending.paradaLat != null && isNaN(visitaPending.paradaLat)) visitaPending.paradaLat = null;
             if (visitaPending.paradaLng != null && isNaN(visitaPending.paradaLng)) visitaPending.paradaLng = null;
+            setVisitaConfirmando(false);
             setVisitaDistanciaAlert('');
             setVisitaWizardError('');
-            var nombreInp = document.getElementById('visitaReceptorNombre');
-            var parentescoInp = document.getElementById('visitaReceptorParentesco');
-            if (nombreInp) nombreInp.value = '';
-            if (parentescoInp) parentescoInp.value = '';
-            document.querySelectorAll('#visitaTitularSeg button').forEach(function(b) {
-                b.classList.toggle('active', b.getAttribute('data-value') === '1');
-            });
-            document.querySelectorAll('#visitaPagoSeg button').forEach(function(b) {
-                b.classList.toggle('active', b.getAttribute('data-value') === '0');
-            });
-            syncRecepcionUI();
-            var texto = document.getElementById('visitaConfirmTexto');
-            if (texto) {
-                texto.textContent = pendientes.length > 1
-                    ? 'Se registrará una visita hecha vinculada a estos contratos y a esta parada.'
-                    : 'Se registrará una visita hecha vinculada a este contrato y a esta parada.';
-            }
             var contratosLabel = pendientes.map(function(p) {
                 return 'C#' + (p.contrato_id || p.id);
             }).join(', ');
@@ -3521,9 +4561,24 @@ body.shlom-ruta-detalle-open .rainbow-background {
             setTxt('visitaVinculoContrato', contratosLabel);
             setTxt('visitaVinculoNombre', dom.cliente_nombre);
             setTxt('visitaVinculoDomicilio', dom.domicilio);
-            renderFoliosPago();
+            var folios = document.getElementById('visitaFoliosPago');
+            if (folios) {
+                if (visitaPending.modo === 'ausente') {
+                    folios.classList.add('d-none');
+                    folios.innerHTML = '';
+                } else {
+                    folios.classList.remove('d-none');
+                    renderFoliosPago();
+                }
+            }
             showVisitaWizardStep(1);
-            setVisitaGpsStatus('info', '<span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...', false);
+            setVisitaGpsStatus(
+                'info',
+                visitaPending.modo === 'ausente'
+                    ? '<span class="spinner-border spinner-border-sm me-2"></span>Obteniendo ubicación para registrar ausencia...'
+                    : '<span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...',
+                false
+            );
             destroyVisitaGpsMap();
             pedirUbicacionVisita(false);
             var modalEl = document.getElementById('visitaConfirmModal');
@@ -3531,17 +4586,113 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 document.body.appendChild(modalEl);
             }
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            return true;
+        }
+
+        function openVisitaConfirm(idx) {
+            prepararVisitaWizard(idx, 'abono');
+        }
+
+        function openVisitaAusente(idx) {
+            prepararVisitaWizard(idx, 'ausente');
+        }
+
+        function openVisitaTicketPreview(url, idx, visitaId) {
+            if (!url) return;
+            visitaPending.modo = 'ticket';
+            visitaPending.soloVistaTicket = true;
+            visitaPending.enviandoAusente = false;
+            visitaPending.confirmando = false;
+            visitaPending.deshaciendo = false;
+            visitaPending.gpsOk = false;
+            visitaPending.punto = '';
+            visitaPending.ticketUrl = url;
+            visitaPending.visitaId = visitaId || visitaIdDesdeTicketUrl(url);
+            visitaPending.domIndex = typeof idx === 'number' && !isNaN(idx) ? idx : null;
+            setVisitaConfirmando(false);
+            setVisitaDistanciaAlert('');
+            setVisitaWizardError('');
+            destroyVisitaGpsMap();
+            var frame = document.getElementById('visitaTicketFrame');
+            if (frame) {
+                bindTicketFrameResize(frame);
+                frame.src = url;
+            }
+            showVisitaWizardStep(2);
+            var modalEl = document.getElementById('visitaConfirmModal');
+            if (modalEl && modalEl.parentElement !== document.body) {
+                document.body.appendChild(modalEl);
+            }
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+
+        function deshacerVisitaActual() {
+            if (!visitaPending.visitaId || visitaPending.deshaciendo) return;
+            if (!window.confirm('¿Deshacer esta visita? La parada volverá a pendiente y se anularán los pagos asociados.')) {
+                return;
+            }
+            visitaPending.deshaciendo = true;
+            syncVisitaWizardButtons();
+            setVisitaWizardError('');
+            var csrf = document.querySelector('meta[name="csrf-token"]');
+            fetch('{{ url("visitas") }}/' + visitaPending.visitaId + '/deshacer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf ? csrf.getAttribute('content') : '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({})
+            })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+                if (!res.ok) {
+                    throw new Error((res.data && (res.data.message || (res.data.errors && Object.values(res.data.errors)[0][0]))) || 'No se pudo deshacer la visita.');
+                }
+                var stayIdx = visitaPending.domIndex;
+                visitaPending.soloVistaTicket = true;
+                visitaPending.ticketUrl = '';
+                visitaPending.visitaId = null;
+                var modal = visitaModalEl ? bootstrap.Modal.getInstance(visitaModalEl) : null;
+                if (modal) modal.hide();
+                if (currentRutaId) {
+                    openRutaDetalle(currentRutaId, stayIdx != null ? stayIdx : undefined);
+                }
+            })
+            .catch(function(err) {
+                setVisitaWizardError(err.message || 'Error al deshacer la visita.');
+            })
+            .finally(function() {
+                visitaPending.deshaciendo = false;
+                syncVisitaWizardButtons();
+            });
         }
 
         if (sliderEl) {
             sliderEl.addEventListener('click', function(e) {
-                var skipBtn = e.target.closest('.shlom-card-btn-skip');
-                if (skipBtn) {
+                var ausenteBtn = e.target.closest('.shlom-card-btn-ausente');
+                if (ausenteBtn) {
                     e.preventDefault();
                     e.stopPropagation();
-                    var skipCard = skipBtn.closest('.shlom-slider-card');
-                    var skipIdx = skipCard ? parseInt(skipCard.dataset.index, 10) : parseInt(skipBtn.getAttribute('data-dom-index'), 10);
-                    openOmitirConfirm(skipIdx);
+                    var ausenteCard = ausenteBtn.closest('.shlom-slider-card');
+                    var ausenteIdx = ausenteCard
+                        ? parseInt(ausenteCard.dataset.index, 10)
+                        : parseInt(ausenteBtn.getAttribute('data-dom-index'), 10);
+                    openVisitaAusente(ausenteIdx);
+                    return;
+                }
+                var ticketBtn = e.target.closest('.shlom-card-btn-ticket');
+                if (ticketBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var ticketCard = ticketBtn.closest('.shlom-slider-card');
+                    var ticketIdx = ticketCard
+                        ? parseInt(ticketCard.dataset.index, 10)
+                        : parseInt(ticketBtn.getAttribute('data-dom-index'), 10);
+                    var vIdAttr = ticketBtn.getAttribute('data-visita-id');
+                    var vId = vIdAttr ? parseInt(vIdAttr, 10) : null;
+                    openVisitaTicketPreview(ticketBtn.getAttribute('data-ticket-url'), ticketIdx, vId);
                     return;
                 }
                 var btn = e.target.closest('.shlom-card-btn-visit');
@@ -3560,6 +4711,10 @@ body.shlom-ruta-detalle-open .rainbow-background {
         }
         if (visitaModalEl) {
             visitaModalEl.addEventListener('shown.bs.modal', function() {
+                if (visitaPending.soloVistaTicket || visitaPending.step === 2 || visitaPending.modo === 'ticket') {
+                    setTimeout(ajustarAlturaTicketFrame, 40);
+                    return;
+                }
                 if (visitaGpsMap) {
                     setTimeout(function() { visitaGpsMap.invalidateSize(); }, 50);
                 } else if (!visitaPending.punto) {
@@ -3567,7 +4722,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 }
             });
             visitaModalEl.addEventListener('hidden.bs.modal', function() {
-                var debeAvanzar = !!visitaPending.ticketUrl;
+                var debeAvanzar = !!visitaPending.ticketUrl && !visitaPending.soloVistaTicket;
                 var nextIdx = (visitaPending.domIndex || 0) + 1;
                 destroyVisitaGpsMap();
                 visitaPending.punto = '';
@@ -3575,8 +4730,22 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 visitaPending.paradaLat = null;
                 visitaPending.paradaLng = null;
                 visitaPending.ticketUrl = '';
+                visitaPending.visitaId = null;
+                visitaPending.modo = 'abono';
+                visitaPending.enviandoAusente = false;
+                visitaPending.soloVistaTicket = false;
+                visitaPending.deshaciendo = false;
                 var frame = document.getElementById('visitaTicketFrame');
-                if (frame) frame.src = 'about:blank';
+                if (frame) {
+                    frame.src = 'about:blank';
+                    frame.style.height = '';
+                }
+                var ticketScroll = document.getElementById('visitaTicketPreviewScroll');
+                if (ticketScroll) ticketScroll.scrollTop = 0;
+                var card = document.querySelector('#visitaConfirmModal .visita-wizard-card');
+                if (card) card.classList.remove('is-ticket-step');
+                var folios = document.getElementById('visitaFoliosPago');
+                if (folios) folios.classList.remove('d-none');
                 setVisitaDistanciaAlert('');
                 setVisitaWizardError('');
                 setVisitaGpsStatus('info', '<span class="spinner-border spinner-border-sm me-2"></span>Obteniendo tu ubicación...', false);
@@ -3602,8 +4771,8 @@ body.shlom-ruta-detalle-open .rainbow-background {
             var texto = document.getElementById('omitirConfirmTexto');
             if (texto) {
                 texto.textContent = haySiguiente
-                    ? 'Esta parada se omitirá y se desbloqueará la siguiente.'
-                    : 'Esta parada se omitirá. Es la última de la ruta.';
+                    ? 'Esta parada se marcará como omitida.'
+                    : 'Esta parada se marcará como omitida. Es la última de la ruta.';
             }
             var contratosLabel = pendientes.map(function(p) {
                 return 'C#' + (p.contrato_id || p.id);
@@ -3681,86 +4850,53 @@ body.shlom-ruta-detalle-open .rainbow-background {
             });
         }
 
-        var visitaTitularSeg = document.getElementById('visitaTitularSeg');
-        if (visitaTitularSeg) {
-            visitaTitularSeg.addEventListener('click', function(e) {
-                var btn = e.target.closest('button');
-                if (!btn) return;
-                visitaPending.titularRecibio = btn.getAttribute('data-value') === '1';
-                if (visitaPending.titularRecibio) visitaPending.nadieRecibio = false;
-                visitaTitularSeg.querySelectorAll('button').forEach(function(b) {
-                    b.classList.toggle('active', b === btn);
-                });
-                syncRecepcionUI();
-                setVisitaWizardError('');
-            });
-        }
-        var btnNadieRecibio = document.getElementById('btnNadieRecibio');
-        if (btnNadieRecibio) {
-            btnNadieRecibio.addEventListener('click', function() {
-                visitaPending.nadieRecibio = !visitaPending.nadieRecibio;
-                syncRecepcionUI();
-                setVisitaWizardError('');
-            });
-        }
         var btnVisitaGpsRecenter = document.getElementById('btnVisitaGpsRecenter');
         if (btnVisitaGpsRecenter) {
             btnVisitaGpsRecenter.addEventListener('click', function() {
                 recentrarGpsVisita();
             });
         }
-        var visitaPagoSeg = document.getElementById('visitaPagoSeg');
-        if (visitaPagoSeg) {
-            visitaPagoSeg.addEventListener('click', function(e) {
-                var btn = e.target.closest('button');
-                if (!btn) return;
-                visitaPending.registrarPago = btn.getAttribute('data-value') === '1';
-                visitaPagoSeg.querySelectorAll('button').forEach(function(b) {
-                    b.classList.toggle('active', b === btn);
-                });
-                syncVisitaWizardButtons();
-            });
-        }
         var btnVisitaWizardNext = document.getElementById('btnVisitaWizardNext');
         if (btnVisitaWizardNext) {
             btnVisitaWizardNext.addEventListener('click', function() {
                 setVisitaWizardError('');
-                if (visitaPending.step === 1) {
-                    if (!visitaPending.gpsOk) return;
-                    if (!visitaPending.titularRecibio && !visitaPending.nadieRecibio) {
-                        var nom = (document.getElementById('visitaReceptorNombre') || {}).value;
-                        var par = (document.getElementById('visitaReceptorParentesco') || {}).value;
-                        if (!nom || !String(nom).trim()) {
-                            setVisitaWizardError('Indica el nombre de quien recibió.');
-                            return;
-                        }
-                        if (!par) {
-                            setVisitaWizardError('Indica el parentesco de quien recibió.');
-                            return;
-                        }
-                    }
-                    showVisitaWizardStep(2);
-                    return;
-                }
-                if (visitaPending.step === 2) {
-                    if (visitaPending.registrarPago) {
-                        showVisitaWizardStep(3);
-                        return;
-                    }
-                    submitVisitaWizard();
-                    return;
-                }
-                if (visitaPending.step === 3) {
-                    submitVisitaWizard();
-                }
+                if (visitaPending.step !== 1 || !visitaPending.gpsOk) return;
+                pedirConfirmacionAbono();
             });
         }
-        var btnVisitaWizardBack = document.getElementById('btnVisitaWizardBack');
-        if (btnVisitaWizardBack) {
-            btnVisitaWizardBack.addEventListener('click', function() {
+        var btnVisitaWizardConfirm = document.getElementById('btnVisitaWizardConfirm');
+        if (btnVisitaWizardConfirm) {
+            btnVisitaWizardConfirm.addEventListener('click', function() {
                 setVisitaWizardError('');
-                if (visitaPending.step === 3) showVisitaWizardStep(2);
-                else if (visitaPending.step === 2) showVisitaWizardStep(1);
+                if (visitaPending.step !== 1 || !visitaPending.gpsOk || !visitaPending.confirmando) return;
+                submitVisitaWizard();
+            });
+        }
+        var btnVisitaWizardReview = document.getElementById('btnVisitaWizardReview');
+        if (btnVisitaWizardReview) {
+            btnVisitaWizardReview.addEventListener('click', function() {
+                setVisitaWizardError('');
+                setVisitaConfirmando(false);
+            });
+        }
+        var btnVisitaWizardPrint = document.getElementById('btnVisitaWizardPrint');
+        if (btnVisitaWizardPrint) {
+            btnVisitaWizardPrint.addEventListener('click', function() {
+                var frame = document.getElementById('visitaTicketFrame');
+                try {
+                    if (frame && frame.contentWindow) {
+                        frame.contentWindow.focus();
+                        frame.contentWindow.print();
+                        return;
+                    }
+                } catch (e) {}
+                if (visitaPending.ticketUrl) window.open(visitaPending.ticketUrl, '_blank');
+            });
+        }
+        var btnVisitaWizardUndo = document.getElementById('btnVisitaWizardUndo');
+        if (btnVisitaWizardUndo) {
+            btnVisitaWizardUndo.addEventListener('click', function() {
+                deshacerVisitaActual();
             });
         }
         var btnVisitaWizardClose = document.getElementById('btnVisitaWizardClose');

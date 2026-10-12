@@ -17,6 +17,8 @@ class Visita extends Model
         'receptor_parentesco',
         'comentarios',
         'ubicacion_evidencia',
+        'latitud',
+        'longitud',
         'adeudo_momento',
     ];
 
@@ -24,6 +26,8 @@ class Visita extends Model
         'en_domicilio' => 'boolean',
         'recibido' => 'boolean',
         'adeudo_momento' => 'decimal:2',
+        'latitud' => 'float',
+        'longitud' => 'float',
     ];
 
     public const PARENTESCOS = [
@@ -60,21 +64,30 @@ class Visita extends Model
     }
 
     /**
-     * Get latitude and longitude from spatial point.
-     * Returns ['lat' => ..., 'lng' => ...] or null.
+     * Coordenadas del registro (GPS del cobrador al abonar / marcar visita).
+     * Prefiere columnas latitud/longitud; si faltan, intenta leer ubicacion_evidencia.
+     *
+     * @return array{lat: float, lng: float}|null
      */
-    public function getCoordinatesAttribute()
+    public function getCoordinatesAttribute(): ?array
     {
+        if ($this->latitud !== null && $this->longitud !== null) {
+            return [
+                'lat' => (float) $this->latitud,
+                'lng' => (float) $this->longitud,
+            ];
+        }
+
         $binary = $this->attributes['ubicacion_evidencia'] ?? null;
-        if (!$binary) {
+        if (! $binary) {
             return null;
         }
 
         // Check if it's already a string with POINT format (e.g. from raw query or SQLite)
         if (is_string($binary) && preg_match('/POINT\(([-\d\.]+)\s+([-\d\.]+)\)/i', $binary, $matches)) {
             return [
-                'lat' => (double)$matches[2],
-                'lng' => (double)$matches[1],
+                'lat' => (float) $matches[2],
+                'lng' => (float) $matches[1],
             ];
         }
 
@@ -90,5 +103,10 @@ class Visita extends Model
         }
 
         return null;
+    }
+
+    public function tieneUbicacionRegistro(): bool
+    {
+        return $this->coordinates !== null;
     }
 }

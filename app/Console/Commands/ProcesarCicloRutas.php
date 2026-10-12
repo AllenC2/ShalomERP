@@ -9,14 +9,13 @@ class ProcesarCicloRutas extends Command
 {
     protected $signature = 'rutas:procesar-ciclo';
 
-    protected $description = 'Genera ejecuciones del día para plantillas activas y cierra rutas pasadas como vencidas o incompletas';
+    protected $description = 'Genera ejecuciones del día para plantillas activas';
 
     public function handle(GeneradorRutasService $generador): int
     {
-        $cerradas = $generador->cerrarEjecucionesPasadas();
         $creadas = $generador->generarInstanciasDelDia();
 
-        $this->info("Rutas cerradas: {$cerradas}. Ejecuciones creadas: {$creadas}.");
+        $this->info("Ejecuciones creadas: {$creadas}.");
 
         return self::SUCCESS;
     }

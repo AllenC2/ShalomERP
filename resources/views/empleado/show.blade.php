@@ -217,6 +217,10 @@
                                 data-bs-target="#reciboConsolidadoModal">
                                 <i class="bi bi-file-earmark-text me-1"></i> Generar recibo
                             </button>
+                            <button type="button" class="btn btn-outline-dark" id="btnActividadRutas"
+                                data-url="{{ route('empleados.actividadRutas', $empleado->id) }}">
+                                <i class="bi bi-signpost-split me-1"></i> Actividad de Rutas
+                            </button>
                             <a href="{{ route('empleados.edit', $empleado->id) }}" class="btn btn-outline-secondary">
                                 <i class="bi bi-pencil-square me-1"></i> Editar
                             </a>
@@ -651,5 +655,139 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal: Actividad de Rutas --}}
+    <div class="modal fade" id="actividadRutasModal" tabindex="-1" aria-labelledby="actividadRutasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <div>
+                        <h5 class="modal-title fw-bold" id="actividadRutasModalLabel">
+                            <i class="bi bi-signpost-split me-2" style="color:#79481D;"></i>Actividad de Rutas
+                        </h5>
+                        <p class="text-muted small mb-0" id="actividadRutasSub">Historial de movimientos del cobrador</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <div id="actividadRutasLoading" class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        Cargando actividad...
+                    </div>
+                    <div id="actividadRutasEmpty" class="text-center py-5 d-none">
+                        <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                        <p class="text-muted mb-0">Aún no hay movimientos de rutas registrados.</p>
+                    </div>
+                    <div id="actividadRutasList" class="d-none"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .ruta-act-month {
+            position: sticky; top: 0; z-index: 1;
+            background: #f8f9fa; border-radius: 10px;
+            padding: 8px 12px; margin: 16px 0 10px;
+            font-size: 0.8rem; font-weight: 700; color: #79481D;
+            letter-spacing: 0.02em; text-transform: capitalize;
+        }
+        .ruta-act-month:first-child { margin-top: 0; }
+        .ruta-act-item {
+            display: flex; gap: 12px; align-items: flex-start;
+            padding: 12px 4px; border-bottom: 1px solid rgba(60,60,67,0.1);
+        }
+        .ruta-act-item:last-child { border-bottom: none; }
+        .ruta-act-time {
+            flex-shrink: 0; width: 64px; text-align: right;
+            font-size: 0.72rem; color: #8e8e93; line-height: 1.3; padding-top: 2px;
+        }
+        .ruta-act-body { min-width: 0; flex: 1; }
+        .ruta-act-title { font-size: 0.92rem; font-weight: 600; color: #1c1c1e; margin: 0 0 2px; }
+        .ruta-act-detail { font-size: 0.78rem; color: #636366; margin: 0; }
+        .ruta-act-meta { font-size: 0.72rem; color: #8e8e93; margin-top: 4px; }
+    </style>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('btnActividadRutas');
+        var modalEl = document.getElementById('actividadRutasModal');
+        if (!btn || !modalEl) return;
+
+        var loading = document.getElementById('actividadRutasLoading');
+        var empty = document.getElementById('actividadRutasEmpty');
+        var list = document.getElementById('actividadRutasList');
+        var sub = document.getElementById('actividadRutasSub');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        var loadedFor = null;
+
+        function money(n) {
+            if (n == null) return '';
+            return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function render(data) {
+            if (sub && data.empleado) {
+                sub.textContent = data.empleado.nombre + ' · ' + (data.total || 0) + ' movimiento' + (data.total === 1 ? '' : 's');
+            }
+            loading.classList.add('d-none');
+            if (!data.grupos || !data.grupos.length) {
+                empty.classList.remove('d-none');
+                list.classList.add('d-none');
+                list.innerHTML = '';
+                return;
+            }
+            empty.classList.add('d-none');
+            list.classList.remove('d-none');
+            var html = '';
+            data.grupos.forEach(function(grupo) {
+                html += '<div class="ruta-act-month"><i class="bi bi-calendar3 me-1"></i>' + grupo.label + '</div>';
+                grupo.items.forEach(function(item) {
+                    html += '<div class="ruta-act-item">';
+                    html += '<div class="ruta-act-time">' + (item.fecha || '') + '<br>' + (item.hora || '') + '</div>';
+                    html += '<div class="ruta-act-body">';
+                    html += '<div class="d-flex flex-wrap align-items-center gap-2 mb-1">';
+                    html += '<span class="badge ' + item.badge + '">' + item.tipo_label + '</span>';
+                    if (item.monto_total != null) {
+                        html += '<span class="badge bg-light text-dark border">' + money(item.monto_total) + '</span>';
+                    }
+                    html += '</div>';
+                    html += '<p class="ruta-act-title">' + (item.titulo || '') + '</p>';
+                    if (item.detalle) html += '<p class="ruta-act-detail">' + item.detalle + '</p>';
+                    if (item.ruta_nombre) {
+                        html += '<div class="ruta-act-meta"><i class="bi bi-signpost me-1"></i>' + item.ruta_nombre + '</div>';
+                    }
+                    html += '</div></div>';
+                });
+            });
+            list.innerHTML = html;
+        }
+
+        btn.addEventListener('click', function() {
+            var url = btn.getAttribute('data-url');
+            modal.show();
+            if (loadedFor === url && list.innerHTML) {
+                loading.classList.add('d-none');
+                return;
+            }
+            loading.classList.remove('d-none');
+            empty.classList.add('d-none');
+            list.classList.add('d-none');
+            fetch(url, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+                if (!res.ok) throw new Error((res.data && res.data.message) || 'No se pudo cargar la actividad.');
+                loadedFor = url;
+                render(res.data);
+            })
+            .catch(function(err) {
+                loading.classList.add('d-none');
+                empty.classList.remove('d-none');
+                empty.innerHTML = '<i class="bi bi-exclamation-triangle fs-1 text-warning d-block mb-2"></i>' +
+                    '<p class="text-muted mb-0">' + (err.message || 'Error al cargar.') + '</p>';
+            });
+        });
+    });
+    </script>
     @endif
 @endsection

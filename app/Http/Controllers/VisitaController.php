@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ajuste;
+use App\Models\Comisione;
 use App\Models\Contrato;
 use App\Models\Pago;
 use App\Models\Ruta;
+use App\Models\RutaActividad;
 use App\Models\RutaParada;
 use App\Models\Visita;
 use Illuminate\Http\Request;
@@ -31,6 +33,7 @@ class VisitaController extends Controller
             'ruta_parada_ids.*' => 'exists:ruta_paradas,id',
             'en_domicilio' => 'nullable|boolean',
             'recibido' => 'nullable|boolean',
+            'ausente' => 'nullable|boolean',
             'receptor_nombre' => 'nullable|string|max:120',
             'receptor_parentesco' => ['nullable', 'string', Rule::in(array_keys(Visita::PARENTESCOS))],
             'registrar_pago' => 'nullable|boolean',
@@ -43,16 +46,32 @@ class VisitaController extends Controller
         ]);
 
         $esEmpleado = Auth::user()?->role === 'empleado';
+        $esAusente = $request->boolean('ausente');
         if ($esEmpleado) {
             $request->validate([
-                'recibido' => 'required|boolean',
                 'en_domicilio' => 'required|boolean',
-                'receptor_nombre' => 'required_if:recibido,true,1|nullable|string|max:120',
-                'receptor_parentesco' => ['required_if:recibido,true,1', 'nullable', 'string', Rule::in(array_keys(Visita::PARENTESCOS))],
-            ], [
-                'receptor_nombre.required_if' => 'Indica el nombre de quien recibió.',
-                'receptor_parentesco.required_if' => 'Indica el parentesco de quien recibió.',
             ]);
+
+            if ($esAusente) {
+                // Visita sin recepción: marca parada y genera aviso, sin cobro.
+                $request->merge([
+                    'registrar_pago' => false,
+                    'recibido' => false,
+                    'pagos' => [],
+                ]);
+            } else {
+                $request->validate([
+                    'pagos' => 'required|array|min:1',
+                    'pagos.*.contrato_id' => 'required|exists:contratos,id',
+                    'pagos.*.monto' => 'required|numeric|min:0.01',
+                    'pagos.*.metodo_pago' => 'required|string|in:'.$metodos,
+                ], [
+                    'pagos.required' => 'Debes registrar al menos un pago o abono.',
+                    'pagos.min' => 'Debes registrar al menos un pago o abono.',
+                ]);
+                // Flujo de cobrador con abono: siempre registra pago.
+                $request->merge(['registrar_pago' => true]);
+            }
         }
 
         $paradaIds = collect($request->input('ruta_parada_ids', []))
@@ -97,8 +116,9 @@ class VisitaController extends Controller
 
         $lote = (string) Str::uuid();
         $visitasCreadas = collect();
+        $pagosCreados = collect();
 
-        DB::transaction(function () use ($paradas, $request, $lote, $pagosInput, &$visitasCreadas) {
+        DB::transaction(function () use ($paradas, $request, $lote, $pagosInput, &$visitasCreadas, &$pagosCreados) {
             if ($paradas->isEmpty()) {
                 $visitasCreadas->push($this->crearVisita($request->contrato_id, null, $request, $lote));
             } else {
@@ -111,33 +131,38 @@ class VisitaController extends Controller
             $visitasPorContrato = $visitasCreadas->keyBy('contrato_id');
             foreach ($pagosInput as $pagoRow) {
                 $visita = $visitasPorContrato->get((int) $pagoRow['contrato_id']) ?? $visitasCreadas->first();
-                $this->crearPagoDeVisita($visita, $pagoRow);
+                $pagosCreados->push($this->crearPagoDeVisita($visita, $pagoRow));
             }
         });
 
         $primera = $visitasCreadas->first();
+        $this->registrarActividadVisitaRegistrada($visitasCreadas, $pagosCreados, $esAusente);
+
+        $mensaje = $esAusente
+            ? 'Visita sin recepción registrada con éxito.'
+            : 'Visita registrada con éxito.';
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Visita registrada con éxito.',
+                'message' => $mensaje,
                 'visita_id' => $primera?->id,
                 'lote' => $lote,
                 'ticket_url' => $primera ? route('visitas.ticket', $primera) : null,
             ]);
         }
 
-        return back()->with('success', 'Visita registrada con éxito.');
+        return back()->with('success', $mensaje);
     }
 
     public function ticket(Visita $visita)
     {
         $this->autorizarTicket($visita);
 
-        $visita->load(['contrato.cliente', 'contrato.paquete', 'rutaParada.ruta', 'user', 'pagos']);
+        $visita->load(['contrato.cliente', 'contrato.paquete', 'contrato.pagos', 'rutaParada.ruta', 'user', 'pagos']);
 
         $visitas = $visita->lote
-            ? Visita::with(['contrato.cliente', 'contrato.paquete', 'pagos'])
+            ? Visita::with(['contrato.cliente', 'contrato.paquete', 'contrato.pagos', 'pagos'])
                 ->where('lote', $visita->lote)
                 ->orderBy('id')
                 ->get()
@@ -148,6 +173,152 @@ class VisitaController extends Controller
         $empleadoNombre = $visita->user?->name ?? Auth::user()?->name;
 
         return view('visita.ticket', compact('visita', 'visitas', 'pagos', 'empresa', 'empleadoNombre'));
+    }
+
+    public function deshacer(Visita $visita)
+    {
+        $visita->load(['rutaParada.ruta', 'pagos', 'contrato']);
+        $this->autorizarTicket($visita);
+
+        $visitas = $visita->lote
+            ? Visita::with(['rutaParada.ruta', 'pagos', 'contrato'])
+                ->where('lote', $visita->lote)
+                ->orderBy('id')
+                ->get()
+            : collect([$visita]);
+
+        $rutaIds = collect();
+        $snapshot = $this->snapshotParaDeshacer($visitas);
+
+        DB::transaction(function () use ($visitas, &$rutaIds) {
+            foreach ($visitas as $v) {
+                foreach ($v->pagos as $pago) {
+                    $this->revertirPagoDeVisita($pago);
+                }
+
+                if ($v->rutaParada) {
+                    $rutaIds->push($v->rutaParada->ruta_id);
+                    if ($v->rutaParada->estado === RutaParada::ESTADO_VISITADA) {
+                        $v->rutaParada->update(['estado' => RutaParada::ESTADO_PENDIENTE]);
+                    }
+                }
+
+                $v->delete();
+            }
+
+            $rutaIds->unique()->filter()->each(function ($rutaId) {
+                $ruta = Ruta::with('paradas')->find($rutaId);
+                if ($ruta) {
+                    $this->sincronizarEstadoRutaPorParadas($ruta);
+                }
+            });
+        });
+
+        RutaActividad::registrar($snapshot);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Visita deshecha. La parada volvió a pendiente.',
+        ]);
+    }
+
+    protected function registrarActividadVisitaRegistrada($visitas, $pagos, bool $esAusente): void
+    {
+        $visitas = collect($visitas)->filter();
+        if ($visitas->isEmpty()) {
+            return;
+        }
+
+        $primera = $visitas->first();
+        $primera->loadMissing(['contrato.cliente', 'rutaParada.ruta']);
+        $cliente = $primera->contrato?->cliente;
+        $nombreCliente = $cliente
+            ? trim(($cliente->nombre ?? '').' '.($cliente->apellido ?? ''))
+            : 'Cliente';
+        $folios = $visitas->pluck('contrato_id')->filter()->unique()->values();
+        $foliosTxt = $folios->map(fn ($id) => '#'.$id)->implode(', ');
+        $montoTotal = collect($pagos)->sum(fn ($p) => (float) $p->monto);
+        $ruta = $primera->rutaParada?->ruta;
+
+        if ($esAusente) {
+            RutaActividad::registrar([
+                'empleado_id' => $ruta?->empleado_id,
+                'ruta_id' => $ruta?->id,
+                'ruta_parada_id' => $primera->ruta_parada_id,
+                'visita_id' => $primera->id,
+                'tipo' => RutaActividad::TIPO_AUSENTE,
+                'titulo' => 'Visita ausente · '.$nombreCliente,
+                'detalle' => 'Folio'.($folios->count() === 1 ? '' : 's').' '.$foliosTxt.'. Sin recepción / sin cobro.',
+                'monto_total' => null,
+                'meta' => [
+                    'cliente' => $nombreCliente,
+                    'contratos' => $folios->all(),
+                    'ruta_nombre' => $ruta?->nombre,
+                    'lote' => $primera->lote,
+                ],
+            ]);
+
+            return;
+        }
+
+        RutaActividad::registrar([
+            'empleado_id' => $ruta?->empleado_id,
+            'ruta_id' => $ruta?->id,
+            'ruta_parada_id' => $primera->ruta_parada_id,
+            'visita_id' => $primera->id,
+            'tipo' => RutaActividad::TIPO_ABONO,
+            'titulo' => 'Abono · '.$nombreCliente,
+            'detalle' => 'Folio'.($folios->count() === 1 ? '' : 's').' '.$foliosTxt.
+                ($montoTotal > 0 ? ' · $'.number_format($montoTotal, 2) : ''),
+            'monto_total' => $montoTotal > 0 ? $montoTotal : null,
+            'meta' => [
+                'cliente' => $nombreCliente,
+                'contratos' => $folios->all(),
+                'ruta_nombre' => $ruta?->nombre,
+                'lote' => $primera->lote,
+                'pagos' => collect($pagos)->map(fn ($p) => [
+                    'contrato_id' => $p->contrato_id,
+                    'monto' => (float) $p->monto,
+                    'metodo_pago' => $p->metodo_pago,
+                ])->values()->all(),
+            ],
+        ]);
+    }
+
+    protected function snapshotParaDeshacer($visitas): array
+    {
+        $visitas = collect($visitas);
+        $primera = $visitas->first();
+        $primera->loadMissing(['contrato.cliente', 'rutaParada.ruta', 'pagos']);
+        $cliente = $primera->contrato?->cliente;
+        $nombreCliente = $cliente
+            ? trim(($cliente->nombre ?? '').' '.($cliente->apellido ?? ''))
+            : 'Cliente';
+        $folios = $visitas->pluck('contrato_id')->filter()->unique()->values();
+        $foliosTxt = $folios->map(fn ($id) => '#'.$id)->implode(', ');
+        $pagos = $visitas->flatMap->pagos;
+        $montoTotal = $pagos->sum(fn ($p) => (float) $p->monto);
+        $ruta = $primera->rutaParada?->ruta;
+        $teniaPago = $pagos->isNotEmpty();
+
+        return [
+            'empleado_id' => $ruta?->empleado_id,
+            'ruta_id' => $ruta?->id,
+            'ruta_parada_id' => $primera->ruta_parada_id,
+            'visita_id' => $primera->id,
+            'tipo' => RutaActividad::TIPO_DESHACER,
+            'titulo' => 'Deshacer visita · '.$nombreCliente,
+            'detalle' => 'Se revirtió la visita de folio'.($folios->count() === 1 ? '' : 's').' '.$foliosTxt.
+                ($teniaPago ? ' y se anuló cobro por $'.number_format($montoTotal, 2) : ' (sin cobro).'),
+            'monto_total' => $teniaPago ? $montoTotal : null,
+            'meta' => [
+                'cliente' => $nombreCliente,
+                'contratos' => $folios->all(),
+                'ruta_nombre' => $ruta?->nombre,
+                'lote' => $primera->lote,
+                'tenia_pago' => $teniaPago,
+            ],
+        ];
     }
 
     protected function autorizarTicket(Visita $visita): void
@@ -170,6 +341,84 @@ class VisitaController extends Controller
         abort(403, 'No puedes ver este ticket.');
     }
 
+    /**
+     * Anula un pago ligado a la visita y revierte parcialidades de comisión.
+     */
+    protected function revertirPagoDeVisita(Pago $pago): void
+    {
+        $montoPago = (float) $pago->monto;
+        $contrato = $pago->contrato;
+        $pago->delete();
+
+        if (! $contrato || $montoPago <= 0) {
+            return;
+        }
+
+        $parcialidades = Comisione::where('contrato_id', $contrato->id)
+            ->where('tipo_comision', 'PARCIALIDAD')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('orden', 'desc')
+            ->get();
+
+        $montoARevertir = $montoPago;
+        foreach ($parcialidades as $parcialidad) {
+            if ($montoARevertir <= 0.009) {
+                break;
+            }
+
+            $padre = $parcialidad->comision_padre_id
+                ? Comisione::find($parcialidad->comision_padre_id)
+                : null;
+
+            if ((float) $parcialidad->monto <= $montoARevertir) {
+                $montoARevertir -= (float) $parcialidad->monto;
+                $parcialidad->delete();
+            } else {
+                $parcialidad->update(['monto' => (float) $parcialidad->monto - $montoARevertir]);
+                $montoARevertir = 0;
+            }
+
+            if ($padre && $padre->estado === 'Pagada') {
+                $padre->update(['estado' => 'Pendiente']);
+            }
+        }
+
+        $contrato->actualizarProximaFechaPago();
+    }
+
+    /**
+     * Recalcula el estado de la ruta al volver paradas a pendiente.
+     */
+    protected function sincronizarEstadoRutaPorParadas(Ruta $ruta): void
+    {
+        if ($ruta->estado === Ruta::ESTADO_DETENIDA) {
+            return;
+        }
+
+        $paradas = $ruta->paradas;
+        if ($paradas->isEmpty()) {
+            return;
+        }
+
+        $hayPendientes = $paradas->contains(fn ($p) => $p->estado === RutaParada::ESTADO_PENDIENTE);
+        $hayAvance = $paradas->contains(fn ($p) => in_array($p->estado, [
+            RutaParada::ESTADO_VISITADA,
+            RutaParada::ESTADO_OMITIDA,
+        ], true));
+
+        if (! $hayPendientes) {
+            $nuevo = Ruta::ESTADO_COMPLETADA;
+        } elseif ($hayAvance) {
+            $nuevo = Ruta::ESTADO_EN_CURSO;
+        } else {
+            $nuevo = Ruta::ESTADO_PLANEADA;
+        }
+
+        if ($ruta->estado !== $nuevo) {
+            $ruta->update(['estado' => $nuevo]);
+        }
+    }
+
     protected function autorizarParadas($paradas): void
     {
         $user = Auth::user();
@@ -188,8 +437,6 @@ class VisitaController extends Controller
     protected function crearVisita(int $contratoId, ?RutaParada $parada, Request $request, string $lote): Visita
     {
         $contrato = Contrato::findOrFail($contratoId);
-        $recibido = $request->boolean('recibido');
-
         $visita = new Visita();
         $visita->contrato_id = $contrato->id;
         $visita->user_id = Auth::id();
@@ -198,9 +445,10 @@ class VisitaController extends Controller
         $visita->adeudo_momento = $contrato->saldo_pendiente;
         $visita->ruta_parada_id = $parada?->id;
         $visita->en_domicilio = $request->has('en_domicilio') ? $request->boolean('en_domicilio') : null;
-        $visita->recibido = $recibido;
-        $visita->receptor_nombre = $recibido ? $request->input('receptor_nombre') : null;
-        $visita->receptor_parentesco = $recibido ? $request->input('receptor_parentesco') : null;
+        // Cobro en ruta ya no captura receptor.
+        $visita->recibido = false;
+        $visita->receptor_nombre = null;
+        $visita->receptor_parentesco = null;
         $this->asignarUbicacion($visita, $request->ubicacion_evidencia);
         $visita->save();
 
@@ -282,6 +530,11 @@ class VisitaController extends Controller
 
     protected function asignarUbicacion(Visita $visita, string $punto): void
     {
+        if (preg_match('/POINT\(\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)/i', $punto, $matches)) {
+            $visita->longitud = (float) $matches[1];
+            $visita->latitud = (float) $matches[2];
+        }
+
         if (Schema::getConnection()->getDriverName() === 'mysql') {
             $visita->ubicacion_evidencia = DB::raw("ST_GeomFromText('".$punto."')");
 

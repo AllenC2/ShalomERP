@@ -8,6 +8,7 @@ use App\Models\Empleado;
 use App\Models\Pago;
 use App\Models\Paquete;
 use App\Models\Ruta;
+use App\Models\RutaActividad;
 use App\Models\RutaParada;
 use App\Models\User;
 use App\Models\Visita;
@@ -30,7 +31,7 @@ class VisitaPagoTicketTest extends TestCase
         $this->empleado = $this->crearEmpleado($this->user);
     }
 
-    public function test_visita_sin_pago(): void
+    public function test_empleado_requiere_pago(): void
     {
         $this->actingAs($this->user);
         $ctx = $this->contextoRuta();
@@ -39,12 +40,158 @@ class VisitaPagoTicketTest extends TestCase
             'registrar_pago' => false,
         ]));
 
+        $response->assertStatus(422);
+        $this->assertEquals(0, Visita::count());
+        $this->assertEquals(0, Pago::count());
+    }
+
+    public function test_ausente_registra_visita_sin_pago_y_ticket_con_firma(): void
+    {
+        $this->actingAs($this->user);
+        $ctx = $this->contextoRuta();
+
+        $response = $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
+            'ausente' => true,
+            'recibido' => false,
+            'registrar_pago' => false,
+        ]));
+
         $response->assertOk()->assertJson(['success' => true]);
         $this->assertEquals(1, Visita::count());
         $this->assertEquals(0, Pago::count());
-        $this->assertFalse((bool) Visita::first()->recibido);
-        $this->assertSame(RutaParada::ESTADO_VISITADA, $ctx['parada']->fresh()->estado);
-        $this->assertNotEmpty($response->json('ticket_url'));
+
+        $visita = Visita::first();
+        $this->assertFalse((bool) $visita->recibido);
+        $this->assertEquals(RutaParada::ESTADO_VISITADA, $ctx['parada']->fresh()->estado);
+        $this->assertEqualsWithDelta(19.43, (float) $visita->latitud, 0.0001);
+        $this->assertEqualsWithDelta(-99.13, (float) $visita->longitud, 0.0001);
+
+        $ticket = $this->get($response->json('ticket_url'));
+        $ticket->assertOk();
+        $ticket->assertSee('no fue posible localizarle', false);
+        $ticket->assertSee('AVISO DE VISITA', false);
+        $ticket->assertSee('FIRMA DEL EMPLEADO QUE VISITA', false);
+        $ticket->assertSee('shalom_logo.svg', false);
+        $ticket->assertSee($this->user->name, false);
+        $ticket->assertDontSee('RECIBO DE PAGO', false);
+    }
+
+    public function test_datos_de_ruta_incluyen_ticket_url_de_parada_visitada(): void
+    {
+        $this->actingAs($this->user);
+        $ctx = $this->contextoRuta();
+
+        $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
+            'ausente' => true,
+            'recibido' => false,
+            'registrar_pago' => false,
+        ]))->assertOk();
+
+        $visita = Visita::first();
+        $datos = $this->getJson(route('rutas.getRutaData', $ctx['ruta']->id));
+        $datos->assertOk();
+        $parada = collect($datos->json('paradas'))->firstWhere('id', $ctx['parada']->id);
+        $this->assertNotNull($parada);
+        $this->assertSame(route('visitas.ticket', $visita), $parada['ticket_url']);
+        $this->assertSame($visita->id, $parada['visita_id']);
+        $this->assertIsArray($parada['registros_ubicacion'] ?? null);
+        $this->assertCount(1, $parada['registros_ubicacion']);
+        $this->assertEqualsWithDelta(19.43, (float) $parada['registros_ubicacion'][0]['latitud'], 0.0001);
+        $this->assertEqualsWithDelta(-99.13, (float) $parada['registros_ubicacion'][0]['longitud'], 0.0001);
+        $this->assertFalse($parada['registros_ubicacion'][0]['tiene_pago']);
+    }
+
+    public function test_deshacer_visita_ausente_revierte_parada_y_ruta(): void
+    {
+        $this->actingAs($this->user);
+        $ctx = $this->contextoRuta();
+
+        $store = $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
+            'ausente' => true,
+            'recibido' => false,
+            'registrar_pago' => false,
+        ]));
+        $store->assertOk();
+        $visitaId = $store->json('visita_id');
+        $this->assertEquals(RutaParada::ESTADO_VISITADA, $ctx['parada']->fresh()->estado);
+        $this->assertEquals(Ruta::ESTADO_COMPLETADA, $ctx['ruta']->fresh()->estado);
+
+        $undo = $this->postJson(route('visitas.deshacer', $visitaId));
+        $undo->assertOk()->assertJson(['success' => true]);
+
+        $this->assertEquals(0, Visita::count());
+        $this->assertEquals(RutaParada::ESTADO_PENDIENTE, $ctx['parada']->fresh()->estado);
+        $this->assertEquals(Ruta::ESTADO_PLANEADA, $ctx['ruta']->fresh()->estado);
+    }
+
+    public function test_deshacer_visita_con_pago_anula_el_pago(): void
+    {
+        $this->actingAs($this->user);
+        $ctx = $this->contextoRuta();
+
+        $store = $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
+            'pagos' => [[
+                'contrato_id' => $ctx['contrato']->id,
+                'monto' => 150,
+                'metodo_pago' => 'efectivo',
+                'tipo_pago' => 'parcialidad',
+            ]],
+        ]));
+        $store->assertOk();
+        $this->assertEquals(1, Pago::count());
+
+        $undo = $this->postJson(route('visitas.deshacer', $store->json('visita_id')));
+        $undo->assertOk();
+
+        $this->assertEquals(0, Visita::count());
+        $this->assertEquals(0, Pago::count());
+        $this->assertEquals(RutaParada::ESTADO_PENDIENTE, $ctx['parada']->fresh()->estado);
+    }
+
+    public function test_actividad_de_rutas_registra_abono_ausente_y_deshacer(): void
+    {
+        $this->actingAs($this->user);
+        $ctx = $this->contextoRuta();
+
+        $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
+            'pagos' => [[
+                'contrato_id' => $ctx['contrato']->id,
+                'monto' => 100,
+                'metodo_pago' => 'efectivo',
+                'tipo_pago' => 'parcialidad',
+            ]],
+        ]))->assertOk();
+
+        $this->assertDatabaseHas('ruta_actividades', [
+            'empleado_id' => $this->empleado->id,
+            'tipo' => RutaActividad::TIPO_ABONO,
+        ]);
+
+        $visitaId = Visita::first()->id;
+        $this->postJson(route('visitas.deshacer', $visitaId))->assertOk();
+        $this->assertDatabaseHas('ruta_actividades', [
+            'empleado_id' => $this->empleado->id,
+            'tipo' => RutaActividad::TIPO_DESHACER,
+        ]);
+
+        $ctx2 = $this->contextoRuta();
+        $this->postJson(route('visitas.store'), $this->payloadVisita($ctx2['parada'], [
+            'ausente' => true,
+            'recibido' => false,
+            'registrar_pago' => false,
+        ]))->assertOk();
+        $this->assertDatabaseHas('ruta_actividades', [
+            'empleado_id' => $this->empleado->id,
+            'tipo' => RutaActividad::TIPO_AUSENTE,
+        ]);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin);
+        $resp = $this->getJson(route('empleados.actividadRutas', $this->empleado->id));
+        $resp->assertOk()->assertJson(['success' => true]);
+        $this->assertGreaterThanOrEqual(3, $resp->json('total'));
+        $this->assertNotEmpty($resp->json('grupos'));
+        $this->assertNotEmpty($resp->json('grupos.0.label'));
     }
 
     public function test_pago_de_folio_asignado(): void
@@ -53,15 +200,11 @@ class VisitaPagoTicketTest extends TestCase
         $ctx = $this->contextoRuta();
 
         $response = $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
-            'recibido' => true,
-            'receptor_nombre' => 'María Pérez',
-            'receptor_parentesco' => 'titular',
-            'registrar_pago' => true,
             'pagos' => [[
                 'contrato_id' => $ctx['contrato']->id,
                 'monto' => 150,
                 'metodo_pago' => 'efectivo',
-                'tipo_pago' => 'cuota',
+                'tipo_pago' => 'parcialidad',
             ]],
         ]));
 
@@ -73,12 +216,16 @@ class VisitaPagoTicketTest extends TestCase
         $this->assertEquals($this->user->id, $pago->created_by);
         $this->assertNotNull($pago->visita_id);
         $this->assertEquals($ctx['contrato']->id, $pago->contrato_id);
+        $this->assertFalse((bool) Visita::first()->recibido);
 
         $ticket = $this->get($response->json('ticket_url'));
         $ticket->assertOk();
-        $ticket->assertSee('FIRMA DEL EMPLEADO QUE ENTREGA', false);
+        $ticket->assertSee('FIRMA DE RECIBIDO', false);
         $ticket->assertSee('$150.00', false);
-        $ticket->assertSee('María Pérez', false);
+        $ticket->assertSee('RECIBO DE PAGO', false);
+        $ticket->assertSee('shalom_logo.svg', false);
+        $ticket->assertSee('¡GRACIAS POR SU PAGO!', false);
+        $ticket->assertDontSee('María Pérez', false);
     }
 
     public function test_403_si_folio_no_esta_en_la_parada(): void
@@ -88,10 +235,6 @@ class VisitaPagoTicketTest extends TestCase
         $ajeno = $this->contrato(800);
 
         $response = $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
-            'recibido' => true,
-            'receptor_nombre' => 'Recibe',
-            'receptor_parentesco' => 'familiar',
-            'registrar_pago' => true,
             'pagos' => [[
                 'contrato_id' => $ajeno->id,
                 'monto' => 100,
@@ -121,10 +264,6 @@ class VisitaPagoTicketTest extends TestCase
         ]);
 
         $response = $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
-            'recibido' => true,
-            'receptor_nombre' => 'Recibe',
-            'receptor_parentesco' => 'titular',
-            'registrar_pago' => true,
             'pagos' => [[
                 'contrato_id' => $ctx['contrato']->id,
                 'monto' => 300,

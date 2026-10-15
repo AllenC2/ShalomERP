@@ -104,6 +104,8 @@ class RutaActividad extends Model
             $detalle .= ' '.($tipo === self::TIPO_DESHACER ? 'Pago revertido' : 'Pago').' en '.mb_strtolower($metodos).'.';
         } elseif ($tipo === self::TIPO_AUSENTE) {
             $detalle .= ' Sin recepción en domicilio.';
+        } elseif ($tipo === self::TIPO_DESHACER) {
+            $detalle .= ' Visita sin recepción revertida.';
         }
 
         if ($primera?->comentarios) {
@@ -113,7 +115,7 @@ class RutaActividad extends Model
         $titulos = [
             self::TIPO_ABONO => 'Abono',
             self::TIPO_AUSENTE => 'Ausente',
-            self::TIPO_DESHACER => 'Deshacer visita',
+            self::TIPO_DESHACER => $pagos->isNotEmpty() ? 'Deshacer abono' : 'Deshacer ausente',
         ];
 
         return [
@@ -131,6 +133,9 @@ class RutaActividad extends Model
                 'contratos' => $folios->all(),
                 'ruta_nombre' => $ruta?->nombre,
                 'lote' => $primera?->lote,
+                'tipo_original' => $tipo === self::TIPO_DESHACER
+                    ? ($pagos->isNotEmpty() ? self::TIPO_ABONO : self::TIPO_AUSENTE)
+                    : null,
                 'visitas' => $visitas->pluck('id')->all(),
             ],
         ];

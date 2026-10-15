@@ -9,8 +9,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\EmpleadoRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class EmpleadoController extends Controller
@@ -82,13 +84,14 @@ class EmpleadoController extends Controller
     public function show($id): View
     {
         try {
-            $empleado = Empleado::with('user')->findOrFail($id);
+            $empleado = Empleado::with(['user', 'plantillas'])->findOrFail($id);
 
             // Verificar que el empleado tenga un usuario asociado
             if (!$empleado->user) {
                 return view('empleado.show', [
                     'empleado' => null,
-                    'comisiones' => collect([])
+                    'comisiones' => collect([]),
+                    'plantillasAsignadas' => collect([]),
                 ]);
             }
 
@@ -97,13 +100,18 @@ class EmpleadoController extends Controller
                 ->orderBy('fecha_comision', 'desc')
                 ->get();
 
-            return view('empleado.show', compact('empleado', 'comisiones'));
+            $plantillasAsignadas = $empleado->plantillas
+                ->sortBy('nombre')
+                ->values();
+
+            return view('empleado.show', compact('empleado', 'comisiones', 'plantillasAsignadas'));
         } catch (\Exception $e) {
             \Log::error('Error en empleado.show: ' . $e->getMessage());
 
             return view('empleado.show', [
                 'empleado' => null,
-                'comisiones' => collect([])
+                'comisiones' => collect([]),
+                'plantillasAsignadas' => collect([]),
             ])->with('error', 'Error al cargar el empleado: ' . $e->getMessage());
         }
     }
@@ -244,20 +252,55 @@ class EmpleadoController extends Controller
 
     /**
      * Dar de baja a un empleado (cambiar estado a inactivo)
+     * e invalidar sesiones / remember token de su usuario.
      */
     public function darDeBaja($id): RedirectResponse
     {
-        $empleado = Empleado::find($id);
+        $empleado = Empleado::with(['user', 'plantillas'])->find($id);
 
         if (!$empleado) {
             return Redirect::route('empleados.index')
                 ->with('error', 'Empleado no encontrado.');
         }
 
+        $plantillas = $empleado->plantillas;
+        if ($plantillas->isNotEmpty()) {
+            $nombres = $plantillas
+                ->map(fn ($p) => $p->nombre ?: ('Ruta #' . $p->id))
+                ->take(5)
+                ->implode(', ');
+            $extra = $plantillas->count() > 5 ? ' y ' . ($plantillas->count() - 5) . ' más' : '';
+
+            return Redirect::route('empleados.show', $id)
+                ->with('error', 'No se puede dar de baja: este empleado tiene '
+                    . $plantillas->count() . ' ruta(s) asignada(s) (' . $nombres . $extra
+                    . '). Reasigna o elimina esas rutas antes de continuar.');
+        }
+
         $empleado->update(['estado' => 'inactivo']);
+        $this->invalidarAccesoUsuario($empleado->user);
 
         return Redirect::route('empleados.show', $id)
-            ->with('success', 'Empleado dado de baja correctamente.');
+            ->with('success', 'Empleado dado de baja correctamente. Ya no puede acceder al sistema.');
+    }
+
+    /**
+     * Cierra sesiones activas y olvida el "recordarme" del usuario.
+     */
+    protected function invalidarAccesoUsuario(?User $user): void
+    {
+        if (! $user) {
+            return;
+        }
+
+        $user->setRememberToken(Str::random(60));
+        $user->save();
+
+        if (config('session.driver') === 'database') {
+            DB::table(config('session.table', 'sessions'))
+                ->where('user_id', $user->id)
+                ->delete();
+        }
     }
 
     /**

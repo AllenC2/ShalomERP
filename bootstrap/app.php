@@ -33,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Aplicar middleware de registro público a todas las rutas web
         $middleware->web(append: [
             \App\Http\Middleware\CheckRegistroPublico::class,
+            \App\Http\Middleware\EnsureEmpleadoActivo::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

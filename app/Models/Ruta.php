@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -101,5 +102,56 @@ class Ruta extends Model
     public function getEstadoLabelAttribute()
     {
         return self::getEstadosValidos()[$this->estado] ?? $this->estado;
+    }
+
+    public function fechaYaPaso(?Carbon $hoy = null): bool
+    {
+        if (! $this->fecha) {
+            return false;
+        }
+
+        $hoy = ($hoy ?? Carbon::today())->copy()->startOfDay();
+
+        return $this->fecha->copy()->startOfDay()->lt($hoy);
+    }
+
+    /**
+     * Recalcula el estado operativo según paradas.
+     * - Detenida: no cambia aquí.
+     * - Sin pendientes: completada (también desde vencida).
+     * - Fecha pasada con pendientes: vencida (permite seguir registrando).
+     * - Con avance: en_curso; sin avance: planeada.
+     */
+    public function sincronizarEstadoPorParadas(): void
+    {
+        if ($this->estado === self::ESTADO_DETENIDA) {
+            return;
+        }
+
+        $this->loadMissing('paradas');
+        $paradas = $this->paradas;
+        if ($paradas->isEmpty()) {
+            return;
+        }
+
+        $hayPendientes = $paradas->contains(fn ($p) => $p->estado === RutaParada::ESTADO_PENDIENTE);
+        $hayAvance = $paradas->contains(fn ($p) => in_array($p->estado, [
+            RutaParada::ESTADO_VISITADA,
+            RutaParada::ESTADO_OMITIDA,
+        ], true));
+
+        if (! $hayPendientes) {
+            $nuevo = self::ESTADO_COMPLETADA;
+        } elseif ($this->fechaYaPaso() || $this->estado === self::ESTADO_VENCIDA) {
+            $nuevo = self::ESTADO_VENCIDA;
+        } elseif ($hayAvance) {
+            $nuevo = self::ESTADO_EN_CURSO;
+        } else {
+            $nuevo = self::ESTADO_PLANEADA;
+        }
+
+        if ($this->estado !== $nuevo) {
+            $this->update(['estado' => $nuevo]);
+        }
     }
 }

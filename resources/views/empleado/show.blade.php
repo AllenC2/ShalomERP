@@ -225,16 +225,11 @@
                                 <i class="bi bi-pencil-square me-1"></i> Editar
                             </a>
                             @if($empleado->estado === 'activo')
-                                <form action="{{ route('empleados.darDeBaja', $empleado->id) }}" method="POST" class="d-inline" 
-                                      onsubmit="return confirm('¿Estás seguro de que quieres dar de baja a este empleado?')">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="btn btn-outline-danger">
-                                        <i class="bi bi-person-x me-1"></i> Dar de baja
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#darDeBajaModal">
+                                    <i class="bi bi-person-x me-1"></i> Dar de baja
+                                </button>
                             @else
-                                <form action="{{ route('empleados.reactivar', $empleado->id) }}" method="POST" class="d-inline" 
+                                <form action="{{ route('empleados.reactivar', $empleado->id) }}" method="POST" class="d-inline"
                                       onsubmit="return confirm('¿Estás seguro de que quieres reactivar a este empleado?')">
                                     @csrf
                                     @method('PATCH')
@@ -412,6 +407,74 @@
             </div>
         </div>
     </section>
+
+    @php
+        $plantillasAsignadas = $plantillasAsignadas ?? collect();
+        $tieneRutasAsignadas = $plantillasAsignadas->isNotEmpty();
+    @endphp
+
+    <!-- Modal Dar de baja -->
+    <div class="modal fade" id="darDeBajaModal" tabindex="-1" aria-labelledby="darDeBajaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="darDeBajaModalLabel">
+                        <i class="bi bi-person-x text-danger me-2"></i>Dar de baja
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    @if($tieneRutasAsignadas)
+                        <div class="alert alert-warning border-0 mb-3">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            Este empleado tiene <strong>{{ $plantillasAsignadas->count() }}</strong>
+                            ruta{{ $plantillasAsignadas->count() === 1 ? '' : 's' }} asignada{{ $plantillasAsignadas->count() === 1 ? '' : 's' }}.
+                            Debe reasignarlas a otro empleado antes de darlo de baja.
+                        </div>
+                        <p class="small text-muted mb-2">Rutas asignadas:</p>
+                        <ul class="list-group list-group-flush mb-0 rounded-3 border">
+                            @foreach($plantillasAsignadas->take(8) as $plantilla)
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
+                                    <span class="small fw-semibold">{{ $plantilla->nombre ?: ('Ruta #' . $plantilla->id) }}</span>
+                                    <span class="text-muted small">{{ $plantilla->etiquetaFrecuencia() }}</span>
+                                </li>
+                            @endforeach
+                            @if($plantillasAsignadas->count() > 8)
+                                <li class="list-group-item px-3 py-2 text-muted small">
+                                    y {{ $plantillasAsignadas->count() - 8 }} más…
+                                </li>
+                            @endif
+                        </ul>
+                    @else
+                        <p class="mb-0">
+                            ¿Seguro que quieres dar de baja a
+                            <strong>{{ $empleado->nombre }} {{ $empleado->apellido }}</strong>?
+                            Perderá el acceso al sistema.
+                        </p>
+                    @endif
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    @if($tieneRutasAsignadas)
+                        <a href="{{ route('rutas.index', ['empleado_id' => $empleado->id]) }}" class="btn btn-outline-primary">
+                            <i class="bi bi-signpost-split me-1"></i> Ir a rutas
+                        </a>
+                        <button type="button" class="btn btn-danger" disabled title="Reasigna las rutas primero">
+                            <i class="bi bi-person-x me-1"></i> Dar de baja
+                        </button>
+                    @else
+                        <form action="{{ route('empleados.darDeBaja', $empleado->id) }}" method="POST" class="d-inline">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-person-x me-1"></i> Confirmar baja
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Cambio de Contraseña -->
     <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">

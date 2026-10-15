@@ -128,8 +128,13 @@ class ContratoController extends Controller
         $clientes = \App\Models\Cliente::selectRaw("CONCAT(nombre, ' ', apellido) as nombre_completo, id")
             ->pluck('nombre_completo', 'id');
         $paquetes = \App\Models\Paquete::pluck('nombre', 'id');
+        $rutasMolde = \App\Models\RutaPlantilla::with('empleado')
+            ->withCount('paradas')
+            ->where('activa', true)
+            ->orderBy('nombre')
+            ->get();
 
-        return view('contrato.create', compact('contrato', 'clientes', 'paquetes'));
+        return view('contrato.create', compact('contrato', 'clientes', 'paquetes', 'rutasMolde'));
     }
 
     /**
@@ -138,6 +143,7 @@ class ContratoController extends Controller
     public function store(ContratoRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        unset($data['ruta_plantilla_id']);
 
         // Extraer el ID personalizado si se proporcionó
         $customId = null;
@@ -251,9 +257,19 @@ class ContratoController extends Controller
 
         // Crear comisiones tradicionales si se proporcionaron
         $mapTiposAEmpleados = [];
+        $adelantarComisiones = $request->input('adelantar_comisiones', []);
+        $totalAdelantadas = 0;
+
         if ($request->has('comisiones') && is_array($request->comisiones)) {
             foreach ($request->comisiones as $porcentaje_id => $empleado_id) {
                 if (!empty($empleado_id)) {
+                    $empleadoActivo = \App\Models\Empleado::where('id', $empleado_id)
+                        ->where('estado', 'activo')
+                        ->exists();
+                    if (! $empleadoActivo) {
+                        continue;
+                    }
+
                     $porcentaje = \App\Models\Porcentaje::find($porcentaje_id);
                     if ($porcentaje) {
                         $mapTiposAEmpleados[$porcentaje->tipo_porcentaje] = $empleado_id;
@@ -263,6 +279,12 @@ class ContratoController extends Controller
                         } else {
                             $montoComision = ($montoTotal * $porcentaje->cantidad_porcentaje) / 100;
                             $descComision = "Comisión tradicional por {$porcentaje->tipo_porcentaje} ({$porcentaje->cantidad_porcentaje}%)";
+                        }
+
+                        $esAdelantada = $montoInicial > 0 && !empty($adelantarComisiones[$porcentaje_id]);
+                        if ($esAdelantada) {
+                            $totalAdelantadas += $montoComision;
+                            $descComision .= ' — Adelantada del pago inicial';
                         }
 
                         \App\Models\Comisione::create([
@@ -275,7 +297,8 @@ class ContratoController extends Controller
                             'monto' => $montoComision,
                             'observaciones' => $descComision,
                             'documento' => 'No',
-                            'estado' => 'Pendiente',
+                            // Adelantadas nacen Pagadas: se descuentan del pago inicial
+                            'estado' => $esAdelantada ? 'Pagada' : 'Pendiente',
                             'orden' => $porcentaje->orden ?? 0
                         ]);
                     }
@@ -284,6 +307,7 @@ class ContratoController extends Controller
         }
 
         // Crear comisiones fijas basadas ÚNICAMENTE en el pago inicial
+        // (el "restante" considera también las comisiones tradicionales adelantadas)
         if ($montoInicial > 0) {
             $ajustesComisiones = \App\Models\Ajuste::where('nombre', 'like', 'comision_fija_%')->where('activo', true)->get();
             $totalFixedAssigned = 0;
@@ -321,7 +345,7 @@ class ContratoController extends Controller
             }
             
             if ($restanteAjuste) {
-                $montoRestante = max(0, $montoInicial - $totalFixedAssigned);
+                $montoRestante = max(0, $montoInicial - $totalFixedAssigned - $totalAdelantadas);
                 $fixedCommissionsToCreate[] = [
                     'tipo' => $restanteAjuste,
                     'monto' => $montoRestante,
@@ -344,6 +368,15 @@ class ContratoController extends Controller
                         'estado' => 'Pagada' // Al nacer como pagada, consume instantáneamente el saldo generado por el pago inicial
                     ]);
                 }
+            }
+        }
+
+        // Opcional: agregar el contrato a una ruta molde (plantilla)
+        if ($request->filled('ruta_plantilla_id')) {
+            $plantilla = \App\Models\RutaPlantilla::find($request->input('ruta_plantilla_id'));
+            if ($plantilla) {
+                app(\App\Services\GeneradorRutasService::class)
+                    ->agregarContratoAPlantilla($plantilla, $contrato->fresh('cliente'));
             }
         }
 
@@ -410,7 +443,7 @@ class ContratoController extends Controller
             ->sum('monto');
 
         // Obtener lista de empleados activos para el modal de cambio de empleado
-        $empleados = \App\Models\Empleado::where('estado', 'Activo')
+        $empleados = \App\Models\Empleado::where('estado', 'activo')
             ->selectRaw("CONCAT(nombre, ' ', apellido) as nombre_completo, id, nombre, apellido")
             ->orderBy('nombre', 'asc')
             ->orderBy('apellido', 'asc')
@@ -565,6 +598,13 @@ class ContratoController extends Controller
             $montoTotal = $contrato->monto_total;
             foreach ($request->comisiones as $porcentaje_id => $empleado_id) {
                 if (!empty($empleado_id)) {
+                    $empleadoActivo = \App\Models\Empleado::where('id', $empleado_id)
+                        ->where('estado', 'activo')
+                        ->exists();
+                    if (! $empleadoActivo) {
+                        continue;
+                    }
+
                     $porcentaje = \App\Models\Porcentaje::find($porcentaje_id);
                     if ($porcentaje) {
                         if ($porcentaje->modo_comision === 'monto') {
@@ -657,6 +697,9 @@ class ContratoController extends Controller
     {
         $porcentajes = \App\Models\Porcentaje::where('paquete_id', $paquete_id)->orderBy('orden')->get();
         $empleados = \App\Models\Empleado::selectRaw("CONCAT(nombre, ' ', apellido) as nombre_completo, id")
+            ->where('estado', 'activo')
+            ->orderBy('nombre')
+            ->orderBy('apellido')
             ->pluck('nombre_completo', 'id');
 
         return response()->json([

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
@@ -36,5 +38,24 @@ class LoginController extends Controller
     {
         $this->middleware('guest')->except('logout');
         $this->middleware('auth')->only('logout');
+    }
+
+    /**
+     * Bloquea el acceso a empleados dados de baja aunque las credenciales sean válidas.
+     */
+    protected function authenticated(Request $request, $user)
+    {
+        if ($user->estaDadoDeBaja()) {
+            $this->guard()->logout();
+
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
+            throw ValidationException::withMessages([
+                $this->username() => ['Tu cuenta está dada de baja. Contacta al administrador.'],
+            ]);
+        }
     }
 }

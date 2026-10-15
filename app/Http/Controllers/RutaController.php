@@ -6,9 +6,11 @@ use App\Http\Requests\RutaRequest;
 use App\Models\Cliente;
 use App\Models\Contrato;
 use App\Models\Empleado;
+use App\Models\Pago;
 use App\Models\Ruta;
 use App\Models\RutaActividad;
 use App\Models\RutaParada;
+use App\Models\RutaPlantilla;
 use App\Services\GeocodingService;
 use App\Services\GeneradorRutasService;
 use App\Services\OptimizadorOrdenRutaService;
@@ -31,34 +33,113 @@ class RutaController extends Controller
     public function index(Request $request): View
     {
         $user = Auth::user();
-        $estadosFiltro = $request->input('estados', []);
-        if (is_string($estadosFiltro)) {
-            $estadosFiltro = $estadosFiltro ? explode(',', $estadosFiltro) : [];
-        }
+        $activaFiltro = $request->input('activa'); // '1', '0', or null/empty = todas
         $empleadoFiltro = $request->input('empleado_id');
 
-        $rutas = Ruta::with(['empleado', 'user', 'paradas', 'plantilla']);
+        $plantillas = RutaPlantilla::with(['empleado'])->withCount('paradas');
 
         if ($user->role !== 'admin') {
             $empleado = $user->empleado;
             if ($empleado) {
-                $rutas->where('empleado_id', $empleado->id);
+                $plantillas->where('empleado_id', $empleado->id);
+            } else {
+                $plantillas->whereRaw('1 = 0');
             }
         }
 
-        if (!empty($estadosFiltro)) {
-            $rutas->whereIn('estado', $estadosFiltro);
+        if ($activaFiltro === '1' || $activaFiltro === '0') {
+            $plantillas->where('activa', (bool) (int) $activaFiltro);
         }
 
         if ($empleadoFiltro) {
-            $rutas->where('empleado_id', $empleadoFiltro);
+            $plantillas->where('empleado_id', $empleadoFiltro);
         }
 
-        $rutas = $rutas->orderBy('fecha', 'desc')->paginate(15)->appends($request->all());
+        $plantillas = $plantillas
+            ->orderByDesc('activa')
+            ->orderBy('nombre')
+            ->paginate(15)
+            ->appends($request->all());
 
         $empleados = Empleado::where('estado', 'activo')->orderBy('nombre')->get();
 
-        return view('rutas.index', compact('rutas', 'estadosFiltro', 'empleadoFiltro', 'empleados'));
+        return view('rutas.index', compact('plantillas', 'activaFiltro', 'empleadoFiltro', 'empleados'));
+    }
+
+    public function showPlantilla(RutaPlantilla $plantilla): View
+    {
+        $user = Auth::user();
+        if ($user->role !== 'admin') {
+            $empleado = $user->empleado;
+            if (!$empleado || (int) $plantilla->empleado_id !== (int) $empleado->id) {
+                abort(403);
+            }
+        }
+
+        $plantilla->load([
+            'empleado',
+            'paradas' => fn ($q) => $q->orderBy('orden'),
+            'paradas.cliente',
+            'paradas.contrato.cliente',
+            'ejecuciones' => fn ($q) => $q
+                ->with(['empleado'])
+                ->withCount([
+                    'paradas',
+                    'paradas as paradas_visitadas_count' => fn ($pq) => $pq->where('estado', 'visitada'),
+                ])
+                ->orderByDesc('fecha'),
+        ]);
+
+        $empleados = Empleado::where('estado', 'activo')->orderBy('nombre')->get();
+        if ($plantilla->empleado && !$empleados->contains('id', $plantilla->empleado_id)) {
+            $empleados->prepend($plantilla->empleado);
+        }
+
+        return view('rutas.plantilla-show', compact('plantilla', 'empleados'));
+    }
+
+    public function actualizarEmpleadoPlantilla(Request $request, RutaPlantilla $plantilla): RedirectResponse
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $request->validate([
+            'empleado_id' => 'required|string|exists:empleados,id',
+        ]);
+
+        $empleadoId = $request->input('empleado_id');
+        $plantilla->update(['empleado_id' => $empleadoId]);
+
+        // Propagar a ejecuciones abiertas de hoy en adelante
+        Ruta::where('plantilla_id', $plantilla->id)
+            ->whereDate('fecha', '>=', now()->toDateString())
+            ->whereIn('estado', [
+                Ruta::ESTADO_PLANEADA,
+                Ruta::ESTADO_EN_CURSO,
+                Ruta::ESTADO_DETENIDA,
+            ])
+            ->update(['empleado_id' => $empleadoId]);
+
+        return redirect()
+            ->route('rutas.plantillas.show', $plantilla)
+            ->with('success', 'Empleado asignado actualizado.');
+    }
+
+    public function toggleActivaPlantilla(RutaPlantilla $plantilla): RedirectResponse
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $plantilla->update(['activa' => !$plantilla->activa]);
+        $mensaje = $plantilla->activa
+            ? 'Molde activado correctamente.'
+            : 'Molde desactivado correctamente.';
+
+        return redirect()
+            ->route('rutas.plantillas.show', $plantilla)
+            ->with('success', $mensaje);
     }
 
     public function store(RutaRequest $request): RedirectResponse
@@ -132,11 +213,12 @@ class RutaController extends Controller
         $ruta = Ruta::findOrFail($id);
 
         if ($ruta->estado === Ruta::ESTADO_DETENIDA) {
-            $paradasPendientes = $ruta->paradas()->where('estado', 'pendiente')->count();
-            $nuevoEstado = $paradasPendientes > 0 ? Ruta::ESTADO_PLANEADA : Ruta::ESTADO_EN_CURSO;
-            $ruta->update(['estado' => $nuevoEstado]);
+            // Sale de detenida y recalcula (vencida si la fecha ya pasó).
+            $ruta->update(['estado' => Ruta::ESTADO_PLANEADA]);
+            $ruta->load('paradas');
+            $ruta->sincronizarEstadoPorParadas();
             $mensaje = 'Ruta reactivada correctamente.';
-        } elseif ($ruta->estado === Ruta::ESTADO_PLANEADA || $ruta->estado === Ruta::ESTADO_EN_CURSO) {
+        } elseif (in_array($ruta->estado, [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO, Ruta::ESTADO_VENCIDA], true)) {
             $ruta->update(['estado' => Ruta::ESTADO_DETENIDA]);
             $mensaje = 'Ruta detenida correctamente.';
         } else {
@@ -146,7 +228,7 @@ class RutaController extends Controller
         return response()->json([
             'success' => true,
             'message' => $mensaje,
-            'nuevo_estado' => $ruta->estado,
+            'nuevo_estado' => $ruta->fresh()->estado,
         ]);
     }
 
@@ -198,37 +280,11 @@ class RutaController extends Controller
 
     /**
      * Recalcula el estado operativo de la ruta según el avance de paradas.
-     * Al revertir una visitada/omitida a pendiente, vuelve a en_curso o planeada.
+     * Si la fecha ya pasó y quedan pendientes, permanece vencida (sin bloquear registro).
      */
     protected function sincronizarEstadoRutaPorParadas(Ruta $ruta): void
     {
-        // Las rutas detenidas no se reactivan al tocar paradas; solo toggleDetener.
-        if ($ruta->estado === Ruta::ESTADO_DETENIDA) {
-            return;
-        }
-
-        $paradas = $ruta->paradas;
-        if ($paradas->isEmpty()) {
-            return;
-        }
-
-        $hayPendientes = $paradas->contains(fn ($p) => $p->estado === RutaParada::ESTADO_PENDIENTE);
-        $hayAvance = $paradas->contains(fn ($p) => in_array($p->estado, [
-            RutaParada::ESTADO_VISITADA,
-            RutaParada::ESTADO_OMITIDA,
-        ], true));
-
-        if (! $hayPendientes) {
-            $nuevo = Ruta::ESTADO_COMPLETADA;
-        } elseif ($hayAvance) {
-            $nuevo = Ruta::ESTADO_EN_CURSO;
-        } else {
-            $nuevo = Ruta::ESTADO_PLANEADA;
-        }
-
-        if ($ruta->estado !== $nuevo) {
-            $ruta->update(['estado' => $nuevo]);
-        }
+        $ruta->sincronizarEstadoPorParadas();
     }
 
     public function omitirParadas(Request $request, $rutaId)
@@ -259,13 +315,8 @@ class RutaController extends Controller
             }
         }
 
-        $ruta->refresh();
-        $pendientes = $ruta->paradas()->where('estado', RutaParada::ESTADO_PENDIENTE)->exists();
-        if (! $pendientes && in_array($ruta->estado, [Ruta::ESTADO_PLANEADA, Ruta::ESTADO_EN_CURSO], true)) {
-            $ruta->update(['estado' => Ruta::ESTADO_COMPLETADA]);
-        } elseif ($ruta->estado === Ruta::ESTADO_PLANEADA) {
-            $ruta->update(['estado' => Ruta::ESTADO_EN_CURSO]);
-        }
+        $ruta->refresh()->load('paradas');
+        $ruta->sincronizarEstadoPorParadas();
 
         if ($omitidasIds !== []) {
             $omitidas = RutaParada::with('contrato.cliente')->whereIn('id', $omitidasIds)->get();
@@ -557,22 +608,41 @@ class RutaController extends Controller
             }
 
             $ultimaVisita = $p->visitas->sortByDesc('id')->first();
-            $registrosUbicacion = $p->visitas
+            $registros = $p->visitas
+                ->sortBy('id')
+                ->values()
                 ->map(function ($visita) {
                     $coords = $visita->coordinates;
-                    if (! $coords) {
-                        return null;
-                    }
+                    $pagos = $visita->pagos;
+                    $montoTotal = (float) $pagos->sum('monto');
 
                     return [
                         'visita_id' => $visita->id,
-                        'latitud' => $coords['lat'],
-                        'longitud' => $coords['lng'],
-                        'tiene_pago' => $visita->pagos->isNotEmpty(),
+                        'ticket_url' => route('visitas.ticket', $visita),
+                        'latitud' => $coords['lat'] ?? null,
+                        'longitud' => $coords['lng'] ?? null,
+                        'tiene_pago' => $pagos->isNotEmpty(),
+                        'monto_total' => $montoTotal,
+                        'monto_total_fmt' => number_format($montoTotal, 2),
                         'created_at' => optional($visita->created_at)->toIso8601String(),
+                        'pagos' => $pagos->map(function ($pago) {
+                            $metodo = (string) $pago->metodo_pago;
+
+                            return [
+                                'id' => $pago->id,
+                                'monto' => (float) $pago->monto,
+                                'monto_fmt' => number_format((float) $pago->monto, 2),
+                                'metodo_pago' => $metodo,
+                                'metodo_label' => Pago::METODOS_PAGO[$metodo] ?? $metodo,
+                            ];
+                        })->values()->all(),
                     ];
                 })
-                ->filter()
+                ->all();
+
+            // Compat: banderas en mapa usan registros con coordenadas.
+            $registrosUbicacion = collect($registros)
+                ->filter(fn ($r) => $r['latitud'] !== null && $r['longitud'] !== null)
                 ->values()
                 ->all();
 
@@ -591,6 +661,7 @@ class RutaController extends Controller
                 'saldo_raw' => $p->contrato ? (float) $p->contrato->saldo_pendiente : 0,
                 'visita_id' => $ultimaVisita?->id,
                 'ticket_url' => $ultimaVisita ? route('visitas.ticket', $ultimaVisita) : null,
+                'registros' => $registros,
                 'registros_ubicacion' => $registrosUbicacion,
             ];
 

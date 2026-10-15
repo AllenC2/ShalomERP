@@ -89,6 +89,7 @@ class ContratoRequest extends FormRequest
             'observaciones' => 'nullable|string',
             'documento' => 'nullable|file|mimes:pdf|max:10240', // Máximo 10MB
             'estado' => 'nullable|in:activo,cancelado,finalizado,suspendido',
+            'ruta_plantilla_id' => 'nullable|exists:ruta_plantillas,id',
         ];
 
         // Validar ID tanto para creación como para edición

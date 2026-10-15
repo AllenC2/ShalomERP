@@ -276,6 +276,12 @@ class Contrato extends Model
             ->where('tipo_comision', 'NOT LIKE', 'Fija - %')
             ->get()
             ->sum(function($comision) {
+                // Las adelantadas del pago inicial no consumen saldo de cuotas
+                $esAdelantada = str_contains(strtolower($comision->observaciones ?? ''), 'adelantada del pago inicial');
+                if ($esAdelantada) {
+                    return 0;
+                }
+
                 if (strtolower($comision->estado) === 'pagada') {
                     return $comision->monto;
                 }

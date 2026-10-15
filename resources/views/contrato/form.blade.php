@@ -10,6 +10,28 @@
                 <div class="form-section">
                     <h6 class="section-title">Información del Contrato</h6>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contrato_id" class="form-label">ID del Contrato</label>
+                            <input type="text" name="id" class="form-control @error('id') is-invalid @enderror"
+                                value="{{ old('id', isset($contrato) && !$contrato->exists ? '' : $contrato?->id) }}"
+                                id="contrato_id" maxlength="6" pattern="[0-9]{1,6}" placeholder="Ingrese ID..." required>
+                            <div id="id_status" class="id-status-message"></div>
+                            @error('id')<div class="error-text">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
+                            <input type="date" name="fecha_inicio"
+                                class="form-control @error('fecha_inicio') is-invalid @enderror"
+                                value="{{ old('fecha_inicio', $contrato?->fecha_inicio ?? now()->format('Y-m-d')) }}"
+                                id="fecha_inicio" required>
+                            @error('fecha_inicio')<div class="error-text">{{ $message }}</div>@enderror
+                            <input type="hidden" name="fecha_fin" id="fecha_fin_hidden"
+                                value="{{ old('fecha_fin', $contrato?->fecha_fin) }}">
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="cliente_id" class="form-label">Cliente Titular</label>
                         <div class="searchable-select-container">
@@ -49,44 +71,24 @@
                         @error('cliente_id')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="form-group">
-                        <label for="contrato_id" class="form-label">ID del Contrato</label>
-                        <input type="text" name="id" class="form-control @error('id') is-invalid @enderror"
-                            value="{{ old('id', isset($contrato) && !$contrato->exists ? '' : $contrato?->id) }}"
-                            id="contrato_id" maxlength="6" pattern="[0-9]{1,6}" placeholder="Ingrese ID..." required>
-                        <div id="id_status" class="id-status-message"></div>
-                        @error('id')<div class="error-text">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="paquete_id" class="form-label">Paquete</label>
-                        @if(isset($contrato) && $contrato->exists)
-                            <input type="text" class="form-control bg-light text-muted" value="{{ $paquetes[$contrato->paquete_id] ?? 'N/A' }}" readonly style="cursor: not-allowed;" onclick="mostrarModalPaqueteBloqueado()">
-                            <input type="hidden" name="paquete_id" value="{{ $contrato->paquete_id }}">
-                        @else
-                            <select name="paquete_id" class="form-control @error('paquete_id') is-invalid @enderror"
-                                id="paquete_id" required>
-                                <option value="">Seleccionar paquete</option>
-                                @foreach ($paquetes as $id => $name)
-                                    <option value="{{ $id }}" {{ old('paquete_id', $contrato?->paquete_id) == $id ? 'selected' : '' }}>
-                                        {{ $name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('paquete_id')<div class="error-text">{{ $message }}</div>@enderror
-                        @endif
-                    </div>
-
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="fecha_inicio" class="form-label">Fecha de Inicio</label>
-                            <input type="date" name="fecha_inicio"
-                                class="form-control @error('fecha_inicio') is-invalid @enderror"
-                                value="{{ old('fecha_inicio', $contrato?->fecha_inicio ?? now()->format('Y-m-d')) }}"
-                                id="fecha_inicio" required>
-                            @error('fecha_inicio')<div class="error-text">{{ $message }}</div>@enderror
-                            <input type="hidden" name="fecha_fin" id="fecha_fin_hidden"
-                                value="{{ old('fecha_fin', $contrato?->fecha_fin) }}">
+                            <label for="paquete_id" class="form-label">Paquete</label>
+                            @if(isset($contrato) && $contrato->exists)
+                                <input type="text" class="form-control bg-light text-muted" value="{{ $paquetes[$contrato->paquete_id] ?? 'N/A' }}" readonly style="cursor: not-allowed;" onclick="mostrarModalPaqueteBloqueado()">
+                                <input type="hidden" name="paquete_id" value="{{ $contrato->paquete_id }}">
+                            @else
+                                <select name="paquete_id" class="form-control @error('paquete_id') is-invalid @enderror"
+                                    id="paquete_id" required>
+                                    <option value="">Seleccionar paquete</option>
+                                    @foreach ($paquetes as $id => $name)
+                                        <option value="{{ $id }}" {{ old('paquete_id', $contrato?->paquete_id) == $id ? 'selected' : '' }}>
+                                            {{ $name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('paquete_id')<div class="error-text">{{ $message }}</div>@enderror
+                            @endif
                         </div>
 
                         <div class="form-group">
@@ -99,20 +101,90 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="observaciones" class="form-label">Observaciones</label>
-                        <textarea name="observaciones" class="form-control @error('observaciones') is-invalid @enderror"
-                            id="observaciones" rows="3"
-                            placeholder="Observaciones adicionales del contrato">{{ old('observaciones', $contrato?->observaciones) }}</textarea>
-                        @error('observaciones')<div class="error-text">{{ $message }}</div>@enderror
+                    @if(!isset($contrato) || !$contrato->exists)
+                    <!-- Ruta Molde (opcional, solo creación) -->
+                    <div class="form-group" id="ruta_molde_section">
+                        <label for="ruta_plantilla_search" class="form-label">Asignar a ruta existente</label>
+                        <div class="searchable-select-container">
+                            <div class="searchable-select" id="ruta-molde-select">
+                                <div class="search-input-container">
+                                    <input type="text"
+                                        class="form-control search-input @error('ruta_plantilla_id') is-invalid @enderror"
+                                        id="ruta_plantilla_search" placeholder="Buscar ruta molde..." autocomplete="off">
+                                    <div class="search-icon">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <path d="m21 21-4.35-4.35"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="dropdown-arrow">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <polyline points="6,9 12,15 18,9"></polyline>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="dropdown-list dropdown-list-rich" id="ruta-molde-dropdown">
+                                    <div class="dropdown-option" data-value="" data-label="Sin asignar"
+                                        {{ old('ruta_plantilla_id') ? '' : 'data-selected="true"' }}>
+                                        <span class="option-text">Sin asignar</span>
+                                    </div>
+                                    @foreach(($rutasMolde ?? []) as $plantilla)
+                                        @php
+                                            $nombreRuta = $plantilla->nombre ?: ('Ruta #' . $plantilla->id);
+                                            $empNombre = trim(($plantilla->empleado->nombre ?? '') . ' ' . ($plantilla->empleado->apellido ?? ''));
+                                            $paradasCount = (int) ($plantilla->paradas_count ?? 0);
+                                            $paradasLabel = $paradasCount . ' parada' . ($paradasCount === 1 ? '' : 's');
+                                            $frecuencia = $plantilla->etiquetaFrecuencia();
+                                            $labelCorto = $nombreRuta . ' · ' . $paradasLabel;
+                                            $searchText = trim($nombreRuta . ' ' . $frecuencia . ' ' . $paradasLabel . ' ' . $empNombre);
+                                        @endphp
+                                        <div class="dropdown-option ruta-molde-option"
+                                            data-value="{{ $plantilla->id }}"
+                                            data-label="{{ $labelCorto }}"
+                                            data-search="{{ $searchText }}"
+                                            {{ old('ruta_plantilla_id') == $plantilla->id ? 'data-selected="true"' : '' }}>
+                                            <span class="option-text visually-hidden">{{ $searchText }}</span>
+                                            <div class="ruta-molde-option-top">
+                                                <span class="ruta-molde-option-name">{{ $nombreRuta }}</span>
+                                                <span class="ruta-molde-option-badge">{{ $paradasLabel }}</span>
+                                            </div>
+                                            <div class="ruta-molde-option-meta">
+                                                <span><i class="bi bi-calendar3"></i> {{ $frecuencia }}</span>
+                                                @if($empNombre !== '')
+                                                    <span><i class="bi bi-person"></i> {{ $empNombre }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <input type="hidden" name="ruta_plantilla_id" id="ruta_plantilla_id"
+                                value="{{ old('ruta_plantilla_id') }}">
+                        </div>
+                        @error('ruta_plantilla_id')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
-                </div>
+                    @endif
 
-                <!-- Documentación -->
-                <div class="form-section">
-                    <h6 class="section-title">Documento del contrato</h6>
+                    <!-- Comisiones -->
+                    <div id="comisiones_section" style="display: none;">
+                        <h6 class="section-title">Comisiones</h6>
+                        <div id="comisiones_container"></div>
+                    </div>
 
-                    <div class="upload-container">
+                    <div class="form-row observaciones-documento-row">
+                        <div class="form-group">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea name="observaciones" class="form-control @error('observaciones') is-invalid @enderror"
+                                id="observaciones" rows="6"
+                                placeholder="Observaciones adicionales del contrato">{{ old('observaciones', $contrato?->observaciones) }}</textarea>
+                            @error('observaciones')<div class="error-text">{{ $message }}</div>@enderror
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Documento del contrato</label>
+                            <div class="upload-container">
 
                         <label for="documento" class="upload-area" id="upload-area">
                             <div class="upload-content" id="upload-content">
@@ -322,6 +394,8 @@
                                 }, 3000);
                             }
                         </script>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -329,7 +403,7 @@
             <!-- Columna Derecha -->
             <div class="right-column">
 
-                <!-- Configuración Financiera -->
+                <!-- Configuración Financiera / Plan de Pagos -->
                 <div class="form-section">
                     <h6 class="section-title">Configuración Financiera</h6>
 
@@ -351,14 +425,7 @@
                                 id="monto_bonificacion" placeholder="$0.00">
                             @error('monto_bonificacion')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
-                    </div>
-                </div>
 
-                <!-- Plan de Pagos -->
-                <div class="form-section">
-                    <h6 class="section-title">Plan de Pagos</h6>
-
-                    <div class="form-row">
                         <div class="form-group">
                             <label for="monto_cuota" class="form-label">Monto del Abono</label>
                             <input type="text" name="monto_cuota"
@@ -458,12 +525,6 @@
                         @error('estado')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
                 </div>
-
-                <!-- Comisiones -->
-                <div class="form-section" id="comisiones_section" style="display: none;">
-                    <h6 class="section-title">Comisiones</h6>
-                    <div id="comisiones_container"></div>
-                </div>
             </div>
         </div>
 
@@ -519,6 +580,130 @@ function mostrarModalPaqueteBloqueado() {
 @endif
 
 <script>
+    // Comisiones de pago inicial (ajustes activos comision_fija_*)
+    @php
+        $comisionesPagoInicialConfig = \App\Models\Ajuste::where('nombre', 'like', 'comision_fija_%')
+            ->where('activo', true)
+            ->get()
+            ->map(function ($ajuste) {
+                $data = is_array($ajuste->valor) ? $ajuste->valor : json_decode($ajuste->valor, true);
+                $esJson = is_array($data);
+                return [
+                    'tipo' => str_replace('comision_fija_', '', $ajuste->nombre),
+                    'monto' => floatval($esJson && isset($data['monto']) ? $data['monto'] : $ajuste->valor),
+                    'tipo_valor' => $esJson && isset($data['tipo_valor']) ? $data['tipo_valor'] : 'fijo',
+                ];
+            })
+            ->values();
+    @endphp
+    const comisionesPagoInicialConfig = @json($comisionesPagoInicialConfig);
+    const esCreacionContrato = @json(!isset($contrato) || !$contrato->exists);
+
+    function obtenerComisionesAdelantadas(montoTotal) {
+        if (!esCreacionContrato) {
+            return [];
+        }
+
+        const adelantadas = [];
+        document.querySelectorAll('.adelantar-comision-checkbox:checked').forEach((checkbox) => {
+            const modo = checkbox.dataset.modo || 'porcentaje';
+            const tipo = checkbox.dataset.tipo || 'Comisión';
+            let montoCalculado = 0;
+
+            if (modo === 'monto') {
+                montoCalculado = parseFloat(checkbox.dataset.montoFijo) || 0;
+            } else {
+                const porcentaje = parseFloat(checkbox.dataset.cantidad) || 0;
+                montoCalculado = (montoTotal * porcentaje) / 100;
+            }
+
+            montoCalculado = Math.round(montoCalculado * 100) / 100;
+            adelantadas.push({
+                tipo: tipo,
+                monto: montoCalculado,
+                tipo_valor: 'adelanto',
+                config_monto: null
+            });
+        });
+
+        return adelantadas;
+    }
+
+    function calcularComisionesPagoInicial(montoInicial, montoTotal) {
+        if (!montoInicial || montoInicial <= 0) {
+            return [];
+        }
+
+        let totalAsignado = 0;
+        let tipoRestante = null;
+        const comisiones = [];
+
+        if (Array.isArray(comisionesPagoInicialConfig)) {
+            comisionesPagoInicialConfig.forEach((config) => {
+                if (config.tipo_valor === 'restante') {
+                    tipoRestante = config.tipo;
+                    return;
+                }
+
+                let montoCalculado = 0;
+                if (config.tipo_valor === 'porcentaje') {
+                    montoCalculado = (montoInicial * config.monto) / 100;
+                } else {
+                    montoCalculado = config.monto;
+                }
+
+                montoCalculado = Math.round(montoCalculado * 100) / 100;
+                totalAsignado += montoCalculado;
+
+                comisiones.push({
+                    tipo: config.tipo,
+                    monto: montoCalculado,
+                    tipo_valor: config.tipo_valor,
+                    config_monto: config.monto
+                });
+            });
+        }
+
+        const adelantadas = obtenerComisionesAdelantadas(montoTotal);
+        adelantadas.forEach((adelanto) => {
+            totalAsignado += adelanto.monto;
+            comisiones.push(adelanto);
+        });
+
+        if (tipoRestante) {
+            const montoRestante = Math.max(0, Math.round((montoInicial - totalAsignado) * 100) / 100);
+            comisiones.push({
+                tipo: tipoRestante,
+                monto: montoRestante,
+                tipo_valor: 'restante',
+                config_monto: null
+            });
+        }
+
+        return comisiones;
+    }
+
+    function construirHtmlComisionesPagoInicial(montoInicial, montoTotal) {
+        const comisiones = calcularComisionesPagoInicial(montoInicial, montoTotal);
+        if (!comisiones.length) {
+            return '';
+        }
+
+        let html = '';
+        comisiones.forEach((c) => {
+            let detalle = '';
+            if (c.tipo_valor === 'porcentaje') {
+                detalle = ` (${c.config_monto}%)`;
+            } else if (c.tipo_valor === 'restante') {
+                detalle = ' (restante)';
+            } else if (c.tipo_valor === 'adelanto') {
+                detalle = ' (adelanto)';
+            }
+            html += `<div class="summary-comision"><span>↳ ${c.tipo}${detalle}</span><span>-${formatearMoneda(c.monto)}</span></div>`;
+        });
+        return html;
+    }
+
     function calcularPagos() {
         const montoTotalStr = document.getElementById('monto_total').value.replace(/[$,]/g, '');
         const montoTotal = parseFloat(montoTotalStr) || 0;
@@ -605,11 +790,14 @@ function mostrarModalPaqueteBloqueado() {
                 ${fechaFin ? `<small>Finalización estimada: <strong>${fechaFin}</strong></small>` : ''}
             `;
 
+        const comisionesInicialHtml = construirHtmlComisionesPagoInicial(montoInicial, montoTotal);
+
         document.getElementById('total_restante').innerHTML = `
-                <div>Costo total: ${formatearMoneda(montoTotal)}</div>
-                <div>Inicial: -${formatearMoneda(montoInicial)}</div>
-                <div>Bonificación: -${formatearMoneda(montoBonificacion)}</div>
-                <div><strong>Restante a liquidar: ${formatearMoneda(saldoPendiente)}</strong></div>
+                <div><span>Costo total</span><span>${formatearMoneda(montoTotal)}</span></div>
+                <div><span>Inicial</span><span>-${formatearMoneda(montoInicial)}</span></div>
+                ${comisionesInicialHtml}
+                <div><span>Bonificación</span><span>-${formatearMoneda(montoBonificacion)}</span></div>
+                <div class="summary-restante"><span><strong>Restante a liquidar</strong></span><span><strong>${formatearMoneda(saldoPendiente)}</strong></span></div>
             `;
 
         // Generar proyección detallada
@@ -856,10 +1044,10 @@ function mostrarModalPaqueteBloqueado() {
                     showNotification('El ID del contrato ya está en uso. Por favor ingrese un ID diferente.', 'error');
                 }
 
-                // Validar selects de comisiones
-                const comisionSelects = document.querySelectorAll('#comisiones_container select[required]');
-                comisionSelects.forEach(select => {
-                    if (!validateField(select)) {
+                // Validar selects (buscadores) de comisiones
+                const comisionSearchInputs = document.querySelectorAll('#comisiones_container .comision-empleado-search');
+                comisionSearchInputs.forEach(searchInput => {
+                    if (!validateField(searchInput)) {
                         hasErrors = true;
                     }
                 });
@@ -893,6 +1081,31 @@ function mostrarModalPaqueteBloqueado() {
             }
 
             // Aplicar estilos de validación al campo visible
+            if (isValid) {
+                field.classList.remove('is-invalid');
+                removeCustomError(field);
+            } else {
+                field.classList.add('is-invalid');
+                showCustomError(field, errorMessage);
+            }
+
+            return isValid;
+        }
+
+        // Buscador de empleado en comisiones
+        if (field.classList && field.classList.contains('comision-empleado-search')) {
+            const hiddenField = field.dataset.hiddenId
+                ? document.getElementById(field.dataset.hiddenId)
+                : null;
+            const value = hiddenField ? hiddenField.value.trim() : '';
+            let isValid = true;
+            let errorMessage = '';
+
+            if (!value) {
+                isValid = false;
+                errorMessage = 'Debe seleccionar un empleado para esta comisión';
+            }
+
             if (isValid) {
                 field.classList.remove('is-invalid');
                 removeCustomError(field);
@@ -954,20 +1167,16 @@ function mostrarModalPaqueteBloqueado() {
         return isValid;
     }
 
+    function getErrorAnchor(field) {
+        // En selects con búsqueda, el mensaje va debajo del contenedor completo
+        return field.closest('.searchable-select-container')
+            || field.closest('.form-group')
+            || field.parentNode;
+    }
+
     function clearFieldError(field) {
         field.classList.remove('is-invalid');
         removeCustomError(field);
-
-        // Si es el campo de búsqueda de cliente, también limpiar error del contenedor
-        if (field.id === 'cliente_search') {
-            const container = field.closest('.searchable-select-container');
-            if (container) {
-                const existingError = container.parentNode.querySelector('.custom-error');
-                if (existingError) {
-                    existingError.remove();
-                }
-            }
-        }
     }
 
     function showCustomError(field, message) {
@@ -977,11 +1186,13 @@ function mostrarModalPaqueteBloqueado() {
         errorDiv.className = 'error-text custom-error';
         errorDiv.textContent = message;
 
-        field.parentNode.appendChild(errorDiv);
+        getErrorAnchor(field).appendChild(errorDiv);
     }
 
     function removeCustomError(field) {
-        const existingError = field.parentNode.querySelector('.custom-error');
+        const anchor = getErrorAnchor(field);
+        const existingError = anchor.querySelector(':scope > .custom-error')
+            || anchor.querySelector('.custom-error');
         if (existingError) {
             existingError.remove();
         }
@@ -1283,7 +1494,7 @@ function mostrarModalPaqueteBloqueado() {
         gap: 8px;
     }
 
-    .summary-breakdown div {
+    .summary-breakdown > div {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -1291,15 +1502,31 @@ function mostrarModalPaqueteBloqueado() {
         border-bottom: 1px solid rgba(209, 217, 224, 0.5);
     }
 
-    .summary-breakdown div:last-child {
+    .summary-breakdown > div.summary-restante {
         font-weight: 600;
         color: #0969da;
         margin-top: 4px;
         padding-top: 10px;
+        opacity: 1;
     }
 
-    .summary-breakdown div:not(:last-child) {
+    .summary-breakdown > div:not(.summary-restante) {
         opacity: 0.8;
+    }
+
+    .summary-breakdown > div.summary-comision {
+        opacity: 1;
+        font-size: 12px;
+        color: #6b7280;
+        padding: 3px 0 3px 16px;
+        border-bottom: 1px dashed rgba(209, 217, 224, 0.6);
+        gap: 8px;
+    }
+
+    .summary-breakdown > div.summary-comision span:last-child {
+        color: #6d28d9;
+        font-weight: 500;
+        white-space: nowrap;
     }
 
     /* Responsive para el resumen de pagos */
@@ -1319,6 +1546,21 @@ function mostrarModalPaqueteBloqueado() {
     }
 
     /* Upload minimalista */
+    .observaciones-documento-row {
+        align-items: start;
+    }
+
+    .observaciones-documento-row #observaciones {
+        min-height: 140px;
+        height: 100%;
+        resize: vertical;
+    }
+
+    .observaciones-documento-row .upload-area {
+        min-height: 140px;
+        padding: 24px 16px;
+    }
+
     .upload-container {
         position: relative;
     }
@@ -1482,6 +1724,14 @@ function mostrarModalPaqueteBloqueado() {
         margin-top: 4px;
     }
 
+    .searchable-select-container > .error-text,
+    .searchable-select-container > .custom-error {
+        display: block;
+        width: 100%;
+        flex-basis: 100%;
+        margin-top: 6px;
+    }
+
     /* Estilos para el mensaje de estado del ID */
     .id-status-message {
         font-size: 12px;
@@ -1515,24 +1765,61 @@ function mostrarModalPaqueteBloqueado() {
         border: 1px solid rgba(101, 109, 118, 0.2);
     }
 
-    /* Comisiones minimalistas con layout mejorado */
+    #comisiones_section {
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+
+    /* Comisiones en dos columnas de tarjetas */
     #comisiones_container {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
 
-    #comisiones_container .form-group {
+    #comisiones_container .form-group,
+    #comisiones_container .comision-card {
         background: #f6f8fa;
         border: 1px solid #d1d9e0;
-        border-radius: 6px;
-        padding: 12px 16px;
+        border-radius: 10px;
+        padding: 14px 16px;
         margin-bottom: 0;
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .comision-card-header {
+        display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 16px;
+        gap: 12px;
+    }
+
+    .comision-adelantar-container {
+        display: flex;
+        align-items: center;
+        padding-top: 4px;
+        border-top: 1px solid rgba(209, 217, 224, 0.7);
+    }
+
+    .comision-adelantar-label {
+        font-size: 12px;
+        color: #6b7280;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .adelantar-comision-checkbox:checked + .comision-adelantar-label {
+        color: #6d28d9;
+        font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+        #comisiones_container {
+            grid-template-columns: 1fr;
+        }
     }
 
     /* Estilos para el acordeón */
@@ -1602,14 +1889,18 @@ function mostrarModalPaqueteBloqueado() {
         display: flex;
         flex-direction: column;
         gap: 2px;
+        min-width: 0;
     }
 
     .comision-title {
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         color: #24292f;
         margin: 0;
         position: relative;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Indicador de campo obligatorio para comisiones */
@@ -1628,6 +1919,7 @@ function mostrarModalPaqueteBloqueado() {
     .comision-select-container {
         width: 100%;
         max-width: 100%;
+        min-width: 0;
     }
 
     #comisiones_container .form-control {
@@ -1638,10 +1930,6 @@ function mostrarModalPaqueteBloqueado() {
 
 
     /* Estilos para el select con búsqueda */
-    .searchable-select-container {
-        position: relative;
-    }
-
     .searchable-select {
         position: relative;
     }
@@ -1687,6 +1975,17 @@ function mostrarModalPaqueteBloqueado() {
         transform: translateY(-50%) rotate(180deg);
     }
 
+    .searchable-select-container {
+        position: relative;
+        z-index: 1;
+    }
+
+    .searchable-select-container:has(.searchable-select.open),
+    .comision-card:has(.searchable-select.open) {
+        z-index: 50;
+        position: relative;
+    }
+
     .dropdown-list {
         position: absolute;
         top: 100%;
@@ -1695,12 +1994,95 @@ function mostrarModalPaqueteBloqueado() {
         background: #ffffff;
         border: 1px solid #d1d9e0;
         border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
         max-height: 200px;
         overflow-y: auto;
         z-index: 1000;
         display: none;
         margin-top: 2px;
+    }
+
+    .dropdown-list.dropdown-fixed {
+        position: fixed;
+        right: auto;
+        margin-top: 0;
+        z-index: 4000;
+    }
+
+    .dropdown-list.dropdown-up {
+        box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.16);
+    }
+
+    #comisiones_container,
+    #comisiones_container .comision-card,
+    #comisiones_section {
+        overflow: visible;
+    }
+
+    .dropdown-list-rich {
+        max-height: 280px;
+    }
+
+    .ruta-molde-option {
+        padding: 10px 12px;
+    }
+
+    .ruta-molde-option-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 4px;
+    }
+
+    .ruta-molde-option-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #24292f;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ruta-molde-option-badge {
+        flex-shrink: 0;
+        font-size: 11px;
+        font-weight: 600;
+        color: #6d28d9;
+        background: rgba(109, 40, 217, 0.08);
+        border: 1px solid rgba(109, 40, 217, 0.18);
+        border-radius: 999px;
+        padding: 2px 8px;
+        white-space: nowrap;
+    }
+
+    .ruta-molde-option-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 12px;
+        color: #656d76;
+    }
+
+    .ruta-molde-option-meta i {
+        margin-right: 3px;
+    }
+
+    .ruta-molde-option.highlighted .ruta-molde-option-name,
+    .ruta-molde-option.selected .ruta-molde-option-name {
+        color: #0969da;
+    }
+
+    .visually-hidden {
+        position: absolute !important;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 
     .dropdown-list.show {
@@ -1867,6 +2249,15 @@ function mostrarModalPaqueteBloqueado() {
         calcularPagos();
     });
 
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function cargarPorcentajes(paqueteId) {
         fetch(`/ajax/porcentajes/${paqueteId}`)
             .then(response => response.json())
@@ -1877,49 +2268,123 @@ function mostrarModalPaqueteBloqueado() {
                 if (data.porcentajes.length > 0) {
                     data.porcentajes.forEach((porcentaje, index) => {
                         const div = document.createElement('div');
-                        div.className = 'form-group';
+                        div.className = 'form-group comision-card';
 
                         // Buscar comisión existente para este tipo de porcentaje
                         const comisionExistente = @json(isset($comisionesExistentes) ? $comisionesExistentes : (object) []);
                         const empleadoSeleccionado = comisionExistente[porcentaje.tipo_porcentaje] ?
                             comisionExistente[porcentaje.tipo_porcentaje].empleado_id : '';
 
+                        const adelantarCheckboxHtml = esCreacionContrato ? `
+                            <div class="comision-adelantar-container">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input adelantar-comision-checkbox"
+                                        type="checkbox"
+                                        role="switch"
+                                        name="adelantar_comisiones[${porcentaje.id}]"
+                                        id="adelantar_comision_${porcentaje.id}"
+                                        value="1"
+                                        data-tipo="${porcentaje.tipo_porcentaje}"
+                                        data-modo="${porcentaje.modo_comision || 'porcentaje'}"
+                                        data-monto-fijo="${porcentaje.monto_fijo || 0}"
+                                        data-cantidad="${porcentaje.cantidad_porcentaje || 0}">
+                                    <label class="form-check-label comision-adelantar-label" for="adelantar_comision_${porcentaje.id}">
+                                        Adelantar su comisión
+                                    </label>
+                                </div>
+                            </div>
+                        ` : '';
+
+                        const empleadosOptionsHtml = Object.entries(data.empleados).map(([id, nombre]) => {
+                            const nombreSeguro = escapeHtml(nombre);
+                            const selectedAttr = String(id) === String(empleadoSeleccionado) ? 'data-selected="true"' : '';
+                            return `
+                                <div class="dropdown-option" data-value="${escapeHtml(id)}" data-label="${nombreSeguro}" ${selectedAttr}>
+                                    <span class="option-text">${nombreSeguro}</span>
+                                </div>
+                            `;
+                        }).join('');
+
                         div.innerHTML = `
-                            <div class="d-flex align-items-center flex-grow-1">
-                                <div class="me-3 d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle fw-bold shadow-sm" style="min-width: 28px; height: 28px; font-size: 0.85rem;">
+                            <div class="comision-card-header">
+                                <div class="d-flex align-items-center justify-content-center bg-secondary text-white rounded-circle fw-bold shadow-sm" style="min-width: 28px; height: 28px; font-size: 0.85rem;">
                                     ${porcentaje.orden || (index + 1)}
                                 </div>
                                 <div class="comision-info">
-                                    <div class="comision-title">${porcentaje.tipo_porcentaje}</div>
-                                    <div class="comision-percentage">${porcentaje.modo_comision === 'monto' ? '$' + parseFloat(porcentaje.monto_fijo).toFixed(2) : porcentaje.cantidad_porcentaje + '% de comisión'}</div>
+                                    <div class="comision-title">${escapeHtml(porcentaje.tipo_porcentaje)}</div>
+                                    <div class="comision-percentage">${porcentaje.modo_comision === 'monto' ? '$' + parseFloat(porcentaje.monto_fijo).toFixed(2) : porcentaje.cantidad_porcentaje + '%'}</div>
                                 </div>
                             </div>
-                            <div class="comision-select-container" style="min-width: 250px;">
-                                <select name="comisiones[${porcentaje.id}]" class="form-control" id="comision_${porcentaje.id}" required>
-                                    <option value="">Asignar</option>
-                                    ${Object.entries(data.empleados).map(([id, nombre]) =>
-                            `<option value="${id}" ${id == empleadoSeleccionado ? 'selected' : ''}>${nombre}</option>`
-                        ).join('')}
-                                </select>
+                            <div class="comision-select-container">
+                                <div class="searchable-select-container">
+                                    <div class="searchable-select" id="comision-select-${porcentaje.id}">
+                                        <div class="search-input-container">
+                                            <input type="text"
+                                                class="form-control search-input comision-empleado-search"
+                                                id="comision_search_${porcentaje.id}"
+                                                data-hidden-id="comision_${porcentaje.id}"
+                                                placeholder="Buscar empleado..."
+                                                autocomplete="off">
+                                            <div class="search-icon">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2">
+                                                    <circle cx="11" cy="11" r="8"></circle>
+                                                    <path d="m21 21-4.35-4.35"></path>
+                                                </svg>
+                                            </div>
+                                            <div class="dropdown-arrow">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2">
+                                                    <polyline points="6,9 12,15 18,9"></polyline>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="dropdown-list" id="comision-dropdown-${porcentaje.id}">
+                                            <div class="dropdown-option" data-value="" data-label="Asignar"
+                                                ${empleadoSeleccionado ? '' : 'data-selected="true"'}>
+                                                <span class="option-text">Asignar</span>
+                                            </div>
+                                            ${empleadosOptionsHtml}
+                                        </div>
+                                    </div>
+                                    <input type="hidden"
+                                        name="comisiones[${porcentaje.id}]"
+                                        id="comision_${porcentaje.id}"
+                                        value="${empleadoSeleccionado ? escapeHtml(empleadoSeleccionado) : ''}"
+                                        required>
+                                </div>
                             </div>
+                            ${adelantarCheckboxHtml}
                             <input type="hidden" name="porcentaje_ids[]" value="${porcentaje.id}">
                         `;
                         container.appendChild(div);
                     });
 
-                    // Agregar validación en tiempo real a los nuevos selects de comisiones
+                    // Inicializar buscadores y validación de comisiones
                     data.porcentajes.forEach(porcentaje => {
-                        const select = document.getElementById(`comision_${porcentaje.id}`);
-                        if (select) {
-                            // Validar al perder el foco
-                            select.addEventListener('blur', function () {
-                                validateField(this);
-                            });
+                        initSearchableSelect({
+                            selectId: `comision-select-${porcentaje.id}`,
+                            searchId: `comision_search_${porcentaje.id}`,
+                            dropdownId: `comision-dropdown-${porcentaje.id}`,
+                            hiddenId: `comision_${porcentaje.id}`,
+                            validateAs: true
+                        });
 
-                            // Limpiar error al cambiar el valor
-                            select.addEventListener('change', function () {
+                        const searchInput = document.getElementById(`comision_search_${porcentaje.id}`);
+                        if (searchInput) {
+                            searchInput.addEventListener('blur', function () {
+                                setTimeout(() => validateField(this), 180);
+                            });
+                            searchInput.addEventListener('input', function () {
                                 clearFieldError(this);
                             });
+                        }
+
+                        if (esCreacionContrato) {
+                            const adelantarCheckbox = document.getElementById(`adelantar_comision_${porcentaje.id}`);
+                            if (adelantarCheckbox) {
+                                adelantarCheckbox.addEventListener('change', calcularPagos);
+                            }
                         }
                     });
 
@@ -2107,60 +2572,147 @@ function mostrarModalPaqueteBloqueado() {
         }, 3000);
     }
 
-    // Funcionalidad del select con búsqueda para clientes
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchableSelect = document.getElementById('cliente-select');
-        const searchInput = document.getElementById('cliente_search');
-        const dropdown = document.getElementById('cliente-dropdown');
-        const hiddenInput = document.getElementById('cliente_id');
-        const options = dropdown.querySelectorAll('.dropdown-option');
+    // Select con búsqueda reutilizable (cliente, ruta molde, etc.)
+    function initSearchableSelect({ selectId, searchId, dropdownId, hiddenId, clearSearchWhenEmpty = true, validateAs }) {
+        const searchableSelect = document.getElementById(selectId);
+        const searchInput = document.getElementById(searchId);
+        const dropdown = document.getElementById(dropdownId);
+        const hiddenInput = document.getElementById(hiddenId);
 
+        if (!searchableSelect || !searchInput || !dropdown || !hiddenInput) {
+            return;
+        }
+
+        const options = dropdown.querySelectorAll('.dropdown-option');
         let currentHighlight = -1;
         let isOpen = false;
 
-        // Inicializar con valor seleccionado
-        if (hiddenInput.value) {
-            const selectedOption = dropdown.querySelector(`[data-value="${hiddenInput.value}"]`);
-            if (selectedOption) {
-                searchInput.value = selectedOption.querySelector('.option-text').textContent;
-                selectedOption.classList.add('selected');
+        const preselected = dropdown.querySelector('[data-selected="true"]') ||
+            (hiddenInput.value ? dropdown.querySelector(`[data-value="${hiddenInput.value}"]`) : null);
+
+        function getOptionLabel(option) {
+            return option.dataset.label
+                || option.querySelector('.option-text')?.textContent?.trim()
+                || '';
+        }
+
+        function getOptionSearchText(option) {
+            return (
+                option.dataset.search
+                || option.querySelector('.option-text')?.textContent
+                || getOptionLabel(option)
+            ).toLowerCase();
+        }
+
+        if (preselected) {
+            hiddenInput.value = preselected.dataset.value || '';
+            // No mostrar en el input el texto de opciones vacías ("Asignar", "Sin asignar", etc.)
+            searchInput.value = hiddenInput.value ? getOptionLabel(preselected) : '';
+            preselected.classList.add('selected');
+        }
+
+        function positionDropdown() {
+            const rect = searchInput.getBoundingClientRect();
+            const maxHeight = dropdown.classList.contains('dropdown-list-rich') ? 280 : 200;
+            const spaceBelow = window.innerHeight - rect.bottom - 8;
+            const spaceAbove = rect.top - 8;
+            const openUp = spaceBelow < 140 && spaceAbove > spaceBelow;
+
+            dropdown.classList.add('dropdown-fixed');
+            dropdown.style.left = `${Math.max(8, rect.left)}px`;
+            dropdown.style.width = `${rect.width}px`;
+            dropdown.style.maxHeight = `${Math.min(maxHeight, openUp ? spaceAbove : spaceBelow)}px`;
+
+            if (openUp) {
+                dropdown.classList.add('dropdown-up');
+                dropdown.style.top = 'auto';
+                dropdown.style.bottom = `${window.innerHeight - rect.top + 2}px`;
+            } else {
+                dropdown.classList.remove('dropdown-up');
+                dropdown.style.top = `${rect.bottom + 2}px`;
+                dropdown.style.bottom = 'auto';
             }
         }
 
-        // Función para abrir dropdown
+        function resetDropdownPosition() {
+            dropdown.classList.remove('dropdown-fixed', 'dropdown-up');
+            dropdown.style.left = '';
+            dropdown.style.width = '';
+            dropdown.style.top = '';
+            dropdown.style.bottom = '';
+            dropdown.style.maxHeight = '';
+        }
+
+        function handleViewportChange() {
+            if (isOpen) {
+                positionDropdown();
+            }
+        }
+
         function openDropdown() {
             if (!isOpen) {
                 dropdown.classList.add('show');
                 searchableSelect.classList.add('open', 'focused');
                 isOpen = true;
                 currentHighlight = -1;
-                filterOptions();
+                // Al abrir, mostrar todas las opciones (el filtro aplica al escribir)
+                filterOptions(true);
+                positionDropdown();
+                window.addEventListener('scroll', handleViewportChange, true);
+                window.addEventListener('resize', handleViewportChange);
             }
         }
 
-        // Función para cerrar dropdown
         function closeDropdown() {
             if (isOpen) {
                 dropdown.classList.remove('show');
                 searchableSelect.classList.remove('open', 'focused');
                 isOpen = false;
                 currentHighlight = -1;
+                resetDropdownPosition();
+                window.removeEventListener('scroll', handleViewportChange, true);
+                window.removeEventListener('resize', handleViewportChange);
 
-                // Si no hay valor seleccionado, limpiar el input
                 if (!hiddenInput.value) {
-                    searchInput.value = '';
+                    if (clearSearchWhenEmpty) {
+                        searchInput.value = '';
+                    }
+                } else {
+                    const selectedOption = dropdown.querySelector(`[data-value="${CSS.escape(hiddenInput.value)}"]`)
+                        || dropdown.querySelector(`[data-value="${hiddenInput.value}"]`);
+                    if (selectedOption) {
+                        searchInput.value = getOptionLabel(selectedOption);
+                    }
                 }
             }
         }
 
-        // Función para filtrar opciones
-        function filterOptions() {
-            const searchTerm = searchInput.value.toLowerCase();
-            let visibleOptions = [];
+        function filterOptions(showAll = false) {
+            let searchTerm = searchInput.value.toLowerCase().trim();
+
+            // Si el texto del input es solo la etiqueta seleccionada (o no hay selección),
+            // no filtrar: mostrar el listado completo.
+            if (showAll) {
+                if (!hiddenInput.value) {
+                    searchTerm = '';
+                } else {
+                    const selectedOption = dropdown.querySelector(`[data-value="${CSS.escape(hiddenInput.value)}"]`)
+                        || Array.from(options).find(opt => opt.dataset.value === hiddenInput.value);
+                    const selectedLabel = selectedOption ? getOptionLabel(selectedOption).toLowerCase() : '';
+                    if (searchTerm === selectedLabel) {
+                        searchTerm = '';
+                    }
+                }
+            }
+
+            const visibleOptions = [];
 
             options.forEach(option => {
-                const text = option.querySelector('.option-text').textContent.toLowerCase();
-                const isVisible = text.includes(searchTerm) || option.dataset.value === '';
+                const text = getOptionSearchText(option);
+                const isEmptyOption = option.dataset.value === '';
+                const isVisible = searchTerm === ''
+                    || text.includes(searchTerm)
+                    || (isEmptyOption && searchTerm === '');
 
                 option.style.display = isVisible ? 'block' : 'none';
                 if (isVisible) {
@@ -2171,31 +2723,26 @@ function mostrarModalPaqueteBloqueado() {
             return visibleOptions;
         }
 
-        // Función para seleccionar opción
         function selectOption(option) {
-            // Limpiar selección anterior
             options.forEach(opt => opt.classList.remove('selected'));
-
-            // Seleccionar nueva opción
             option.classList.add('selected');
-            hiddenInput.value = option.dataset.value;
-            searchInput.value = option.querySelector('.option-text').textContent;
-
+            hiddenInput.value = option.dataset.value || '';
+            searchInput.value = hiddenInput.value ? getOptionLabel(option) : '';
             closeDropdown();
 
-            // Validar el campo después de la selección
-            if (typeof validateField === 'function') {
-                setTimeout(() => validateField(hiddenInput), 100);
+            if (typeof clearFieldError === 'function') {
+                clearFieldError(searchInput);
+            }
+
+            if (validateAs && typeof validateField === 'function') {
+                setTimeout(() => validateField(searchInput), 100);
             }
         }
 
-        // Función para navegar con teclado
         function navigateOptions(direction) {
             const visibleOptions = Array.from(options).filter(opt => opt.style.display !== 'none');
-
             if (visibleOptions.length === 0) return;
 
-            // Limpiar highlight anterior
             options.forEach(opt => opt.classList.remove('highlighted'));
 
             if (direction === 'down') {
@@ -2210,23 +2757,29 @@ function mostrarModalPaqueteBloqueado() {
             }
         }
 
-        // Event listeners
         searchInput.addEventListener('click', function (e) {
             e.stopPropagation();
             openDropdown();
         });
 
         searchInput.addEventListener('input', function () {
-            if (!isOpen) openDropdown();
+            if (!isOpen) {
+                openDropdown();
+            }
 
-            // Si el input está vacío o no coincide con la opción seleccionada, limpiar selección
-            if (!this.value || (hiddenInput.value &&
-                this.value !== dropdown.querySelector(`[data-value="${hiddenInput.value}"] .option-text`).textContent)) {
+            const selectedOption = hiddenInput.value
+                ? (dropdown.querySelector(`[data-value="${CSS.escape(hiddenInput.value)}"]`)
+                    || Array.from(options).find(opt => opt.dataset.value === hiddenInput.value))
+                : null;
+            const selectedText = selectedOption ? getOptionLabel(selectedOption) : null;
+
+            if (!this.value || (hiddenInput.value && this.value !== selectedText)) {
                 hiddenInput.value = '';
                 options.forEach(opt => opt.classList.remove('selected'));
             }
 
-            filterOptions();
+            filterOptions(false);
+            positionDropdown();
         });
 
         searchInput.addEventListener('keydown', function (e) {
@@ -2260,7 +2813,6 @@ function mostrarModalPaqueteBloqueado() {
         });
 
         searchInput.addEventListener('blur', function () {
-            // Delay para permitir que el click en una opción funcione
             setTimeout(() => {
                 if (!searchableSelect.contains(document.activeElement)) {
                     closeDropdown();
@@ -2268,10 +2820,9 @@ function mostrarModalPaqueteBloqueado() {
             }, 150);
         });
 
-        // Click en opciones del dropdown
         options.forEach(option => {
             option.addEventListener('mousedown', function (e) {
-                e.preventDefault(); // Prevenir blur del input
+                e.preventDefault();
             });
 
             option.addEventListener('click', function (e) {
@@ -2286,24 +2837,28 @@ function mostrarModalPaqueteBloqueado() {
             });
         });
 
-        // Cerrar dropdown al hacer click fuera
         document.addEventListener('click', function (e) {
             if (!searchableSelect.contains(e.target)) {
                 closeDropdown();
             }
         });
+    }
 
-        // Actualizar la validación del campo oculto en la función de validación existente
-        const originalValidateField = window.validateField;
-        if (typeof originalValidateField === 'function') {
-            window.validateField = function (field) {
-                // Si es el campo de cliente, validar el input oculto
-                if (field.id === 'cliente_search') {
-                    return originalValidateField(hiddenInput);
-                }
-                return originalValidateField(field);
-            };
-        }
+    document.addEventListener('DOMContentLoaded', function () {
+        initSearchableSelect({
+            selectId: 'cliente-select',
+            searchId: 'cliente_search',
+            dropdownId: 'cliente-dropdown',
+            hiddenId: 'cliente_id',
+            validateAs: true
+        });
+
+        initSearchableSelect({
+            selectId: 'ruta-molde-select',
+            searchId: 'ruta_plantilla_search',
+            dropdownId: 'ruta-molde-dropdown',
+            hiddenId: 'ruta_plantilla_id'
+        });
     });
 
 

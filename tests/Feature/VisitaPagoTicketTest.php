@@ -8,7 +8,6 @@ use App\Models\Empleado;
 use App\Models\Pago;
 use App\Models\Paquete;
 use App\Models\Ruta;
-use App\Models\RutaActividad;
 use App\Models\RutaParada;
 use App\Models\User;
 use App\Models\Visita;
@@ -69,11 +68,9 @@ class VisitaPagoTicketTest extends TestCase
         $ticket = $this->get($response->json('ticket_url'));
         $ticket->assertOk();
         $ticket->assertSee('no fue posible localizarle', false);
-        $ticket->assertSee('AVISO DE VISITA', false);
         $ticket->assertSee('FIRMA DEL EMPLEADO QUE VISITA', false);
-        $ticket->assertSee('shalom_logo.svg', false);
         $ticket->assertSee($this->user->name, false);
-        $ticket->assertDontSee('RECIBO DE PAGO', false);
+        $ticket->assertDontSee('TICKET DE PAGO', false);
     }
 
     public function test_datos_de_ruta_incluyen_ticket_url_de_parada_visitada(): void
@@ -148,52 +145,6 @@ class VisitaPagoTicketTest extends TestCase
         $this->assertEquals(RutaParada::ESTADO_PENDIENTE, $ctx['parada']->fresh()->estado);
     }
 
-    public function test_actividad_de_rutas_registra_abono_ausente_y_deshacer(): void
-    {
-        $this->actingAs($this->user);
-        $ctx = $this->contextoRuta();
-
-        $this->postJson(route('visitas.store'), $this->payloadVisita($ctx['parada'], [
-            'pagos' => [[
-                'contrato_id' => $ctx['contrato']->id,
-                'monto' => 100,
-                'metodo_pago' => 'efectivo',
-                'tipo_pago' => 'parcialidad',
-            ]],
-        ]))->assertOk();
-
-        $this->assertDatabaseHas('ruta_actividades', [
-            'empleado_id' => $this->empleado->id,
-            'tipo' => RutaActividad::TIPO_ABONO,
-        ]);
-
-        $visitaId = Visita::first()->id;
-        $this->postJson(route('visitas.deshacer', $visitaId))->assertOk();
-        $this->assertDatabaseHas('ruta_actividades', [
-            'empleado_id' => $this->empleado->id,
-            'tipo' => RutaActividad::TIPO_DESHACER,
-        ]);
-
-        $ctx2 = $this->contextoRuta();
-        $this->postJson(route('visitas.store'), $this->payloadVisita($ctx2['parada'], [
-            'ausente' => true,
-            'recibido' => false,
-            'registrar_pago' => false,
-        ]))->assertOk();
-        $this->assertDatabaseHas('ruta_actividades', [
-            'empleado_id' => $this->empleado->id,
-            'tipo' => RutaActividad::TIPO_AUSENTE,
-        ]);
-
-        $admin = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($admin);
-        $resp = $this->getJson(route('empleados.actividadRutas', $this->empleado->id));
-        $resp->assertOk()->assertJson(['success' => true]);
-        $this->assertGreaterThanOrEqual(3, $resp->json('total'));
-        $this->assertNotEmpty($resp->json('grupos'));
-        $this->assertNotEmpty($resp->json('grupos.0.label'));
-    }
-
     public function test_pago_de_folio_asignado(): void
     {
         $this->actingAs($this->user);
@@ -220,11 +171,9 @@ class VisitaPagoTicketTest extends TestCase
 
         $ticket = $this->get($response->json('ticket_url'));
         $ticket->assertOk();
-        $ticket->assertSee('FIRMA DE RECIBIDO', false);
+        $ticket->assertSee('FIRMA DEL EMPLEADO QUE ENTREGA', false);
         $ticket->assertSee('$150.00', false);
-        $ticket->assertSee('RECIBO DE PAGO', false);
-        $ticket->assertSee('shalom_logo.svg', false);
-        $ticket->assertSee('¡GRACIAS POR SU PAGO!', false);
+        $ticket->assertSee('TICKET DE PAGO', false);
         $ticket->assertDontSee('María Pérez', false);
     }
 

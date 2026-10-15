@@ -1186,7 +1186,7 @@
                     </form>
                 </div>
             @endauth
-            <small class="text-muted">Version 1.8.0 @imallen.dev</small>
+            <small class="text-muted">Version 1.9.0 @imallen.dev</small>
 
         </div>
     </div>
@@ -2897,7 +2897,7 @@
             </div>
             <div class="modal-body p-5 pt-3">
                 <div class="mb-4">
-                    <span class="badge bg-success mb-3 fs-6">Versión 1.8.0 · Agosto 2026</span>
+                    <span class="badge bg-success mb-3 fs-6">Versión 1.9.0 · Octubre 2026</span>
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corte semanal de comisiones:</strong> El recibo del asesor usa la fecha del abono del cliente (no el día en que se capturó en el sistema), para que los cobros en efectivo no se pasen a la semana siguiente (miércoles a martes).</li>
                         <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Recibo de comisiones:</strong> El reporte por rango de fechas ya no duplica contratos liquidados ni mezcla la comisión padre con sus parcialidades. El filtro “Todas las comisiones” respeta el período seleccionado.</li>

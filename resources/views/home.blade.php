@@ -1068,15 +1068,23 @@ body.shlom-ruta-detalle-open .rainbow-background {
     color: #79481D; border-radius: 50%; -webkit-tap-highlight-color: transparent;
 }
 .shlom-back-btn:active { background: rgba(121,72,29,0.1); }
-.shlom-detail-info { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+.shlom-detail-info { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .shlom-detail-title {
     font-size: 1.05rem; font-weight: 700; color: #1c1c1e; line-height: 1.2;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.shlom-detail-freq {
+    font-size: 0.74rem; font-weight: 500; color: #8e8e93; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.shlom-detail-freq.d-none { display: none !important; }
 .shlom-ruta-meta {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
+    display: flex; flex-direction: column; gap: 8px;
     padding: 0 16px;
     flex-shrink: 0;
+}
+.shlom-ruta-meta-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
 }
 .shlom-ruta-meta-item {
     display: inline-flex; align-items: center; gap: 5px;
@@ -1086,6 +1094,25 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-ruta-meta-badge {
     margin-left: auto;
     padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+}
+.shlom-ruta-meta-progress {
+    display: flex; align-items: center; gap: 8px;
+}
+.shlom-ruta-meta-progress-track {
+    flex: 1; height: 4px;
+    background: rgba(120,120,128,0.12);
+    border-radius: 3px; overflow: hidden;
+}
+.shlom-ruta-meta-progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #E1B240 0%, #79481D 100%);
+    border-radius: 3px;
+    transition: width 0.35s ease;
+}
+.shlom-ruta-meta-progress-pct {
+    flex-shrink: 0;
+    font-size: 0.68rem; font-weight: 600; color: #8e8e93;
+    min-width: 2.2em; text-align: right;
 }
 
 /* ====== MAP (full screen behind sheet) ====== */
@@ -1170,8 +1197,83 @@ body.shlom-ruta-detalle-open .rainbow-background {
     background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 .shlom-seg-tab:disabled { opacity: 0.4; }
-.shlom-punto-casa-block { margin: 0; }
+.shlom-punto-casa-block { margin: 0; position: relative; }
 .shlom-punto-casa-block.d-none { display: none !important; }
+.shlom-punto-casa-block.is-loading .shlom-seg {
+    opacity: 0.45; pointer-events: none;
+}
+.shlom-punto-casa-loading {
+    display: none;
+    align-items: center; justify-content: center; gap: 8px;
+    margin: 0 16px 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(242,242,247,0.95);
+    color: #636366;
+    font-size: 0.78rem; font-weight: 600;
+}
+.shlom-punto-casa-block.is-loading .shlom-punto-casa-loading {
+    display: flex;
+}
+.shlom-punto-casa-loading .spinner-border {
+    width: 1rem; height: 1rem;
+    border-width: 0.15em;
+    color: #79481D;
+}
+.shlom-parada-registro {
+    margin: 0 16px;
+    padding: 12px 14px;
+    background: #f2f2f7;
+    border-radius: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+}
+.shlom-parada-registro.d-none { display: none !important; }
+.shlom-parada-registro-kicker {
+    font-size: 0.65rem; font-weight: 700; color: #8e8e93;
+    text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px;
+}
+.shlom-parada-registro-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 10px; margin-bottom: 8px;
+}
+.shlom-parada-registro-row:last-child { margin-bottom: 0; }
+.shlom-parada-registro-label {
+    font-size: 0.72rem; color: #8e8e93; font-weight: 500; margin: 0 0 2px;
+}
+.shlom-parada-registro-value {
+    font-size: 0.88rem; color: #1c1c1e; font-weight: 600; margin: 0; line-height: 1.3;
+}
+.shlom-parada-registro-value small {
+    display: block; font-size: 0.74rem; font-weight: 500; color: #636366; margin-top: 2px;
+}
+.shlom-parada-registro-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; border-radius: 980px;
+    font-size: 0.68rem; font-weight: 700; flex-shrink: 0;
+}
+.shlom-parada-registro-badge.is-abono {
+    background: rgba(52,199,89,0.16); color: #34C759;
+}
+.shlom-parada-registro-badge.is-visita {
+    background: rgba(255,149,0,0.16); color: #FF9500;
+}
+.shlom-parada-registro-pagos {
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid rgba(60,60,67,0.08);
+    display: flex; flex-direction: column; gap: 6px;
+}
+.shlom-parada-registro-pago {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 0.8rem;
+}
+.shlom-parada-registro-pago .metodo { color: #636366; font-weight: 500; }
+.shlom-parada-registro-pago .monto { color: #1c1c1e; font-weight: 700; }
+.shlom-parada-registro-actions {
+    display: flex; gap: 8px; margin-top: 10px;
+}
+.shlom-parada-registro-actions .shlom-card-btn {
+    flex: 1;
+}
 .shlom-ruta-resumen {
     margin: 0 16px;
     padding: 12px 14px 10px;
@@ -1206,9 +1308,36 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-slider-card {
     flex: 0 0 88%; max-width: 380px; scroll-snap-align: center;
     background: #f2f2f7; border-radius: 16px; padding: 16px;
-    border: none; min-width: 0;
+    border: 1px solid transparent; min-width: 0;
     display: flex; flex-direction: column;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.shlom-slider-card.is-pendiente {
+    background: rgba(121,72,29,0.08);
+    border-color: rgba(121,72,29,0.12);
+}
+.shlom-slider-card.is-pendiente .shlom-card-num { background: #79481D; }
+.shlom-slider-card.is-abonada {
+    background: rgba(52,199,89,0.14);
+    border-color: rgba(52,199,89,0.22);
+}
+.shlom-slider-card.is-abonada .shlom-card-num { background: #34C759; }
+.shlom-slider-card.is-visitada {
+    background: rgba(255,149,0,0.14);
+    border-color: rgba(255,149,0,0.22);
+}
+.shlom-slider-card.is-visitada .shlom-card-num { background: #FF9500; }
+.shlom-slider-card.is-omitida {
+    background: rgba(255,59,48,0.12);
+    border-color: rgba(255,59,48,0.2);
+}
+.shlom-slider-card.is-omitida .shlom-card-num { background: #FF3B30; }
+.shlom-slider-card .shlom-parada-estado {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: auto; flex-shrink: 0;
+    padding: 3px 8px; border-radius: 980px;
+    font-size: 0.68rem; font-weight: 700;
 }
 .shlom-slider-card-locked {
     opacity: 0.5;
@@ -1286,6 +1415,30 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-contract-amount { font-weight: 600; color: #1c1c1e; }
 
 /* Slider controls */
+.shlom-slider-wrap {
+    position: relative;
+    display: flex; align-items: center; gap: 0;
+}
+.shlom-slider-wrap .shlom-slider-track { flex: 1; min-width: 0; }
+.shlom-slider-nav {
+    display: none;
+    align-items: center; justify-content: center;
+    width: 36px; height: 36px; flex-shrink: 0;
+    border: none; border-radius: 50%;
+    background: rgba(242,242,247,0.98); color: #1c1c1e;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    font-size: 1.1rem; cursor: pointer;
+    z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.shlom-slider-nav:hover { background: #fff; }
+.shlom-slider-nav:active { transform: scale(0.94); }
+.shlom-slider-nav:disabled {
+    opacity: 0.35; cursor: default; pointer-events: none;
+}
+.shlom-slider-prev { margin-left: 6px; }
+.shlom-slider-next { margin-right: 6px; }
 .shlom-slider-controls { display: flex; justify-content: center; padding: 0; margin-top: -4px; flex-shrink: 0; }
 .shlom-slider-dots { display: flex; gap: 6px; align-items: center; }
 .shlom-dot {
@@ -1293,20 +1446,65 @@ body.shlom-ruta-detalle-open .rainbow-background {
     transition: all 0.25s ease; cursor: pointer;
 }
 .shlom-dot.active { width: 22px; border-radius: 4px; background: #1c1c1e; }
+.shlom-sheet-detalles {
+    display: none;
+    align-items: center; justify-content: center; gap: 6px;
+    width: calc(100% - 24px); margin: 0 12px 12px;
+    border: none; border-radius: 12px;
+    background: #79481D; color: #fff;
+    font-size: 0.9rem; font-weight: 700; letter-spacing: -0.01em;
+    padding: 12px 14px; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.shlom-sheet-detalles:active { transform: scale(0.98); opacity: 0.9; }
+.shlom-sheet-detalles i { font-size: 0.95rem; transition: transform 0.25s ease; }
+.shlom-bottom-sheet.expanded .shlom-sheet-detalles i {
+    transform: rotate(180deg);
+}
 
 .current-pos-marker { background: transparent !important; border: none !important; }
 
 /* ====== RESPONSIVE: TABLET/DESKTOP ====== */
+@media (min-width: 768px) {
+    .shlom-bottom-sheet {
+        left: auto;
+        right: 20px;
+        width: 100%;
+        max-width: 425px;
+        transform: none;
+        border-radius: 20px 20px 0 0;
+    }
+    .shlom-bottom-sheet.expanded {
+        transform: none;
+    }
+    .shlom-sheet-handle { display: none; }
+    /* Sin handle en PC: deja aire arriba para fecha + badge de estado */
+    .shlom-bottom-sheet .shlom-ruta-meta {
+        padding-top: 18px;
+    }
+    .shlom-slider-nav { display: flex; }
+    .shlom-sheet-detalles { display: flex; }
+    .shlom-sheet-content { padding-bottom: 4px; }
+    .shlom-slider-card {
+        flex: 0 0 min(88%, 320px);
+        max-width: 320px;
+    }
+}
 @media (min-width: 992px) {
+    .shlom-bottom-sheet {
+        right: 28px;
+    }
     .shlom-header { padding: 20px 20px 12px; }
     .shlom-title { font-size: 2.5rem; }
     .shlom-route-list { padding: 12px 20px 100px; }
     .shlom-route-card,
     .shlom-plantilla-card { max-width: 600px; margin: 0 auto; width: 100%; }
+    .shlom-bottom-sheet .shlom-ruta-meta {
+        padding-top: 22px;
+    }
     .shlom-detail-topbar { max-width: 100%; padding: 12px 20px; }
-    .shlom-back-btn { display: none; }
-    .shlom-detail-info { text-align: center; align-items: center; }
-    .shlom-slider-card { max-width: 380px; }
+    .shlom-detail-info { min-width: 0; }
 }
 </style>
 
@@ -1746,6 +1944,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
             </button>
             <div class="shlom-detail-info">
                 <span class="shlom-detail-title" id="detailRutaTitle">Ruta</span>
+                <span class="shlom-detail-freq d-none" id="detailRutaFreq"></span>
             </div>
         </div>
 
@@ -1761,17 +1960,29 @@ body.shlom-ruta-detalle-open .rainbow-background {
             </div>
             <div class="shlom-sheet-content">
                 <div class="shlom-ruta-meta" id="rutaDetalleMeta">
-                    <span class="shlom-ruta-meta-item" id="detailRutaFechaWrap">
-                        <i class="bi bi-calendar3"></i>
-                        <span id="detailRutaFecha">—</span>
-                    </span>
-                    <span class="shlom-ruta-meta-item d-none" id="detailRutaFreqWrap">
-                        <i class="bi bi-arrow-repeat"></i>
-                        <span id="detailRutaFreq"></span>
-                    </span>
-                    <span class="shlom-ruta-meta-badge" id="detailRutaEstado">—</span>
+                    <div class="shlom-ruta-meta-row">
+                        <span class="shlom-ruta-meta-item" id="detailRutaFechaWrap">
+                            <i class="bi bi-calendar3"></i>
+                            <span id="detailRutaFecha">—</span>
+                        </span>
+                        <span class="shlom-ruta-meta-badge" id="detailRutaEstado">—</span>
+                    </div>
+                    <div class="shlom-ruta-meta-progress" id="detailRutaProgress" aria-label="Progreso de la ruta">
+                        <div class="shlom-ruta-meta-progress-track">
+                            <div class="shlom-ruta-meta-progress-fill" id="detailRutaProgressFill"></div>
+                        </div>
+                        <span class="shlom-ruta-meta-progress-pct" id="detailRutaProgressPct">0%</span>
+                    </div>
                 </div>
-                <div class="shlom-slider-track" id="paradasSlider"></div>
+                <div class="shlom-slider-wrap">
+                    <button type="button" class="shlom-slider-nav shlom-slider-prev" id="btnSliderPrev" aria-label="Parada anterior">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <div class="shlom-slider-track" id="paradasSlider"></div>
+                    <button type="button" class="shlom-slider-nav shlom-slider-next" id="btnSliderNext" aria-label="Parada siguiente">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
                 <div class="shlom-slider-controls">
                     <div class="shlom-slider-dots" id="sliderDots"></div>
                 </div>
@@ -1782,7 +1993,12 @@ body.shlom-ruta-detalle-open .rainbow-background {
                         <button type="button" class="shlom-seg-tab" data-value="final">Final</button>
                         <button type="button" class="shlom-seg-tab" data-value="ambos">Ambos</button>
                     </div>
+                    <div class="shlom-punto-casa-loading" id="puntoCasaLoading" role="status" aria-live="polite">
+                        <span class="spinner-border" aria-hidden="true"></span>
+                        <span>Obteniendo ubicación…</span>
+                    </div>
                 </div>
+                <div id="paradaRegistroDetalle" class="shlom-parada-registro d-none" aria-live="polite"></div>
                 <div id="rutaResumenHistorico" class="shlom-ruta-resumen d-none">
                     <div class="shlom-resumen-kicker">Progreso</div>
                     <div class="shlom-progress-track mb-2">
@@ -1805,6 +2021,10 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     </ul>
                 </div>
             </div>
+            <button type="button" class="shlom-sheet-detalles" id="btnSheetDetalles">
+                <span id="btnSheetDetallesLabel">Detalles</span>
+                <i class="bi bi-chevron-up" aria-hidden="true"></i>
+            </button>
         </div>
     </div>
 
@@ -1839,13 +2059,6 @@ body.shlom-ruta-detalle-open .rainbow-background {
                         </div>
                         <div id="visitaDistanciaAlert" class="ios-banner ios-banner-warning d-none"></div>
                         <div id="visitaFoliosPago" class="mt-2"></div>
-                        <div id="visitaAbonoConfirmPanel" class="visita-abono-confirm d-none">
-                            <div class="ios-banner ios-banner-warning">
-                                <span class="visita-abono-confirm-title"><i class="bi bi-exclamation-triangle-fill me-1"></i>¿Confirmas el abono?</span>
-                                <div class="visita-abono-confirm-resumen" id="visitaAbonoConfirmResumen"></div>
-                                <div class="mt-1">Esta acción no se puede deshacer fácilmente.</div>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="visita-wizard-step d-none" data-step="2">
@@ -1858,8 +2071,6 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 </div>
                 <div class="ios-confirm-actions visita-wizard-actions">
                     <button type="button" class="ios-btn ios-btn-primary" id="btnVisitaWizardNext" disabled>Registrar abono</button>
-                    <button type="button" class="ios-btn ios-btn-primary d-none" id="btnVisitaWizardConfirm">Sí, confirmar</button>
-                    <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardReview">Revisar</button>
                     <button type="button" class="ios-btn ios-btn-plain" id="btnVisitaWizardCancel" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="ios-btn ios-btn-primary d-none" id="btnVisitaWizardPrint">Imprimir</button>
                     <button type="button" class="ios-btn ios-btn-plain d-none" id="btnVisitaWizardUndo" style="color:#FF3B30;">Deshacer la visita</button>
@@ -3050,6 +3261,10 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 document.getElementById('screenRutaList').classList.add('active');
                 document.getElementById('screenRutaDetalle').classList.remove('active');
                 setRutaDetalleBodyLock(false);
+                // Refrescar progreso/estado de las tarjetas del día.
+                if (typeof cargarRutasDia === 'function') {
+                    cargarRutasDia(rutasDiaOffset);
+                }
             });
         }
 
@@ -3069,22 +3284,41 @@ body.shlom-ruta-detalle-open .rainbow-background {
             var moved = false;
             var fromHandle = false;
 
+            function isDesktopSheetUi() {
+                return window.matchMedia && window.matchMedia('(min-width: 768px)').matches;
+            }
+
+            function syncDetallesButton() {
+                var btn = document.getElementById('btnSheetDetalles');
+                var label = document.getElementById('btnSheetDetallesLabel');
+                if (!btn) return;
+                var expanded = sheet.classList.contains('expanded');
+                if (label) label.textContent = expanded ? 'Ocultar' : 'Detalles';
+                btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            }
+
             function measureCollapsedSheetHeight() {
                 var meta = document.getElementById('rutaDetalleMeta');
-                var slider = document.getElementById('paradasSlider');
+                var sliderWrap = sheet.querySelector('.shlom-slider-wrap') || document.getElementById('paradasSlider');
                 var controls = sheet.querySelector('.shlom-slider-controls');
-                var handleH = handle.getBoundingClientRect().height || 28;
+                var detallesBtn = document.getElementById('btnSheetDetalles');
+                var handleVisible = handle && getComputedStyle(handle).display !== 'none';
+                var handleH = handleVisible ? (handle.getBoundingClientRect().height || 28) : 0;
+                var detallesH = 0;
+                if (detallesBtn && getComputedStyle(detallesBtn).display !== 'none') {
+                    detallesH = detallesBtn.getBoundingClientRect().height + 12;
+                }
                 var gap = 10;
-                var padBottom = 14;
+                var padBottom = handleVisible ? 14 : 4;
                 var controlsPull = 4;
-                var parts = [meta, slider, controls].filter(Boolean);
+                var parts = [meta, sliderWrap, controls].filter(Boolean);
                 var contentH = 0;
                 parts.forEach(function(el, i) {
                     contentH += el.getBoundingClientRect().height;
                     if (i < parts.length - 1) contentH += gap;
                 });
                 contentH = Math.max(contentH - controlsPull, 0);
-                var h = Math.ceil(handleH + contentH + padBottom);
+                var h = Math.ceil(handleH + contentH + padBottom + detallesH);
                 var minH = 240;
                 var maxH = Math.round(window.innerHeight * 0.68);
                 return Math.max(minH, Math.min(maxH, h || 320));
@@ -3240,11 +3474,25 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 if (e.cancelable) e.preventDefault();
             }, { passive: false });
 
-            handle.addEventListener('click', function() {
-                if (moved) return;
+            function toggleSheetDetalles() {
                 sheet.classList.toggle('expanded');
                 if (!sheet.classList.contains('expanded')) content.scrollTop = 0;
+                syncDetallesButton();
+            }
+
+            handle.addEventListener('click', function() {
+                if (moved) return;
+                toggleSheetDetalles();
             });
+
+            var btnDetalles = document.getElementById('btnSheetDetalles');
+            if (btnDetalles) {
+                btnDetalles.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleSheetDetalles();
+                });
+            }
 
             window.resetBottomSheet = function(historica) {
                 sheet.classList.remove('expanded');
@@ -3254,6 +3502,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 sheet.style.transform = '';
                 content.scrollTop = 0;
                 sheet.offsetHeight;
+                syncDetallesButton();
                 syncCollapsedSheetHeight();
                 sheet.style.transition = '';
             };
@@ -3263,14 +3512,18 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     !document.getElementById('screenRutaDetalle').classList.contains('active')) {
                     return;
                 }
+                syncDetallesButton();
                 syncCollapsedSheetHeight();
             });
 
             sheet.addEventListener('transitionend', function() {
+                syncDetallesButton();
                 if (typeof homeMap !== 'undefined' && homeMap) {
                     setTimeout(function() { homeMap.invalidateSize(); }, 50);
                 }
             });
+
+            syncDetallesButton();
         })();
 
         function domicilioCerrada(dom) {
@@ -3282,6 +3535,33 @@ body.shlom-ruta-detalle-open .rainbow-background {
         function paradaDesbloqueada(idx, domicilios) {
             // Todas las paradas son accionables; el orden es solo una sugerencia de recorrido.
             return true;
+        }
+
+        function calcularProgresoDomicilios(domicilios) {
+            var total = (domicilios || []).length;
+            if (!total) return { porcentaje: 0, hechos: 0, total: 0 };
+            var hechos = 0;
+            domicilios.forEach(function(dom) {
+                if (!domicilioPendienteRuta(dom)) hechos++;
+            });
+            return {
+                porcentaje: Math.round((hechos / total) * 100),
+                hechos: hechos,
+                total: total
+            };
+        }
+
+        function pintarProgresoRutaMeta(ruta, domicilios) {
+            var fill = document.getElementById('detailRutaProgressFill');
+            var pctEl = document.getElementById('detailRutaProgressPct');
+            var r = (ruta && ruta.resumen) || {};
+            var pct = r.porcentaje;
+            if (pct == null && domicilios) {
+                pct = calcularProgresoDomicilios(domicilios).porcentaje;
+            }
+            if (pct == null) pct = 0;
+            if (fill) fill.style.width = pct + '%';
+            if (pctEl) pctEl.textContent = pct + '%';
         }
 
         function pintarResumenHistorico(ruta) {
@@ -3335,7 +3615,11 @@ body.shlom-ruta-detalle-open .rainbow-background {
             currentDomicilios = ordenarDomiciliosPorCasa(groupParadasByDomicilio(paradas), ruta);
             var esPasada = !!ruta.es_pasada;
             setPuntoCasaUI(ruta.punto_casa || 'inicio', !!(ruta.empleado_lat && ruta.empleado_lng));
-            sliderIndex = 0;
+            // Por defecto centrar la #1 de la ruta óptima (primera pendiente).
+            if (typeof focusIdx !== 'number' || focusIdx < 0) {
+                focusIdx = indicePrimeraPendienteOptima(currentDomicilios);
+            }
+            sliderIndex = focusIdx;
 
             // Transición de pantallas
             document.getElementById('screenRutaList').classList.remove('active');
@@ -3347,23 +3631,22 @@ body.shlom-ruta-detalle-open .rainbow-background {
 
             pintarResumenHistorico(ruta);
 
-            // Topbar: solo nombre
+            // Topbar: nombre + frecuencia
             document.getElementById('detailRutaTitle').textContent = ruta.nombre || ('Ruta #' + ruta.id);
-
-            // Meta en bottom sheet: fecha, frecuencia, estado
-            var fechaEl = document.getElementById('detailRutaFecha');
-            if (fechaEl) fechaEl.textContent = ruta.fecha ? formatearFechaLargaEs(ruta.fecha) : '—';
-            var freqWrap = document.getElementById('detailRutaFreqWrap');
             var freqEl = document.getElementById('detailRutaFreq');
-            if (freqWrap && freqEl) {
+            if (freqEl) {
                 if (ruta.frecuencia) {
                     freqEl.textContent = ruta.frecuencia;
-                    freqWrap.classList.remove('d-none');
+                    freqEl.classList.remove('d-none');
                 } else {
                     freqEl.textContent = '';
-                    freqWrap.classList.add('d-none');
+                    freqEl.classList.add('d-none');
                 }
             }
+
+            // Meta en bottom sheet: fecha, estado y progreso
+            var fechaEl = document.getElementById('detailRutaFecha');
+            if (fechaEl) fechaEl.textContent = ruta.fecha ? formatearFechaLargaEs(ruta.fecha) : '—';
             var estadoConfig = {
                 'planeada': { color: '#007AFF', label: 'Planeada' },
                 'en_curso': { color: '#FF9500', label: 'En Curso' },
@@ -3379,6 +3662,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 badge.style.background = ec.color + '20';
                 badge.style.color = ec.color;
             }
+            pintarProgresoRutaMeta(ruta, currentDomicilios);
 
             // Render slider
             renderSlider(currentDomicilios, focusIdx);
@@ -3474,6 +3758,37 @@ body.shlom-ruta-detalle-open .rainbow-background {
             return ordenadas.concat(sin);
         }
 
+        /** Parada/domicilio aún pendiente de atención (sin visita/abono completo). */
+        function domicilioPendienteRuta(dom) {
+            if (!dom || !dom.paradas || !dom.paradas.length) return false;
+            return dom.paradas.some(function(p) { return p.estado === 'pendiente'; });
+        }
+
+        /** Timestamp del primer registro (visita/abono) en el domicilio. */
+        function tiempoRegistroDomicilio(dom) {
+            var minT = Infinity;
+            var found = false;
+            (dom.paradas || []).forEach(function(p) {
+                var regs = p.registros && p.registros.length ? p.registros : (p.registros_ubicacion || []);
+                regs.forEach(function(r) {
+                    if (!r.created_at) return;
+                    var ms = Date.parse(r.created_at);
+                    if (!isNaN(ms)) {
+                        found = true;
+                        if (ms < minT) minT = ms;
+                    }
+                });
+            });
+            return found ? minT : Number.MAX_SAFE_INTEGER;
+        }
+
+        function indicePrimeraPendienteOptima(domicilios) {
+            for (var i = 0; i < (domicilios || []).length; i++) {
+                if (domicilioPendienteRuta(domicilios[i])) return i;
+            }
+            return 0;
+        }
+
         function etiquetaPuntoCasa(modo) {
             if (modo === 'final') return 'Punto final';
             if (modo === 'ambos') return 'Inicio y fin';
@@ -3494,26 +3809,55 @@ body.shlom-ruta-detalle-open .rainbow-background {
         function ordenarDomiciliosPorCasa(domicilios, ruta) {
             var modo = (ruta && ruta.punto_casa) || 'inicio';
             var origen = origenParaOrdenRuta(ruta, modo);
-            if (!origen) return domicilios.slice();
-            // NN desde el origen (GPS si destino=casa; domicilio si partida/ambos).
-            return ordenarPorCercania(domicilios.slice(), origen.lat, origen.lng);
+            var lista = domicilios.slice();
+            var pendientes = [];
+            var hechas = [];
+            lista.forEach(function(dom) {
+                if (domicilioPendienteRuta(dom)) pendientes.push(dom);
+                else hechas.push(dom);
+            });
+            // Visitadas/abonos primero (por hora de registro); pendientes después en orden óptimo.
+            hechas.sort(function(a, b) {
+                return tiempoRegistroDomicilio(a) - tiempoRegistroDomicilio(b);
+            });
+            var pendientesOrd = origen
+                ? ordenarPorCercania(pendientes, origen.lat, origen.lng)
+                : pendientes;
+            hechas.forEach(function(dom) { dom._optNum = null; });
+            pendientesOrd.forEach(function(dom, i) { dom._optNum = i + 1; });
+            return hechas.concat(pendientesOrd);
         }
 
         function setPuntoCasaUI(modo, enabled) {
             var tabs = document.querySelectorAll('#puntoCasaTabs .shlom-seg-tab');
+            var loading = document.getElementById('puntoCasaBlock')
+                && document.getElementById('puntoCasaBlock').classList.contains('is-loading');
             tabs.forEach(function(tab) {
                 var on = tab.getAttribute('data-value') === modo;
                 tab.classList.toggle('active', on);
                 tab.setAttribute('aria-selected', on ? 'true' : 'false');
-                tab.disabled = !enabled;
+                tab.disabled = !enabled || loading;
+            });
+        }
+
+        function setPuntoCasaLoading(loading) {
+            var block = document.getElementById('puntoCasaBlock');
+            if (!block) return;
+            block.classList.toggle('is-loading', !!loading);
+            var tabs = document.querySelectorAll('#puntoCasaTabs .shlom-seg-tab');
+            var enabled = !!(currentRutaMeta && currentRutaMeta.empleado_lat && currentRutaMeta.empleado_lng);
+            tabs.forEach(function(tab) {
+                tab.disabled = !!loading || !enabled;
             });
         }
 
         function aplicarPuntoCasa(modo, persist) {
             if (!currentRutaMeta) return;
             currentRutaMeta.punto_casa = modo;
+            setPuntoCasaUI(modo, !!(currentRutaMeta.empleado_lat && currentRutaMeta.empleado_lng));
 
             var finish = function() {
+                setPuntoCasaLoading(false);
                 currentDomicilios = ordenarDomiciliosPorCasa(groupParadasByDomicilio(currentParadas), currentRutaMeta);
                 setPuntoCasaUI(modo, !!(currentRutaMeta.empleado_lat && currentRutaMeta.empleado_lng));
                 renderSlider(currentDomicilios);
@@ -3528,6 +3872,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
 
             // Si eligen casa como destino, pide GPS fresco para usarlo como primer punto.
             if (modo === 'final' && navigator.geolocation) {
+                setPuntoCasaLoading(true);
                 navigator.geolocation.getCurrentPosition(function(pos) {
                     rememberGps(pos);
                     if (homeMap && lastKnownGps) {
@@ -3540,6 +3885,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 return;
             }
 
+            setPuntoCasaLoading(false);
             finish();
         }
 
@@ -3593,16 +3939,28 @@ body.shlom-ruta-detalle-open .rainbow-background {
             }
 
             domicilios.forEach(function(dom, idx) {
+                var esPendiente = domicilioPendienteRuta(dom);
                 if (dom.latitud && dom.longitud) {
                     pts.push([dom.latitud, dom.longitud]);
-                    routePts.push([dom.latitud, dom.longitud]);
+                    // Trayectoria óptima: solo pendientes (visita/abono fuera de la ruta).
+                    if (esPendiente) {
+                        routePts.push([dom.latitud, dom.longitud]);
+                    }
                     var totalP = dom.paradas.length;
                     var compP = dom.paradas.filter(function(p) { return p.estado === 'visitada'; }).length;
                     var omitP = dom.paradas.filter(function(p) { return p.estado === 'omitida'; }).length;
-                    var color = compP === totalP ? '#34C759' : (omitP === totalP ? '#FF3B30' : '#79481D');
+                    var tieneAbonoMap = (dom.paradas || []).some(function(p) {
+                        return (p.registros_ubicacion || []).some(function(r) { return !!r.tiene_pago; });
+                    });
+                    var color = omitP === totalP
+                        ? '#FF3B30'
+                        : (compP === totalP ? (tieneAbonoMap ? '#34C759' : '#FF9500') : '#79481D');
                     var sz = idx === sliderIndex ? 36 : 28;
+                    var markerLabel = esPendiente && dom._optNum != null
+                        ? String(dom._optNum)
+                        : (compP === totalP ? '✓' : '·');
                     var m = L.marker([dom.latitud, dom.longitud], {
-                        icon: makeHomeIcon(color, sz, String(idx + 1)),
+                        icon: makeHomeIcon(color, sz, markerLabel),
                         zIndexOffset: 500
                     });
                     m._domIndex = idx;
@@ -3673,31 +4031,35 @@ body.shlom-ruta-detalle-open .rainbow-background {
             if (typeof focusIdx === 'number' && focusIdx >= 0) {
                 sliderIndex = Math.min(focusIdx, Math.max(domicilios.length - 1, 0));
             } else {
-                sliderIndex = 0;
-                for (var i = 0; i < domicilios.length; i++) {
-                    if (!domicilioCerrada(domicilios[i])) {
-                        sliderIndex = i;
-                        break;
-                    }
-                }
+                sliderIndex = indicePrimeraPendienteOptima(domicilios);
             }
 
             domicilios.forEach(function(dom, idx) {
                 var totalP = dom.paradas.length;
                 var compP = dom.paradas.filter(function(p) { return p.estado === 'visitada'; }).length;
                 var omitP = dom.paradas.filter(function(p) { return p.estado === 'omitida'; }).length;
-                var estadoDom = compP === totalP ? 'visitada' : (omitP === totalP ? 'omitida' : 'pendiente');
+                var tieneAbono = (dom.paradas || []).some(function(p) {
+                    return (p.registros_ubicacion || []).some(function(r) { return !!r.tiene_pago; });
+                });
+                var estadoDom = compP === totalP
+                    ? (tieneAbono ? 'abonada' : 'visitada')
+                    : (omitP === totalP ? 'omitida' : 'pendiente');
                 var estadoConfig = {
-                    'visitada': { color: '#34C759', bg: 'rgba(52,199,89,0.1)', label: 'Visitada', icon: 'bi-check-circle-fill' },
-                    'omitida': { color: '#FF3B30', bg: 'rgba(255,59,48,0.1)', label: 'Omitida', icon: 'bi-x-circle-fill' },
-                    'pendiente': { color: '#79481D', bg: 'rgba(121,72,29,0.08)', label: 'Pendiente', icon: 'bi-clock' }
+                    'abonada': { color: '#34C759', bg: 'rgba(52,199,89,0.18)', label: 'Abono', icon: 'bi-cash-coin', cardClass: 'is-abonada' },
+                    'visitada': { color: '#FF9500', bg: 'rgba(255,149,0,0.18)', label: 'Visitada', icon: 'bi-check-circle-fill', cardClass: 'is-visitada' },
+                    'omitida': { color: '#FF3B30', bg: 'rgba(255,59,48,0.16)', label: 'Omitida', icon: 'bi-x-circle-fill', cardClass: 'is-omitida' },
+                    'pendiente': { color: '#79481D', bg: 'rgba(121,72,29,0.14)', label: 'Pendiente', icon: 'bi-clock', cardClass: 'is-pendiente' }
                 };
                 var ec = estadoConfig[estadoDom] || estadoConfig['pendiente'];
                 var multiBadge = totalP > 1 ? ' <span style="background:rgba(142,142,147,0.15);color:#636366;font-size:0.6rem;padding:2px 6px;border-radius:10px;margin-left:4px;">' + totalP + ' contratos</span>' : '';
 
                 var subItems = '';
                 dom.paradas.forEach(function(p) {
-                    var subEstado = estadoConfig[p.estado] || estadoConfig['pendiente'];
+                    var pTieneAbono = (p.registros_ubicacion || []).some(function(r) { return !!r.tiene_pago; });
+                    var pEstado = p.estado === 'visitada'
+                        ? (pTieneAbono ? 'abonada' : 'visitada')
+                        : (p.estado === 'omitida' ? 'omitida' : 'pendiente');
+                    var subEstado = estadoConfig[pEstado] || estadoConfig['pendiente'];
                     subItems += '<div class="shlom-contract-row">';
                     subItems += '<div class="shlom-contract-dot" style="background:' + subEstado.color + ';"></div>';
                     subItems += '<span class="shlom-contract-id">C#' + (p.contrato_id || p.id) + '</span>';
@@ -3706,8 +4068,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 });
 
                 var pendientes = dom.paradas.filter(function(p) { return p.estado === 'pendiente'; }).length;
-                var visitada = estadoDom === 'visitada';
-                var historica = !!(currentRutaMeta && currentRutaMeta.es_pasada);
+                var visitada = estadoDom === 'visitada' || estadoDom === 'abonada';
                 var visitBtn = '';
                 var ausenteBtn = '';
                 // Abonos permitidos también en fechas anteriores.
@@ -3729,34 +4090,36 @@ body.shlom-ruta-detalle-open .rainbow-background {
                             visitaId = p.visita_id || '';
                         }
                     });
+                    var ticketLabel = estadoDom === 'abonada' ? 'Abono' : 'Visitada';
                     if (ticketUrl) {
                         visitBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-visit shlom-card-btn-ticket" data-dom-index="${idx}" data-ticket-url="${ticketUrl}" data-visita-id="${visitaId}">
                                     <i class="bi bi-receipt"></i>
-                                    <span>Visitada</span>
+                                    <span>${ticketLabel}</span>
                                 </button>`;
                     } else {
                         visitBtn = `<button type="button" class="shlom-card-btn shlom-card-btn-visit" disabled style="opacity:.45;">
                                     <i class="bi bi-check-circle"></i>
-                                    <span>Visitada</span>
+                                    <span>${ticketLabel}</span>
                                 </button>`;
                     }
                 }
 
                 var card = document.createElement('div');
-                card.className = 'shlom-slider-card';
+                card.className = 'shlom-slider-card ' + ec.cardClass;
                 card.dataset.index = idx;
-                var histBadge = historica
-                    ? '<span class="shlom-route-status" style="background:' + ec.bg + ';color:' + ec.color + ';margin-left:auto;">' + ec.label + '</span>'
-                    : '';
+                card.dataset.estado = estadoDom;
+                var estadoBadge = '<span class="shlom-parada-estado" style="background:' + ec.bg + ';color:' + ec.color + ';">' +
+                    '<i class="bi ' + ec.icon + '"></i>' + ec.label + '</span>';
+                var numLabel = dom._optNum != null ? String(dom._optNum) : (estadoDom === 'abonada' || estadoDom === 'visitada' ? '✓' : '·');
                 card.innerHTML = `
                     <div class="shlom-card-content">
                         <div class="shlom-card-header-row">
-                            <div class="shlom-card-num">${idx + 1}</div>
+                            <div class="shlom-card-num">${numLabel}</div>
                             <div class="shlom-card-header-text">
                                 <span class="shlom-card-client">${dom.cliente_nombre}</span>
                                 ${multiBadge}
                             </div>
-                            ${histBadge}
+                            ${estadoBadge}
                         </div>
                         <div class="shlom-card-address">
                             <i class="bi bi-location"></i>
@@ -3790,6 +4153,8 @@ body.shlom-ruta-detalle-open .rainbow-background {
 
             updateSliderPosition();
             updateSliderControls();
+            updateSliderNavButtons();
+            pintarDetalleParadaCentrada(sliderIndex);
             requestAnimationFrame(function() {
                 if (typeof window.syncBottomSheetCollapsedHeight === 'function') {
                     window.syncBottomSheetCollapsedHeight();
@@ -3797,11 +4162,154 @@ body.shlom-ruta-detalle-open .rainbow-background {
             });
         }
 
+        function formatearFechaHoraRegistro(iso) {
+            if (!iso) return '—';
+            var d = new Date(iso);
+            if (isNaN(d.getTime())) return '—';
+            var dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            var meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            var hh = String(d.getHours()).padStart(2, '0');
+            var mm = String(d.getMinutes()).padStart(2, '0');
+            return dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()] + ', ' + hh + ':' + mm;
+        }
+
+        function registrosDeDomicilio(dom) {
+            var out = [];
+            (dom.paradas || []).forEach(function(p) {
+                var regs = p.registros && p.registros.length
+                    ? p.registros
+                    : (p.registros_ubicacion || []);
+                regs.forEach(function(r) {
+                    out.push({
+                        registro: r,
+                        contrato_id: p.contrato_id,
+                        ticket_url: r.ticket_url || p.ticket_url || '',
+                        visita_id: r.visita_id || p.visita_id || ''
+                    });
+                });
+            });
+            out.sort(function(a, b) {
+                var ta = a.registro.created_at ? Date.parse(a.registro.created_at) : 0;
+                var tb = b.registro.created_at ? Date.parse(b.registro.created_at) : 0;
+                return ta - tb;
+            });
+            return out;
+        }
+
+        function pintarDetalleParadaCentrada(index) {
+            var box = document.getElementById('paradaRegistroDetalle');
+            if (!box) return;
+            var dom = currentDomicilios[index];
+            if (!dom || domicilioPendienteRuta(dom)) {
+                box.classList.add('d-none');
+                box.innerHTML = '';
+                return;
+            }
+
+            var regs = registrosDeDomicilio(dom);
+            if (!regs.length) {
+                var tieneAbonoFallback = (dom.paradas || []).some(function(p) {
+                    return (p.registros_ubicacion || []).some(function(r) { return !!r.tiene_pago; });
+                });
+                var tipoFallback = tieneAbonoFallback ? 'Abono' : 'Visitada';
+                var badgeClass = tieneAbonoFallback ? 'is-abono' : 'is-visita';
+                var ticketUrl = '';
+                var visitaId = '';
+                (dom.paradas || []).forEach(function(p) {
+                    if (p.ticket_url && !ticketUrl) {
+                        ticketUrl = p.ticket_url;
+                        visitaId = p.visita_id || '';
+                    }
+                });
+                box.innerHTML =
+                    '<div class="shlom-parada-registro-kicker">Detalle del registro</div>' +
+                    '<div class="shlom-parada-registro-row">' +
+                    '<div><p class="shlom-parada-registro-label">Estado</p>' +
+                    '<p class="shlom-parada-registro-value">' + escHtml(dom.cliente_nombre || '') + '</p></div>' +
+                    '<span class="shlom-parada-registro-badge ' + badgeClass + '">' + tipoFallback + '</span></div>' +
+                    (ticketUrl
+                        ? '<div class="shlom-parada-registro-actions">' +
+                          '<button type="button" class="shlom-card-btn shlom-card-btn-visit shlom-card-btn-ticket" data-ticket-url="' + escHtml(ticketUrl) + '" data-visita-id="' + escHtml(String(visitaId)) + '">' +
+                          '<i class="bi bi-receipt"></i><span>Ver ticket</span></button></div>'
+                        : '');
+                box.classList.remove('d-none');
+                return;
+            }
+
+            var html = '<div class="shlom-parada-registro-kicker">Detalle del registro</div>';
+            regs.forEach(function(item, i) {
+                var r = item.registro;
+                var esAbono = !!r.tiene_pago;
+                var badgeClass = esAbono ? 'is-abono' : 'is-visita';
+                var badgeLabel = esAbono ? 'Abono' : 'Visitada';
+                html += '<div class="shlom-parada-registro-block"' + (i > 0 ? ' style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(60,60,67,0.08);"' : '') + '>';
+                html += '<div class="shlom-parada-registro-row">' +
+                    '<div><p class="shlom-parada-registro-label">Tipo</p>' +
+                    '<p class="shlom-parada-registro-value">' + badgeLabel +
+                    (item.contrato_id ? '<small>Folio #' + item.contrato_id + '</small>' : '') +
+                    '</p></div>' +
+                    '<span class="shlom-parada-registro-badge ' + badgeClass + '">' +
+                    '<i class="bi ' + (esAbono ? 'bi-cash-coin' : 'bi-check-circle-fill') + '"></i>' + badgeLabel +
+                    '</span></div>';
+                html += '<div class="shlom-parada-registro-row">' +
+                    '<div><p class="shlom-parada-registro-label">Fecha y hora</p>' +
+                    '<p class="shlom-parada-registro-value">' + escHtml(formatearFechaHoraRegistro(r.created_at)) + '</p></div></div>';
+                if (r.latitud != null && r.longitud != null) {
+                    html += '<div class="shlom-parada-registro-row">' +
+                        '<div><p class="shlom-parada-registro-label">Ubicación del registro</p>' +
+                        '<p class="shlom-parada-registro-value">' +
+                        Number(r.latitud).toFixed(5) + ', ' + Number(r.longitud).toFixed(5) +
+                        '</p></div></div>';
+                }
+                if (esAbono && r.pagos && r.pagos.length) {
+                    html += '<div class="shlom-parada-registro-pagos">';
+                    r.pagos.forEach(function(pago) {
+                        html += '<div class="shlom-parada-registro-pago">' +
+                            '<span class="metodo">' + escHtml(pago.metodo_label || pago.metodo_pago || 'Pago') + '</span>' +
+                            '<span class="monto">$' + escHtml(pago.monto_fmt != null ? pago.monto_fmt : Number(pago.monto || 0).toFixed(2)) + '</span>' +
+                            '</div>';
+                    });
+                    if (r.pagos.length > 1 && r.monto_total_fmt) {
+                        html += '<div class="shlom-parada-registro-pago">' +
+                            '<span class="metodo">Total</span>' +
+                            '<span class="monto">$' + escHtml(r.monto_total_fmt) + '</span></div>';
+                    }
+                    html += '</div>';
+                } else if (!esAbono) {
+                    html += '<div class="shlom-parada-registro-row">' +
+                        '<div><p class="shlom-parada-registro-label">Resultado</p>' +
+                        '<p class="shlom-parada-registro-value">Sin recepción / ausente</p></div></div>';
+                }
+                if (item.ticket_url) {
+                    html += '<div class="shlom-parada-registro-actions">' +
+                        '<button type="button" class="shlom-card-btn shlom-card-btn-visit shlom-card-btn-ticket" data-ticket-url="' + escHtml(item.ticket_url) + '" data-visita-id="' + escHtml(String(item.visita_id || '')) + '">' +
+                        '<i class="bi bi-receipt"></i><span>Ver ticket</span></button></div>';
+                }
+                html += '</div>';
+            });
+
+            box.innerHTML = html;
+            box.classList.remove('d-none');
+        }
+
+        function updateSliderNavButtons() {
+            var prev = document.getElementById('btnSliderPrev');
+            var next = document.getElementById('btnSliderNext');
+            var total = (currentDomicilios || []).length;
+            if (prev) prev.disabled = !total || sliderIndex <= 0;
+            if (next) next.disabled = !total || sliderIndex >= total - 1;
+        }
+
         function goToSlide(index) {
             sliderIndex = Math.max(0, Math.min(index, currentDomicilios.length - 1));
             updateSliderPosition();
             updateSliderControls();
+            updateSliderNavButtons();
             centerOnDomicilio(sliderIndex);
+            pintarDetalleParadaCentrada(sliderIndex);
+            if (typeof window.syncBottomSheetCollapsedHeight === 'function') {
+                requestAnimationFrame(window.syncBottomSheetCollapsedHeight);
+            }
         }
 
         function updateSliderPosition() {
@@ -3827,9 +4335,17 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 var totalP = dom.paradas.length;
                 var compP = dom.paradas.filter(function(p) { return p.estado === 'visitada'; }).length;
                 var omitP = dom.paradas.filter(function(p) { return p.estado === 'omitida'; }).length;
-                var color = compP === totalP ? '#34C759' : (omitP === totalP ? '#FF3B30' : '#79481D');
+                var tieneAbono = (dom.paradas || []).some(function(p) {
+                    return (p.registros_ubicacion || []).some(function(r) { return !!r.tiene_pago; });
+                });
+                var color = omitP === totalP
+                    ? '#FF3B30'
+                    : (compP === totalP ? (tieneAbono ? '#34C759' : '#FF9500') : '#79481D');
                 var sz = i === sliderIndex ? 36 : 28;
-                m.setIcon(makeHomeIcon(color, sz, String(i + 1)));
+                var markerLabel = domicilioPendienteRuta(dom) && dom._optNum != null
+                    ? String(dom._optNum)
+                    : (compP === totalP ? '✓' : '·');
+                m.setIcon(makeHomeIcon(color, sz, markerLabel));
             });
         }
 
@@ -3845,6 +4361,8 @@ body.shlom-ruta-detalle-open .rainbow-background {
             puntoCasaTabs.addEventListener('click', function(e) {
                 var tab = e.target.closest('.shlom-seg-tab');
                 if (!tab || tab.disabled) return;
+                var block = document.getElementById('puntoCasaBlock');
+                if (block && block.classList.contains('is-loading')) return;
                 e.preventDefault();
                 e.stopPropagation();
                 var modo = tab.getAttribute('data-value');
@@ -3852,6 +4370,39 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 aplicarPuntoCasa(modo, true);
             });
         }
+
+        var btnSliderPrev = document.getElementById('btnSliderPrev');
+        var btnSliderNext = document.getElementById('btnSliderNext');
+        if (btnSliderPrev) {
+            btnSliderPrev.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (sliderIndex > 0) goToSlide(sliderIndex - 1);
+            });
+        }
+        if (btnSliderNext) {
+            btnSliderNext.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (sliderIndex < currentDomicilios.length - 1) goToSlide(sliderIndex + 1);
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            var screen = document.getElementById('screenRutaDetalle');
+            if (!screen || !screen.classList.contains('active')) return;
+            if (e.target && /^(INPUT|TEXTAREA|SELECT)$/i.test(e.target.tagName)) return;
+            if (e.target && e.target.isContentEditable) return;
+            // No interferir con modales abiertos.
+            if (document.querySelector('.modal.show')) return;
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (sliderIndex > 0) goToSlide(sliderIndex - 1);
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (sliderIndex < currentDomicilios.length - 1) goToSlide(sliderIndex + 1);
+            }
+        });
 
         var sliderEl = document.getElementById('paradasSlider');
         var sliderTouchStartX = 0;
@@ -3891,7 +4442,12 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     sliderIndex = newIdx;
                     updateSliderPosition();
                     updateSliderControls();
+                    updateSliderNavButtons();
                     centerOnDomicilio(sliderIndex);
+                    pintarDetalleParadaCentrada(sliderIndex);
+                    if (typeof window.syncBottomSheetCollapsedHeight === 'function') {
+                        requestAnimationFrame(window.syncBottomSheetCollapsedHeight);
+                    }
                 }
             }, 150);
         });
@@ -3900,6 +4456,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
         var visitaGpsMap = null;
         var visitaGpsMarker = null;
         var visitaParadaMarker = null;
+        var visitaLinea = null;
         var VISITA_DISTANCIA_MAX_M = 150;
         var VISITA_METODOS = {
             'efectivo': 'Efectivo',
@@ -3923,11 +4480,11 @@ body.shlom-ruta-detalle-open .rainbow-background {
             pendientes: [],
             userLat: null,
             userLng: null,
-            confirmando: false,
             modo: 'abono',
             enviandoAusente: false,
             soloVistaTicket: false,
-            deshaciendo: false
+            deshaciendo: false,
+            registrandoAbono: false
         };
 
         function visitaIdDesdeTicketUrl(url) {
@@ -3984,6 +4541,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
 
         function destroyVisitaGpsMap() {
             visitaParadaMarker = null;
+            visitaLinea = null;
             if (visitaGpsMap) {
                 visitaGpsMap.remove();
                 visitaGpsMap = null;
@@ -4015,10 +4573,9 @@ body.shlom-ruta-detalle-open .rainbow-background {
 
             var pLat = visitaPending.paradaLat;
             var pLng = visitaPending.paradaLng;
-            var coincide = pLat != null && pLng != null && !isNaN(pLat) && !isNaN(pLng)
-                && distanciaMetros(lat, lng, pLat, pLng) <= VISITA_DISTANCIA_MAX_M;
+            var tieneParada = pLat != null && pLng != null && !isNaN(pLat) && !isNaN(pLng);
 
-            if (coincide) {
+            if (tieneParada) {
                 if (visitaParadaMarker) {
                     visitaParadaMarker.setLatLng([pLat, pLng]);
                 } else {
@@ -4031,25 +4588,46 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     }).addTo(visitaGpsMap);
                     visitaParadaMarker.bindPopup('Parada');
                 }
-            } else if (visitaParadaMarker) {
-                visitaGpsMap.removeLayer(visitaParadaMarker);
-                visitaParadaMarker = null;
+                var lineaPts = [[lat, lng], [pLat, pLng]];
+                if (visitaLinea) {
+                    visitaLinea.setLatLngs(lineaPts);
+                } else {
+                    visitaLinea = L.polyline(lineaPts, {
+                        color: '#79481D',
+                        weight: 3,
+                        opacity: 0.75,
+                        dashArray: '6 6',
+                        lineCap: 'round'
+                    }).addTo(visitaGpsMap);
+                }
+            } else {
+                if (visitaParadaMarker) {
+                    visitaGpsMap.removeLayer(visitaParadaMarker);
+                    visitaParadaMarker = null;
+                }
+                if (visitaLinea) {
+                    visitaGpsMap.removeLayer(visitaLinea);
+                    visitaLinea = null;
+                }
             }
 
-            visitaGpsMap.setView([lat, lng], 17);
+            function encuadrarVisitaMapa() {
+                if (!visitaGpsMap) return;
+                visitaGpsMap.invalidateSize();
+                if (tieneParada) {
+                    var bounds = L.latLngBounds([
+                        [lat, lng],
+                        [pLat, pLng]
+                    ]);
+                    visitaGpsMap.fitBounds(bounds, { padding: [36, 36], maxZoom: 17 });
+                } else {
+                    visitaGpsMap.setView([lat, lng], 17);
+                }
+            }
 
-            setTimeout(function() {
-                if (visitaGpsMap) {
-                    visitaGpsMap.invalidateSize();
-                    visitaGpsMap.setView([lat, lng], 17);
-                }
-            }, 80);
-            setTimeout(function() {
-                if (visitaGpsMap) {
-                    visitaGpsMap.invalidateSize();
-                    visitaGpsMap.setView([lat, lng], 17);
-                }
-            }, 350);
+            encuadrarVisitaMapa();
+            setTimeout(encuadrarVisitaMapa, 80);
+            setTimeout(encuadrarVisitaMapa, 350);
         }
 
         function aplicarGpsVisita(lat, lng) {
@@ -4173,26 +4751,8 @@ body.shlom-ruta-detalle-open .rainbow-background {
             el.textContent = msg;
         }
 
-        function setVisitaConfirmando(on) {
-            visitaPending.confirmando = !!on;
-            var panel = document.getElementById('visitaAbonoConfirmPanel');
-            if (panel) panel.classList.toggle('d-none', !visitaPending.confirmando);
-            var folios = document.getElementById('visitaFoliosPago');
-            if (folios) folios.classList.toggle('d-none', !!visitaPending.confirmando);
-            syncVisitaWizardButtons();
-        }
-
-        function resumenAbonoConfirm(pagos) {
-            return pagos.map(function(pago) {
-                var metodo = VISITA_METODOS[pago.metodo_pago] || pago.metodo_pago;
-                return 'Folio #' + pago.contrato_id + ': <strong>$' + pago.monto + '</strong> · ' + metodo;
-            }).join('<br>');
-        }
-
         function syncVisitaWizardButtons() {
             var next = document.getElementById('btnVisitaWizardNext');
-            var confirmBtn = document.getElementById('btnVisitaWizardConfirm');
-            var reviewBtn = document.getElementById('btnVisitaWizardReview');
             var cancel = document.getElementById('btnVisitaWizardCancel');
             var printBtn = document.getElementById('btnVisitaWizardPrint');
             var undoBtn = document.getElementById('btnVisitaWizardUndo');
@@ -4200,8 +4760,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
             var step = visitaPending.step;
             var enTicket = step === 2;
             var esAusente = visitaPending.modo === 'ausente';
-            var confirmando = !enTicket && !!visitaPending.confirmando;
-            if (cancel) cancel.classList.toggle('d-none', enTicket || confirmando || (esAusente && visitaPending.enviandoAusente));
+            if (cancel) cancel.classList.toggle('d-none', enTicket || (esAusente && visitaPending.enviandoAusente));
             if (printBtn) printBtn.classList.toggle('d-none', !enTicket);
             if (undoBtn) {
                 undoBtn.classList.toggle('d-none', !enTicket || !visitaPending.visitaId);
@@ -4210,17 +4769,16 @@ body.shlom-ruta-detalle-open .rainbow-background {
             }
             if (closeBtn) closeBtn.classList.toggle('d-none', !enTicket);
             if (next) {
-                next.classList.toggle('d-none', enTicket || confirmando || esAusente);
-                next.textContent = 'Registrar abono';
-                next.disabled = !visitaPending.gpsOk;
+                next.classList.toggle('d-none', enTicket || esAusente);
+                next.disabled = !visitaPending.gpsOk || !!visitaPending.registrandoAbono;
+                next.innerHTML = visitaPending.registrandoAbono
+                    ? '<span class="spinner-border spinner-border-sm me-1"></span> Registrando...'
+                    : 'Registrar abono';
             }
-            if (confirmBtn) confirmBtn.classList.toggle('d-none', !confirmando || esAusente);
-            if (reviewBtn) reviewBtn.classList.toggle('d-none', !confirmando || esAusente);
             var title = document.getElementById('visitaWizardTitle');
             if (title) {
                 if (enTicket) title.textContent = 'Ticket';
                 else if (esAusente) title.textContent = 'Ausente';
-                else if (confirmando) title.textContent = 'Confirmar';
                 else title.textContent = 'Abono';
             }
             var icon = document.querySelector('#visitaWizardIcon i');
@@ -4378,37 +4936,18 @@ body.shlom-ruta-detalle-open .rainbow-background {
             return '';
         }
 
-        function pedirConfirmacionAbono() {
-            if (!visitaPending.punto || !visitaPending.paradaIds.length) return;
-            var pagos = collectPagosWizard();
-            var errPago = validarPagosWizard(pagos);
-            if (errPago) {
-                setVisitaWizardError(errPago);
-                return;
-            }
-            setVisitaWizardError('');
-            var resumen = document.getElementById('visitaAbonoConfirmResumen');
-            if (resumen) resumen.innerHTML = resumenAbonoConfirm(pagos);
-            setVisitaConfirmando(true);
-            var body = document.querySelector('#visitaConfirmModal .visita-wizard-body');
-            if (body) body.scrollTop = body.scrollHeight;
-        }
-
         function submitVisitaWizard() {
-            var confirmBtn = document.getElementById('btnVisitaWizardConfirm');
+            if (visitaPending.registrandoAbono) return;
             if (!visitaPending.punto || !visitaPending.paradaIds.length) return;
             var pagos = collectPagosWizard();
             var errPago = validarPagosWizard(pagos);
             if (errPago) {
-                setVisitaConfirmando(false);
                 setVisitaWizardError(errPago);
                 return;
             }
             setVisitaWizardError('');
-            if (confirmBtn) {
-                confirmBtn.disabled = true;
-                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registrando...';
-            }
+            visitaPending.registrandoAbono = true;
+            syncVisitaWizardButtons();
             var csrf = document.querySelector('meta[name="csrf-token"]');
             var payload = {
                 ruta_parada_ids: visitaPending.paradaIds,
@@ -4439,18 +4978,13 @@ body.shlom-ruta-detalle-open .rainbow-background {
                     bindTicketFrameResize(frame);
                     frame.src = visitaPending.ticketUrl;
                 }
-                setVisitaConfirmando(false);
                 showVisitaWizardStep(2);
             })
             .catch(function(err) {
-                setVisitaConfirmando(false);
                 setVisitaWizardError(err.message || 'Error al registrar el abono.');
             })
             .finally(function() {
-                if (confirmBtn) {
-                    confirmBtn.disabled = false;
-                    confirmBtn.innerHTML = 'Sí, confirmar';
-                }
+                visitaPending.registrandoAbono = false;
                 syncVisitaWizardButtons();
             });
         }
@@ -4542,13 +5076,13 @@ body.shlom-ruta-detalle-open .rainbow-background {
             visitaPending.ticketUrl = '';
             visitaPending.visitaId = null;
             visitaPending.deshaciendo = false;
+            visitaPending.registrandoAbono = false;
             visitaPending.userLat = null;
             visitaPending.userLng = null;
             visitaPending.paradaLat = (dom.latitud === null || dom.latitud === undefined || dom.latitud === '') ? null : parseFloat(dom.latitud);
             visitaPending.paradaLng = (dom.longitud === null || dom.longitud === undefined || dom.longitud === '') ? null : parseFloat(dom.longitud);
             if (visitaPending.paradaLat != null && isNaN(visitaPending.paradaLat)) visitaPending.paradaLat = null;
             if (visitaPending.paradaLng != null && isNaN(visitaPending.paradaLng)) visitaPending.paradaLng = null;
-            setVisitaConfirmando(false);
             setVisitaDistanciaAlert('');
             setVisitaWizardError('');
             var contratosLabel = pendientes.map(function(p) {
@@ -4602,14 +5136,13 @@ body.shlom-ruta-detalle-open .rainbow-background {
             visitaPending.modo = 'ticket';
             visitaPending.soloVistaTicket = true;
             visitaPending.enviandoAusente = false;
-            visitaPending.confirmando = false;
             visitaPending.deshaciendo = false;
+            visitaPending.registrandoAbono = false;
             visitaPending.gpsOk = false;
             visitaPending.punto = '';
             visitaPending.ticketUrl = url;
             visitaPending.visitaId = visitaId || visitaIdDesdeTicketUrl(url);
             visitaPending.domIndex = typeof idx === 'number' && !isNaN(idx) ? idx : null;
-            setVisitaConfirmando(false);
             setVisitaDistanciaAlert('');
             setVisitaWizardError('');
             destroyVisitaGpsMap();
@@ -4669,40 +5202,45 @@ body.shlom-ruta-detalle-open .rainbow-background {
             });
         }
 
-        if (sliderEl) {
-            sliderEl.addEventListener('click', function(e) {
-                var ausenteBtn = e.target.closest('.shlom-card-btn-ausente');
-                if (ausenteBtn) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var ausenteCard = ausenteBtn.closest('.shlom-slider-card');
-                    var ausenteIdx = ausenteCard
-                        ? parseInt(ausenteCard.dataset.index, 10)
-                        : parseInt(ausenteBtn.getAttribute('data-dom-index'), 10);
-                    openVisitaAusente(ausenteIdx);
-                    return;
-                }
-                var ticketBtn = e.target.closest('.shlom-card-btn-ticket');
-                if (ticketBtn) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    var ticketCard = ticketBtn.closest('.shlom-slider-card');
-                    var ticketIdx = ticketCard
-                        ? parseInt(ticketCard.dataset.index, 10)
-                        : parseInt(ticketBtn.getAttribute('data-dom-index'), 10);
-                    var vIdAttr = ticketBtn.getAttribute('data-visita-id');
-                    var vId = vIdAttr ? parseInt(vIdAttr, 10) : null;
-                    openVisitaTicketPreview(ticketBtn.getAttribute('data-ticket-url'), ticketIdx, vId);
-                    return;
-                }
-                var btn = e.target.closest('.shlom-card-btn-visit');
-                if (!btn || btn.disabled) return;
+        function onParadaAccionClick(e) {
+            var ausenteBtn = e.target.closest('.shlom-card-btn-ausente');
+            if (ausenteBtn) {
                 e.preventDefault();
                 e.stopPropagation();
-                var card = btn.closest('.shlom-slider-card');
-                var idx = card ? parseInt(card.dataset.index, 10) : parseInt(btn.getAttribute('data-dom-index'), 10);
-                openVisitaConfirm(idx);
-            });
+                var ausenteCard = ausenteBtn.closest('.shlom-slider-card');
+                var ausenteIdx = ausenteCard
+                    ? parseInt(ausenteCard.dataset.index, 10)
+                    : parseInt(ausenteBtn.getAttribute('data-dom-index'), 10);
+                openVisitaAusente(ausenteIdx);
+                return;
+            }
+            var ticketBtn = e.target.closest('.shlom-card-btn-ticket');
+            if (ticketBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                var ticketCard = ticketBtn.closest('.shlom-slider-card');
+                var ticketIdx = ticketCard
+                    ? parseInt(ticketCard.dataset.index, 10)
+                    : (typeof sliderIndex === 'number' ? sliderIndex : parseInt(ticketBtn.getAttribute('data-dom-index'), 10));
+                var vIdAttr = ticketBtn.getAttribute('data-visita-id');
+                var vId = vIdAttr ? parseInt(vIdAttr, 10) : null;
+                openVisitaTicketPreview(ticketBtn.getAttribute('data-ticket-url'), ticketIdx, vId);
+                return;
+            }
+            var btn = e.target.closest('.shlom-card-btn-visit');
+            if (!btn || btn.disabled || btn.classList.contains('shlom-card-btn-ticket')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            var card = btn.closest('.shlom-slider-card');
+            var idx = card ? parseInt(card.dataset.index, 10) : parseInt(btn.getAttribute('data-dom-index'), 10);
+            openVisitaConfirm(idx);
+        }
+        if (sliderEl) {
+            sliderEl.addEventListener('click', onParadaAccionClick);
+        }
+        var paradaRegistroDetalleEl = document.getElementById('paradaRegistroDetalle');
+        if (paradaRegistroDetalleEl) {
+            paradaRegistroDetalleEl.addEventListener('click', onParadaAccionClick);
         }
 
         var visitaModalEl = document.getElementById('visitaConfirmModal');
@@ -4735,6 +5273,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 visitaPending.enviandoAusente = false;
                 visitaPending.soloVistaTicket = false;
                 visitaPending.deshaciendo = false;
+                visitaPending.registrandoAbono = false;
                 var frame = document.getElementById('visitaTicketFrame');
                 if (frame) {
                     frame.src = 'about:blank';
@@ -4860,23 +5399,8 @@ body.shlom-ruta-detalle-open .rainbow-background {
         if (btnVisitaWizardNext) {
             btnVisitaWizardNext.addEventListener('click', function() {
                 setVisitaWizardError('');
-                if (visitaPending.step !== 1 || !visitaPending.gpsOk) return;
-                pedirConfirmacionAbono();
-            });
-        }
-        var btnVisitaWizardConfirm = document.getElementById('btnVisitaWizardConfirm');
-        if (btnVisitaWizardConfirm) {
-            btnVisitaWizardConfirm.addEventListener('click', function() {
-                setVisitaWizardError('');
-                if (visitaPending.step !== 1 || !visitaPending.gpsOk || !visitaPending.confirmando) return;
+                if (visitaPending.step !== 1 || !visitaPending.gpsOk || visitaPending.registrandoAbono) return;
                 submitVisitaWizard();
-            });
-        }
-        var btnVisitaWizardReview = document.getElementById('btnVisitaWizardReview');
-        if (btnVisitaWizardReview) {
-            btnVisitaWizardReview.addEventListener('click', function() {
-                setVisitaWizardError('');
-                setVisitaConfirmando(false);
             });
         }
         var btnVisitaWizardPrint = document.getElementById('btnVisitaWizardPrint');

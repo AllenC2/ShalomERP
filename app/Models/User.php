@@ -54,4 +54,15 @@ class User extends Authenticatable
     {
         return $this->hasOne(\App\Models\Empleado::class, 'user_id', 'id');
     }
+
+    /**
+     * Empleados dados de baja no deben poder autenticarse ni mantener sesión.
+     */
+    public function estaDadoDeBaja(): bool
+    {
+        $this->loadMissing('empleado');
+
+        return $this->empleado !== null
+            && $this->empleado->estado === 'inactivo';
+    }
 }

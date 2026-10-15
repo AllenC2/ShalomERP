@@ -71,7 +71,7 @@ class RutaController extends Controller
         $user = Auth::user();
         if ($user->role !== 'admin') {
             $empleado = $user->empleado;
-            if (!$empleado || (int) $plantilla->empleado_id !== (int) $empleado->id) {
+            if (!$empleado || (string) $plantilla->empleado_id !== (string) $empleado->id) {
                 abort(403);
             }
         }
@@ -400,7 +400,7 @@ class RutaController extends Controller
         }
 
         $empleadoId = $user->empleado?->id;
-        if (! $empleadoId || (int) $ruta->empleado_id !== (int) $empleadoId) {
+        if (! $empleadoId || (string) $ruta->empleado_id !== (string) $empleadoId) {
             abort(403, 'No puedes modificar una ruta que no te corresponde.');
         }
     }

@@ -343,7 +343,7 @@ class HomeController extends Controller
         }
 
         $empleado = Empleado::where('user_id', $user->id)->first();
-        if (! $empleado || (int) $plantilla->empleado_id !== (int) $empleado->id || ! $plantilla->activa) {
+        if (! $empleado || (string) $plantilla->empleado_id !== (string) $empleado->id || ! $plantilla->activa) {
             return response()->json(['success' => false, 'message' => 'Ruta no encontrada.'], 404);
         }
 

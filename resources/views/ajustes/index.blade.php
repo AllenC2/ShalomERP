@@ -1186,7 +1186,7 @@
                     </form>
                 </div>
             @endauth
-            <small class="text-muted">Version 1.9.0 @imallen.dev</small>
+            <small class="text-muted">Version 1.9.2 @imallen.dev</small>
 
         </div>
     </div>
@@ -2897,14 +2897,12 @@
             </div>
             <div class="modal-body p-5 pt-3">
                 <div class="mb-4">
-                    <span class="badge bg-success mb-3 fs-6">Versión 1.9.0 · Octubre 2026</span>
+                    <span class="badge bg-success mb-3 fs-6">Versión 1.9.2 · Octubre 2026</span>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corte semanal de comisiones:</strong> El recibo del asesor usa la fecha del abono del cliente (no el día en que se capturó en el sistema), para que los cobros en efectivo no se pasen a la semana siguiente (miércoles a martes).</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Recibo de comisiones:</strong> El reporte por rango de fechas ya no duplica contratos liquidados ni mezcla la comisión padre con sus parcialidades. El filtro “Todas las comisiones” respeta el período seleccionado.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Corrección de fechas históricas:</strong> Se puede realinear de forma masiva las comisiones ya generadas con la fecha real del abono, para que los cortes anteriores queden consistentes.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Rutas de cobro:</strong> Nuevo módulo para armar, ordenar y dar seguimiento a las rutas de cada asesor sobre el mapa.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Ubicación de clientes y empleados:</strong> Los domicilios se pueden geocodificar y guardar en coordenadas para ubicarlos en el mapa y en las rutas.</li>
-                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Panel de inicio:</strong> El inicio muestra información de rutas y cobranza del día junto con el resto de indicadores operativos.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Rutas por moldes:</strong> El índice de cobranza muestra plantillas recurrentes como tarjetas (activa/inactiva, empleado y paradas), con detalle de molde, mapa y ejecuciones.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Rutas vencidas:</strong> Al pasar la fecha de cobranza, las ejecuciones se marcan como vencidas sin bloquear registros del asesor.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Baja de empleados:</strong> Los usuarios dados de baja ya no pueden iniciar sesión ni mantener sesiones activas; no se permite la baja si aún tienen rutas asignadas.</li>
+                        <li class="list-group-item px-0 py-3 border-bottom"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Moldes desactivados:</strong> Dejan de aparecer en la agenda del día del cobrador.</li>
                     </ul>
                 </div>
             </div>

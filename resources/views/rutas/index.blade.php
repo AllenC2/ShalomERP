@@ -82,22 +82,23 @@
                         <div class="col-md-8">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <span class="text-muted small fw-semibold me-1">Estado:</span>
-                                @foreach(\App\Models\Ruta::getEstadosValidos() as $key => $label)
+                                @php
+                                    $filtrosActiva = [
+                                        '' => 'Todas',
+                                        '1' => 'Activa',
+                                        '0' => 'Inactiva',
+                                    ];
+                                @endphp
+                                @foreach($filtrosActiva as $valor => $label)
                                     @php
-                                        $isChecked = in_array($key, $estadosFiltro);
-                                        $btnClass = match($key) {
-                                            'planeada' => 'btn-outline-info',
-                                            'en_curso' => 'btn-outline-warning',
-                                            'completada' => 'btn-outline-success',
-                                            'detenida' => 'btn-outline-danger',
-                                            default => 'btn-outline-secondary',
-                                        };
-                                        $activeClass = $isChecked ? str_replace('outline-', '', $btnClass) : '';
+                                        $isActive = (string) ($activaFiltro ?? '') === (string) $valor;
                                     @endphp
-                                    <label class="btn btn-sm {{ $isChecked ? $activeClass : $btnClass }} rounded-pill px-3 py-1" style="cursor: pointer; font-size: 0.8rem; transition: all 0.2s;">
-                                        <input type="checkbox" name="estados[]" value="{{ $key }}" class="d-none estado-check" {{ $isChecked ? 'checked' : '' }}>
+                                    <button type="button"
+                                        class="btn btn-sm rounded-pill px-3 py-1 activa-filter-btn {{ $isActive ? ($valor === '1' ? 'btn-success' : ($valor === '0' ? 'btn-secondary' : 'btn-dark')) : ($valor === '1' ? 'btn-outline-success' : ($valor === '0' ? 'btn-outline-secondary' : 'btn-outline-dark')) }}"
+                                        data-activa="{{ $valor }}"
+                                        style="font-size: 0.8rem;">
                                         {{ $label }}
-                                    </label>
+                                    </button>
                                 @endforeach
                             </div>
                         </div>
@@ -111,102 +112,65 @@
                 @endif
 
                 <div class="card-body p-0">
-                    @if($rutas->isEmpty())
+                    @if($plantillas->isEmpty())
                         <div class="text-center py-5">
                             <i class="fa-solid fa-route text-muted" style="font-size: 3rem;"></i>
-                            <h5 class="mt-3 text-muted">No hay rutas registradas</h5>
+                            <h5 class="mt-3 text-muted">No hay moldes de ruta</h5>
                             <p class="text-muted">Crea una nueva ruta para comenzar.</p>
                         </div>
                     @else
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 modern-table">
-                                <thead class="modern-header">
-                                    <tr>
-                                        <th class="ps-4">ID</th>
-                                        <th>Nombre</th>
-                                        <th>Empleado</th>
-                                        <th>Progreso</th>
-                                        <th>Estado</th>
-                                        <th class="text-center pe-4">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($rutas as $ruta)
-                                        <tr class="modern-row clickable-row" data-href="{{ route('rutas.show', $ruta->id) }}">
-                                            <td class="ps-4">
-                                                <span class="badge bg-light text-dark fw-normal">#{{ $ruta->id }}</span>
-                                            </td>
-                                            <td>
-                                                <div class="fw-semibold text-dark">{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}</div>
-                                                @if($ruta->plantilla)
-                                                    <small class="text-muted">{{ $ruta->plantilla->etiquetaFrecuencia() }}</small>
-                                                @endif
-                                                <div><small class="text-muted">{{ $ruta->fecha instanceof \Carbon\Carbon ? $ruta->fecha->format('d/m/Y') : \Carbon\Carbon::parse($ruta->fecha)->format('d/m/Y') }}</small></div>
-                                            </td>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="avatar-circle me-3 d-flex align-items-center justify-content-center" style="min-width: 40px; min-height: 40px; width: 40px; height: 40px; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border-radius: 50%;">
-                                                        {{ strtoupper(substr($ruta->empleado->nombre ?? '?', 0, 1) . substr($ruta->empleado->apellido ?? '?', 0, 1)) }}
-                                                    </div>
-                                                    <div>
-                                                        <div class="fw-semibold text-dark">{{ $ruta->empleado->nombre ?? '' }} {{ $ruta->empleado->apellido ?? '' }}</div>
-                                                        <small class="text-muted">{{ $ruta->empleado->id ?? '' }}</small>
-                                                    </div>
+                        <div class="row g-3 plantilla-cards-grid">
+                            @foreach($plantillas as $plantilla)
+                                @php
+                                    $freqIcon = match ($plantilla->frecuencia) {
+                                        \App\Models\RutaPlantilla::FRECUENCIA_DIARIA => 'bi-sun',
+                                        \App\Models\RutaPlantilla::FRECUENCIA_SEMANAL => 'bi-calendar-week',
+                                        \App\Models\RutaPlantilla::FRECUENCIA_MENSUAL => 'bi-calendar-month',
+                                        default => 'bi-calendar3',
+                                    };
+                                    $empNombre = trim(($plantilla->empleado->nombre ?? '') . ' ' . ($plantilla->empleado->apellido ?? ''));
+                                    $empIniciales = strtoupper(
+                                        substr($plantilla->empleado->nombre ?? '?', 0, 1) .
+                                        substr($plantilla->empleado->apellido ?? '?', 0, 1)
+                                    );
+                                @endphp
+                                <div class="col-12 col-md-6 col-xl-4">
+                                    <a href="{{ route('rutas.plantillas.show', $plantilla) }}" class="plantilla-card text-decoration-none">
+                                        <div class="plantilla-card-top">
+                                            <div class="plantilla-card-icon">
+                                                <i class="fa-solid fa-route"></i>
+                                            </div>
+                                            <div class="plantilla-card-body">
+                                                <div class="plantilla-card-name">{{ $plantilla->nombre ?: ('Ruta #' . $plantilla->id) }}</div>
+                                                <div class="plantilla-card-meta">
+                                                    <span class="plantilla-card-meta-item">
+                                                        <i class="bi {{ $freqIcon }}"></i>
+                                                        {{ $plantilla->etiquetaFrecuencia() }}
+                                                    </span>
+                                                    <span class="plantilla-card-meta-sep" aria-hidden="true"></span>
+                                                    <span class="plantilla-card-meta-item">
+                                                        <i class="bi bi-geo-alt-fill"></i>
+                                                        {{ $plantilla->paradas_count }} parada{{ $plantilla->paradas_count === 1 ? '' : 's' }}
+                                                    </span>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                @php
-                                                    $total = $ruta->paradas->count();
-                                                    $completadas = $ruta->paradas->where('estado', 'visitada')->count();
-                                                    $porcentaje = $total > 0 ? round(($completadas / $total) * 100) : 0;
-                                                @endphp
-                                                <div class="d-flex align-items-center">
-                                                    <div class="progress flex-grow-1 me-2" style="height: 8px; border-radius: 4px;">
-                                                        <div class="progress-bar" role="progressbar" style="width: {{ $porcentaje }}%; background: linear-gradient(135deg, #E1B240 0%, #79481D 100%); border-radius: 4px;"></div>
-                                                    </div>
-                                                    <small class="text-muted">{{ $completadas }}/{{ $total }}</small>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span class="badge {{ $ruta->estado_badge }}">{{ $ruta->estado_label }}</span>
-                                            </td>
-                                            <td class="text-center pe-4" onclick="event.stopPropagation();">
-                                                <div class="btn-group" role="group">
-                                                    @if(auth()->user()->role === 'admin')
-                                                    @if($ruta->estado !== \App\Models\Ruta::ESTADO_COMPLETADA)
-                                                    <button type="button" class="btn btn-outline-success btn-sm action-btn btn-editar-ruta" data-ruta-id="{{ $ruta->id }}" title="Editar" onclick="event.stopPropagation(); openEditModal({{ $ruta->id }});">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    @endif
-                                                    @if($ruta->estado === \App\Models\Ruta::ESTADO_PLANEADA || $ruta->estado === \App\Models\Ruta::ESTADO_EN_CURSO)
-                                                    <button type="button" class="btn btn-outline-warning btn-sm action-btn btn-toggle-detener" data-ruta-id="{{ $ruta->id }}" title="Detener ruta" onclick="event.stopPropagation(); toggleDetenerRuta({{ $ruta->id }}, this);">
-                                                        <i class="bi bi-stop-fill"></i>
-                                                    </button>
-                                                    @elseif($ruta->estado === \App\Models\Ruta::ESTADO_DETENIDA)
-                                                    <button type="button" class="btn btn-outline-info btn-sm action-btn btn-toggle-detener" data-ruta-id="{{ $ruta->id }}" title="Reactivar ruta" onclick="event.stopPropagation(); toggleDetenerRuta({{ $ruta->id }}, this);">
-                                                        <i class="bi bi-play-fill"></i>
-                                                    </button>
-                                                    @endif
-                                                    <button type="button"
-                                                        class="btn btn-outline-danger btn-sm action-btn"
-                                                        title="Eliminar ruta"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#eliminarRutaModal"
-                                                        data-ruta-id="{{ $ruta->id }}"
-                                                        data-ruta-nombre="{{ $ruta->nombre ?: ('Ruta #' . $ruta->id) }}"
-                                                        onclick="event.stopPropagation();">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                                            </div>
+                                            <span class="badge {{ $plantilla->activa ? 'bg-success' : 'bg-secondary' }} plantilla-card-badge">
+                                                {{ $plantilla->activa ? 'Activa' : 'Inactiva' }}
+                                            </span>
+                                        </div>
+                                        <div class="plantilla-card-footer">
+                                            <div class="plantilla-card-empleado">
+                                                <div class="plantilla-card-avatar">{{ $empIniciales }}</div>
+                                                <span>{{ $empNombre !== '' ? $empNombre : 'Sin asignar' }}</span>
+                                            </div>
+                                            <i class="bi bi-chevron-right plantilla-card-chevron"></i>
+                                        </div>
+                                    </a>
+                                </div>
+                            @endforeach
                         </div>
                         <div class="d-flex justify-content-center mt-4">
-                            {!! $rutas->withQueryString()->links('vendor.pagination.custom') !!}
+                            {!! $plantillas->withQueryString()->links('vendor.pagination.custom') !!}
                         </div>
                     @endif
                 </div>
@@ -600,23 +564,18 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
 $(document).ready(function() {
-    $('.clickable-row').on('click', function(e) {
-        if (!$(e.target).closest('td[onclick*="stopPropagation"]').length && !$(e.target).closest('a, button, form').length) {
-            window.location.href = $(this).data('href');
-        }
-    });
-
-    // Filtros de estado por checkboxes
-    $('.estado-check').on('change', function() {
+    // Filtro Activa / Inactiva / Todas
+    $('.activa-filter-btn').on('click', function() {
         var params = new URLSearchParams(window.location.search);
-        var selected = [];
-        $('.estado-check:checked').each(function() {
-            selected.push($(this).val());
-        });
-        params.delete('estados[]');
-        selected.forEach(function(v) { params.append('estados[]', v); });
+        var valor = $(this).data('activa');
+        if (valor === '' || valor === undefined || valor === null) {
+            params.delete('activa');
+        } else {
+            params.set('activa', String(valor));
+        }
         params.delete('page');
-        window.location.href = window.location.pathname + '?' + params.toString();
+        var qs = params.toString();
+        window.location.href = window.location.pathname + (qs ? '?' + qs : '');
     });
 
     // Buscador de empleados con dropdown
@@ -2069,6 +2028,120 @@ function geocodificarPendientes() {
     .action-btn:hover { transform: translateY(-2px) !important; }
     .table-responsive { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
     .avatar-circle { color: white; font-weight: 600; font-size: 0.875rem; }
+
+    .plantilla-cards-grid { margin-top: 0.25rem; }
+    .plantilla-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 14px 16px;
+        height: 100%;
+        color: inherit;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .plantilla-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(121, 72, 29, 0.28);
+        box-shadow: 0 8px 24px rgba(121, 72, 29, 0.1);
+        color: inherit;
+    }
+    .plantilla-card-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .plantilla-card-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(225, 178, 64, 0.18) 0%, rgba(121, 72, 29, 0.14) 100%);
+        color: #79481D;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+    }
+    .plantilla-card-body { min-width: 0; flex: 1; }
+    .plantilla-card-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1f2937;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+        margin: 0 0 4px;
+    }
+    .plantilla-card-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    .plantilla-card-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .plantilla-card-meta-item i { font-size: 0.7rem; opacity: 0.9; }
+    .plantilla-card-meta-sep {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #c7c7cc;
+        flex-shrink: 0;
+    }
+    .plantilla-card-badge {
+        flex-shrink: 0;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    .plantilla-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid #f1f3f5;
+    }
+    .plantilla-card-empleado {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #374151;
+    }
+    .plantilla-card-empleado span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .plantilla-card-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #E1B240 0%, #79481D 100%);
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .plantilla-card-chevron {
+        color: #c7c7cc;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
 
     #nuevaRutaModal .modal-dialog,
     #editarRutaModal .modal-dialog {

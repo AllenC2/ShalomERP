@@ -36,6 +36,11 @@ yarn.lock
 npm-debug.log
 package-lock.json
 
+# Local SQLite databases
+/database.sqlite
+*.sqlite
+*.sqlite-journal
+
 # Misc
 .idea/
 .vscode/

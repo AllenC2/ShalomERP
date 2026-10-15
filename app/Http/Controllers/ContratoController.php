@@ -6,6 +6,7 @@ use App\Models\Contrato;
 use App\Models\Cliente;
 use App\Models\Pago;
 use App\Models\Comisione;
+use App\Http\Controllers\Concerns\AuthorizesEmpleadoContrato;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\ContratoRequest;
@@ -17,6 +18,8 @@ use Illuminate\View\View;
 
 class ContratoController extends Controller
 {
+    use AuthorizesEmpleadoContrato;
+
     /**
      * Display a listing of the resource.
      */
@@ -389,7 +392,8 @@ class ContratoController extends Controller
      */
     public function show($id): View
     {
-        $contrato = Contrato::with(['cliente', 'paquete'])->find($id);
+        $contrato = Contrato::with(['cliente', 'paquete'])->findOrFail($id);
+        $this->authorizeContratoAccess($contrato);
 
         $pagos_contrato = Pago::where('contrato_id', $id)->get();
 
@@ -415,6 +419,7 @@ class ContratoController extends Controller
     public function comisiones($id): View
     {
         $contrato = Contrato::findOrFail($id);
+        $this->authorizeContratoAccess($contrato);
         // Obtener todas las comisiones (padres e hijas) para mostrar en la tabla, ordenadas por nombre del empleado
         // Las comisiones fijas aparecerán al final
         $comisiones = Comisione::where('contrato_id', $id)

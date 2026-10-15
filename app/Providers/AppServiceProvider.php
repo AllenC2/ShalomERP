@@ -28,9 +28,11 @@ class AppServiceProvider extends ServiceProvider
         // Intentar configurar el locale del sistema (no crítico si falla)
         @setlocale(LC_TIME, 'es_ES.UTF-8', 'es_ES', 'es', 'Spanish_Spain', 'spanish');
 
-        // Permitir que Log Viewer cargue (la seguridad real es por Basic Auth Middleware)
+        // Solo admins autenticados de la app (además del Basic Auth opcional).
         \Opcodes\LogViewer\Facades\LogViewer::auth(function ($request) {
-            return true;
+            $user = $request->user();
+
+            return $user && $user->role === 'admin';
         });
     }
 }

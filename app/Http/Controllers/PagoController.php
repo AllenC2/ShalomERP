@@ -4,15 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Pago;
 use App\Models\Contrato;
+use App\Http\Controllers\Concerns\AuthorizesEmpleadoContrato;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\PagoRequest;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PagoController extends Controller
 {
+    use AuthorizesEmpleadoContrato;
+
     /**
      * Display a listing of the resource.
      */
@@ -70,7 +74,9 @@ class PagoController extends Controller
         // Manejar la subida del documento si existe
         if ($request->hasFile('documento')) {
             $file = $request->file('documento');
-            $fileName = time() . '_' . $file->getClientOriginalName();
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'bin');
+            $ext = preg_replace('/[^a-z0-9]/', '', $ext) ?: 'bin';
+            $fileName = time().'_'.Str::lower(Str::random(12)).'.'.$ext;
             $filePath = $file->storeAs('pagos_storage/documentos', $fileName, 'public');
             $validatedData['documento'] = $filePath;
         } else {
@@ -104,6 +110,9 @@ class PagoController extends Controller
     public function show($id): View
     {
         $pago = Pago::with(['contrato.cliente', 'contrato.paquete'])->findOrFail($id);
+        if ($pago->contrato) {
+            $this->authorizeContratoAccess($pago->contrato);
+        }
 
         // Obtener información de la empresa para mostrar en el recibo
         $infoEmpresa = \App\Models\Ajuste::obtenerInfoEmpresa();
@@ -122,6 +131,9 @@ class PagoController extends Controller
         $pago = Pago::with(['contrato.cliente'])->find($id);
         if (!$pago) {
             abort(404);
+        }
+        if ($pago->contrato) {
+            $this->authorizeContratoAccess($pago->contrato);
         }
         
         $empresa = \App\Models\Ajuste::obtenerInfoEmpresa();
@@ -154,7 +166,9 @@ class PagoController extends Controller
             }
 
             $file = $request->file('documento');
-            $fileName = time() . '_' . $file->getClientOriginalName();
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'bin');
+            $ext = preg_replace('/[^a-z0-9]/', '', $ext) ?: 'bin';
+            $fileName = time().'_'.Str::lower(Str::random(12)).'.'.$ext;
             $filePath = $file->storeAs('pagos_storage/documentos', $fileName, 'public');
             $validatedData['documento'] = $filePath;
         } else {

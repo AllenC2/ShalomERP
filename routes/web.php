@@ -78,16 +78,22 @@ Route::middleware(['auth', 'role:admin,empleado'])->group(function () {
     Route::post('rutas/{ruta}/punto-casa', [App\Http\Controllers\RutaController::class, 'actualizarPuntoCasa'])->name('rutas.actualizarPuntoCasa');
 });
 
-// Ruta para servir PDFs de contratos - Accesible para cualquier usuario autenticado
+// PDFs de contratos: solo nombre de archivo (sin path traversal) y auth.
 Route::middleware(['auth'])->get('/storage/contratos/{filename}', function ($filename) {
-    $path = storage_path('app/public/contratos/' . $filename);
+    $safeName = basename($filename);
+    if ($safeName !== $filename || ! preg_match('/^[A-Za-z0-9._-]+\.pdf$/', $safeName)) {
+        abort(404);
+    }
 
-    if (!file_exists($path)) {
+    $base = realpath(storage_path('app/public/contratos'));
+    $path = $base ? realpath($base.DIRECTORY_SEPARATOR.$safeName) : false;
+
+    if (! $base || ! $path || ! str_starts_with($path, $base.DIRECTORY_SEPARATOR) || ! is_file($path)) {
         abort(404);
     }
 
     return response()->file($path);
-})->where('filename', '.*\.pdf$');
+})->where('filename', '[A-Za-z0-9._-]+\.pdf');
 
 Route::middleware(['auth', 'role:admin,empleado'])->group(function () {
     // Rutas AJAX

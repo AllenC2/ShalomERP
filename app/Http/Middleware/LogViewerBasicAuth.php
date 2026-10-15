@@ -11,19 +11,33 @@ class LogViewerBasicAuth
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $username = env('LOG_VIEWER_USERNAME');
-        $password = env('LOG_VIEWER_PASSWORD');
+        // En producción, exigir credenciales Basic dedicadas además del auth de Laravel.
+        if (app()->environment('production')) {
+            $username = env('LOG_VIEWER_USERNAME');
+            $password = env('LOG_VIEWER_PASSWORD');
 
-        if (!$username || !$password) {
+            if (! $username || ! $password) {
+                abort(404);
+            }
+
+            if ($request->getUser() !== $username || $request->getPassword() !== $password) {
+                return response('Unauthorized', 401, ['WWW-Authenticate' => 'Basic']);
+            }
+
             return $next($request);
         }
 
-        if ($request->getUser() !== $username || $request->getPassword() !== $password) {
-            return response('Unauthorized', 401, ['WWW-Authenticate' => 'Basic']);
+        $username = env('LOG_VIEWER_USERNAME');
+        $password = env('LOG_VIEWER_PASSWORD');
+
+        if ($username && $password) {
+            if ($request->getUser() !== $username || $request->getPassword() !== $password) {
+                return response('Unauthorized', 401, ['WWW-Authenticate' => 'Basic']);
+            }
         }
 
         return $next($request);

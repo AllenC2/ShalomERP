@@ -431,7 +431,11 @@ class VisitaController extends Controller
         }
 
         if (Schema::getConnection()->getDriverName() === 'mysql') {
-            $visita->ubicacion_evidencia = DB::raw("ST_GeomFromText('".$punto."')");
+            // Revalidar WKT y escapar antes de interpolar en ST_GeomFromText.
+            if (! preg_match('/^POINT\(\s*-?\d+(?:\.\d+)?\s+-?\d+(?:\.\d+)?\s*\)$/i', $punto)) {
+                throw new \InvalidArgumentException('Ubicación WKT inválida.');
+            }
+            $visita->ubicacion_evidencia = DB::raw('ST_GeomFromText('.DB::getPdo()->quote($punto).')');
 
             return;
         }

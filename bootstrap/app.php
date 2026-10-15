@@ -9,7 +9,10 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         then: function () {
-            // Rutas de diagnóstico (solo para admin)
+            // Rutas de diagnóstico: nunca en producción
+            if (app()->environment('production')) {
+                return;
+            }
             if (file_exists(__DIR__.'/../routes/diagnostico.php')) {
                 require __DIR__.'/../routes/diagnostico.php';
             }

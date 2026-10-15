@@ -5,6 +5,8 @@
 /public/hot
 /storage/*.key
 .env
+.env.*
+!.env.example
 .phpunit.result.cache
 Homestead.yaml
 Homestead.json
@@ -44,4 +46,3 @@ package-lock.json
 # Misc
 .idea/
 .vscode/
-.env.example

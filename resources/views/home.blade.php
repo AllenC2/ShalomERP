@@ -1297,8 +1297,11 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-resumen-stats { margin-bottom: 0 !important; }
 /* ====== SLIDER (inside sheet) ====== */
 .shlom-slider-track {
+    position: relative;
     display: flex; gap: 12px; overflow-x: auto; overflow-y: visible;
     scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
     padding: 0 16px; scrollbar-width: none; -ms-overflow-style: none;
     touch-action: pan-x;
     flex-shrink: 0;
@@ -1306,7 +1309,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
 .shlom-slider-track::-webkit-scrollbar { display: none; }
 
 .shlom-slider-card {
-    flex: 0 0 88%; max-width: 380px; scroll-snap-align: center;
+    flex: 0 0 88%; max-width: 380px; scroll-snap-align: center; scroll-snap-stop: always;
     background: #f2f2f7; border-radius: 16px; padding: 16px;
     border: 1px solid transparent; min-width: 0;
     display: flex; flex-direction: column;
@@ -3410,9 +3413,12 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 sheet.style.height = '';
             }
 
+            var startedOnSlider = false;
+
             function onTouchStart(e, handleStart) {
                 if (e.touches.length !== 1) return;
                 if (!canStartSheetDragFromTarget(e.target, handleStart)) return;
+                startedOnSlider = !handleStart && !!e.target.closest('.shlom-slider-track');
                 beginSheetDrag(e.touches[0].clientY, e.touches[0].clientX, handleStart);
             }
 
@@ -3423,8 +3429,12 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 var dx = e.touches[0].clientX - startX;
 
                 if (directionLocked === null) {
-                    if (Math.abs(dy) < 4 && Math.abs(dx) < 4) return;
-                    directionLocked = Math.abs(dy) >= Math.abs(dx) ? 'v' : 'h';
+                    if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+                    // Sobre el carrusel, un gesto diagonal es para cambiar de tarjeta, no para mover el panel.
+                    var vertical = startedOnSlider
+                        ? Math.abs(dy) > Math.abs(dx) * 1.5
+                        : Math.abs(dy) >= Math.abs(dx);
+                    directionLocked = vertical ? 'v' : 'h';
                     if (directionLocked === 'h') {
                         isDragging = false;
                         sheet.style.height = '';
@@ -4151,7 +4161,7 @@ body.shlom-ruta-detalle-open .rainbow-background {
                 dots.appendChild(dot);
             });
 
-            updateSliderPosition();
+            updateSliderPosition(true);
             updateSliderControls();
             updateSliderNavButtons();
             pintarDetalleParadaCentrada(sliderIndex);
@@ -4312,18 +4322,38 @@ body.shlom-ruta-detalle-open .rainbow-background {
             }
         }
 
-        function updateSliderPosition() {
+        // Posición de scroll en la que la tarjeta queda centrada (igual que scroll-snap-align: center).
+        function sliderScrollLeftFor(container, card) {
+            var max = container.scrollWidth - container.clientWidth;
+            var left = card.offsetLeft - (container.clientWidth - card.offsetWidth) / 2;
+            return Math.max(0, Math.min(max, left));
+        }
+
+        function sliderIndiceCentrado(container) {
+            var cards = container.querySelectorAll('.shlom-slider-card');
+            var best = 0;
+            var bestDist = Infinity;
+            cards.forEach(function(card, i) {
+                var dist = Math.abs(sliderScrollLeftFor(container, card) - container.scrollLeft);
+                if (dist < bestDist) { bestDist = dist; best = i; }
+            });
+            return best;
+        }
+
+        function actualizarSliderDots() {
+            document.querySelectorAll('.shlom-dot').forEach(function(d, i) {
+                d.classList.toggle('active', i === sliderIndex);
+            });
+        }
+
+        function updateSliderPosition(instantaneo) {
             var container = document.getElementById('paradasSlider');
             var cards = container.querySelectorAll('.shlom-slider-card');
             if (cards.length === 0) return;
 
-            var cardWidth = cards[0].offsetWidth + 12; // card + gap
-            container.scrollTo({ left: sliderIndex * cardWidth, behavior: 'smooth' });
-
-            // Update dots
-            document.querySelectorAll('.shlom-dot').forEach(function(d, i) {
-                d.classList.toggle('active', i === sliderIndex);
-            });
+            var card = cards[Math.min(sliderIndex, cards.length - 1)];
+            container.scrollTo({ left: sliderScrollLeftFor(container, card), behavior: instantaneo ? 'auto' : 'smooth' });
+            actualizarSliderDots();
         }
 
         function updateSliderControls() {
@@ -4404,53 +4434,32 @@ body.shlom-ruta-detalle-open .rainbow-background {
             }
         });
 
+        // El deslizamiento lo hace el scroll-snap nativo; aquí solo se lee la tarjeta
+        // en la que se asentó. No llamar scrollTo aquí: pelearía con la inercia del gesto.
         var sliderEl = document.getElementById('paradasSlider');
-        var sliderTouchStartX = 0;
-        var sliderTouchStartY = 0;
-        var sliderTouchOnContracts = false;
-        if (sliderEl) {
-        sliderEl.addEventListener('touchstart', function(e) {
-            sliderTouchStartX = e.touches[0].clientX;
-            sliderTouchStartY = e.touches[0].clientY;
-            sliderTouchOnContracts = !!e.target.closest('.shlom-card-contracts');
-        }, { passive: true });
-        sliderEl.addEventListener('touchend', function(e) {
-            if (sliderTouchOnContracts) return;
-            var endX = e.changedTouches[0].clientX;
-            var endY = e.changedTouches[0].clientY;
-            var dx = sliderTouchStartX - endX;
-            var dy = sliderTouchStartY - endY;
-            if (Math.abs(dx) <= Math.abs(dy)) return;
-            if (Math.abs(dx) > 50) {
-                if (dx > 0 && sliderIndex < currentDomicilios.length - 1) goToSlide(sliderIndex + 1);
-                else if (dx < 0 && sliderIndex > 0) goToSlide(sliderIndex - 1);
-            }
-        }, { passive: true });
-        }
-
-        // Also detect scroll stop on slider
         var scrollTimer;
-        if (sliderEl) {
-        sliderEl.addEventListener('scroll', function() {
+        function onSliderAsentado() {
             clearTimeout(scrollTimer);
-            scrollTimer = setTimeout(function() {
-                var cards = sliderEl.querySelectorAll('.shlom-slider-card');
-                if (cards.length === 0) return;
-                var cardWidth = cards[0].offsetWidth + 12;
-                var newIdx = Math.round(sliderEl.scrollLeft / cardWidth);
-                if (newIdx !== sliderIndex) {
-                    sliderIndex = newIdx;
-                    updateSliderPosition();
-                    updateSliderControls();
-                    updateSliderNavButtons();
-                    centerOnDomicilio(sliderIndex);
-                    pintarDetalleParadaCentrada(sliderIndex);
-                    if (typeof window.syncBottomSheetCollapsedHeight === 'function') {
-                        requestAnimationFrame(window.syncBottomSheetCollapsedHeight);
-                    }
-                }
-            }, 150);
-        });
+            if (!sliderEl.querySelector('.shlom-slider-card')) return;
+            var newIdx = sliderIndiceCentrado(sliderEl);
+            if (newIdx === sliderIndex) return;
+            sliderIndex = newIdx;
+            actualizarSliderDots();
+            updateSliderControls();
+            updateSliderNavButtons();
+            centerOnDomicilio(sliderIndex);
+            pintarDetalleParadaCentrada(sliderIndex);
+            if (typeof window.syncBottomSheetCollapsedHeight === 'function') {
+                requestAnimationFrame(window.syncBottomSheetCollapsedHeight);
+            }
+        }
+        if (sliderEl) {
+            sliderEl.addEventListener('scroll', function() {
+                clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(onSliderAsentado, 120);
+            }, { passive: true });
+            // scrollend no existe en Safari antiguo; el timeout de arriba cubre ese caso.
+            sliderEl.addEventListener('scrollend', onSliderAsentado);
         }
 
         var visitaGpsMap = null;

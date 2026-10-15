@@ -76,7 +76,7 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button type="button" class="btn btn-header-action btn-header-ejecuciones" data-bs-toggle="modal" data-bs-target="#ejecucionesModal" title="Ejecuciones">
+                    <button type="button" id="btnEjecucionesModal" class="btn btn-header-action btn-header-ejecuciones" title="Ejecuciones">
                         <i class="bi bi-calendar3"></i>
                         <span class="btn-header-label">Ejecuciones</span>
                         <span class="badge">{{ $plantilla->ejecuciones->count() }}</span>
@@ -224,9 +224,12 @@
     </div>
 
 </div>
+@endsection
 
+@section('scripts')
+<!-- Modal fuera de #app para que el backdrop de Bootstrap no lo tape -->
 <!-- Modal Ejecuciones -->
-<div class="modal fade" id="ejecucionesModal" tabindex="-1" aria-labelledby="ejecucionesModalLabel" aria-hidden="true">
+<div class="modal fade" id="ejecucionesModal" tabindex="-1" aria-labelledby="ejecucionesModalLabel" aria-hidden="true" style="z-index: 2000;">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg rounded-4">
             <div class="modal-header border-0 pb-0 align-items-start">
@@ -253,7 +256,7 @@
                         {{ $plantilla->ejecuciones->count() }} ejecución(es)
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close" data-ejecuciones-cerrar aria-label="Cerrar"></button>
             </div>
             <div class="modal-body pt-3 px-0 pb-0">
 
@@ -320,14 +323,116 @@
                 @endif
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-ejecuciones-cerrar>Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+(function() {
+    var ejecucionesModal = document.getElementById('ejecucionesModal');
+    var btnEjecuciones = document.getElementById('btnEjecucionesModal');
+    if (!ejecucionesModal) return;
+    if (ejecucionesModal.parentElement !== document.body) {
+        document.body.appendChild(ejecucionesModal);
+    }
+
+    // Bootstrap llega por el módulo de Vite; si este no se ejecutó, se carga el CDN una sola vez
+    // (cargar ambas copias duplica los handlers data-bs-* y rompe el navbar).
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.bootstrap && window.bootstrap.Modal) return;
+        if (document.getElementById('bootstrap-cdn-fallback')) return;
+        var s = document.createElement('script');
+        s.id = 'bootstrap-cdn-fallback';
+        s.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
+        document.head.appendChild(s);
+    });
+
+    var bsInstance = null;
+    var modo = null;
+    var fallbackBackdrop = null;
+
+    function limpiarBody() {
+        document.querySelectorAll('.modal-backdrop').forEach(function(el) { el.remove(); });
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }
+
+    function abrirFallback() {
+        if (ejecucionesModal.classList.contains('show')) return;
+        fallbackBackdrop = document.createElement('div');
+        fallbackBackdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(fallbackBackdrop);
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
+        ejecucionesModal.style.display = 'block';
+        ejecucionesModal.removeAttribute('aria-hidden');
+        ejecucionesModal.setAttribute('aria-modal', 'true');
+        ejecucionesModal.setAttribute('role', 'dialog');
+        ejecucionesModal.classList.add('show');
+        ejecucionesModal.focus();
+    }
+
+    function cerrarFallback() {
+        ejecucionesModal.classList.remove('show');
+        ejecucionesModal.style.display = 'none';
+        ejecucionesModal.setAttribute('aria-hidden', 'true');
+        ejecucionesModal.removeAttribute('aria-modal');
+        ejecucionesModal.removeAttribute('role');
+        fallbackBackdrop = null;
+        limpiarBody();
+    }
+
+    function abrir() {
+        if (!bsInstance && window.bootstrap && window.bootstrap.Modal) {
+            bsInstance = window.bootstrap.Modal.getOrCreateInstance(ejecucionesModal, { backdrop: true, keyboard: true, focus: true });
+            ejecucionesModal.addEventListener('hidden.bs.modal', limpiarBody);
+        }
+        if (bsInstance) {
+            modo = 'bootstrap';
+            bsInstance.show();
+        } else {
+            modo = 'fallback';
+            abrirFallback();
+        }
+    }
+
+    function cerrar() {
+        if (modo === 'bootstrap') {
+            bsInstance.hide();
+        } else {
+            cerrarFallback();
+        }
+    }
+
+    if (btnEjecuciones) {
+        btnEjecuciones.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            abrir();
+        });
+    }
+
+    ejecucionesModal.querySelectorAll('[data-ejecuciones-cerrar]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            cerrar();
+        });
+    });
+
+    ejecucionesModal.addEventListener('click', function(e) {
+        if (modo === 'fallback' && e.target === ejecucionesModal) cerrarFallback();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (modo === 'fallback' && e.key === 'Escape' && ejecucionesModal.classList.contains('show')) cerrarFallback();
+    });
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
+
+    if (typeof L !== 'undefined') {
     var map = L.map('map').setView([20.67, -103.36], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OSM',
@@ -413,6 +518,9 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.borderLeft = '3px solid transparent';
         });
     });
+    } else {
+        console.warn('Leaflet no disponible; mapa omitido');
+    }
 
     // Combobox empleado asignado
     var empSearch = document.getElementById('plantillaEmpleadoSearch');
@@ -756,6 +864,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     .ejecucion-row { cursor: pointer; transition: background 0.15s ease; }
     .ejecucion-row:hover { background: #f8f7f5; }
+    #ejecucionesModal { z-index: 2000 !important; }
+    body.modal-open > .modal-backdrop { z-index: 1990 !important; }
 
     @media (max-width: 991.98px) {
         .sticky-map { position: static; }

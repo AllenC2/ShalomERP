@@ -770,7 +770,23 @@
         .ruta-act-meta { font-size: 0.72rem; color: #8e8e93; margin-top: 4px; }
     </style>
     <script>
+    // Bootstrap llega por el módulo de Vite; si este no se ejecutó, se carga el CDN una sola vez
+    // (cargar ambas copias duplica los handlers data-bs-* y rompe el navbar).
+    function asegurarBootstrap(callback) {
+        if (window.bootstrap && window.bootstrap.Modal) { callback(); return; }
+        var s = document.getElementById('bootstrap-cdn-fallback');
+        if (!s) {
+            s = document.createElement('script');
+            s.id = 'bootstrap-cdn-fallback';
+            s.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
+            document.head.appendChild(s);
+        }
+        s.addEventListener('load', callback);
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
+        asegurarBootstrap(function() {});
+
         var btn = document.getElementById('btnActividadRutas');
         var modalEl = document.getElementById('actividadRutasModal');
         if (!btn || !modalEl) return;
@@ -779,7 +795,6 @@
         var empty = document.getElementById('actividadRutasEmpty');
         var list = document.getElementById('actividadRutasList');
         var sub = document.getElementById('actividadRutasSub');
-        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         var loadedFor = null;
 
         function money(n) {
@@ -826,7 +841,9 @@
 
         btn.addEventListener('click', function() {
             var url = btn.getAttribute('data-url');
-            modal.show();
+            asegurarBootstrap(function() {
+                window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            });
             if (loadedFor === url && list.innerHTML) {
                 loading.classList.add('d-none');
                 return;

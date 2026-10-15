@@ -22,6 +22,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/sass/rainbow.scss', 'resources/js/app.js'])
+    <script>
+        // Bootstrap JS llega por el módulo de Vite; si este no se ejecutó, se carga el CDN una sola vez
+        // (cargar ambas copias duplica los handlers data-bs-* y rompe el navbar).
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.bootstrap && window.bootstrap.Modal) return;
+            if (document.getElementById('bootstrap-cdn-fallback')) return;
+            var s = document.createElement('script');
+            s.id = 'bootstrap-cdn-fallback';
+            s.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
+            document.head.appendChild(s);
+        });
+    </script>
 
     <!-- Estilos de emergencia en caso de fallo de Vite -->
     <style>

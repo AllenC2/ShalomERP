@@ -33,6 +33,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
     // Rutas de empleados
     Route::resource('empleados', App\Http\Controllers\EmpleadoController::class);
+    Route::get('empleados/{id}/actividad-rutas', [App\Http\Controllers\EmpleadoController::class, 'actividadRutas'])->name('empleados.actividadRutas');
     Route::patch('empleados/{id}/dar-de-baja', [App\Http\Controllers\EmpleadoController::class, 'darDeBaja'])->name('empleados.darDeBaja');
     Route::patch('empleados/{id}/reactivar', [App\Http\Controllers\EmpleadoController::class, 'reactivar'])->name('empleados.reactivar');
     Route::patch('empleados/{id}/toggle-rol', [App\Http\Controllers\EmpleadoController::class, 'toggleRol'])->name('empleados.toggleRol');
@@ -142,6 +143,7 @@ Route::middleware(['auth', 'role:admin,empleado', 'empleado.index.access'])->gro
     // Ruta para registrar visitas
     Route::post('visitas', [App\Http\Controllers\VisitaController::class, 'store'])->name('visitas.store');
     Route::get('visitas/{visita}/ticket', [App\Http\Controllers\VisitaController::class, 'ticket'])->name('visitas.ticket');
+    Route::post('visitas/{visita}/deshacer', [App\Http\Controllers\VisitaController::class, 'deshacer'])->name('visitas.deshacer');
 });
 
 // Rutas de clientes específicas - Solo administrador (deben ir después de las rutas con 'create' para evitar conflictos)

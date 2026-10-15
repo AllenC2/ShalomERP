@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class RutaActividad extends Model
@@ -74,6 +75,65 @@ class RutaActividad extends Model
 
             return null;
         }
+    }
+
+    /**
+     * Arma los datos de actividad para un lote de visitas (abono, ausente o deshacer).
+     * Espera las visitas con contrato.cliente, pagos y rutaParada.ruta cargados.
+     */
+    public static function datosDeVisitas(Collection $visitas, string $tipo): array
+    {
+        $primera = $visitas->first();
+        $parada = $visitas->first(fn (Visita $v) => $v->rutaParada)?->rutaParada;
+        $ruta = $parada?->ruta;
+        $pagos = $visitas->flatMap->pagos;
+
+        $cliente = $primera?->contrato?->cliente;
+        $nombreCliente = $cliente
+            ? trim(($cliente->nombre ?? '').' '.($cliente->apellido ?? ''))
+            : ($parada?->direccion_destino ?: 'Visita');
+
+        $folios = $visitas->pluck('contrato_id')->filter()->unique()->values();
+        $detalle = 'Folio'.($folios->count() === 1 ? '' : 's').' '.
+            $folios->map(fn ($id) => '#'.$id)->implode(', ').'.';
+
+        if ($pagos->isNotEmpty()) {
+            $metodos = $pagos->pluck('metodo_pago')->unique()
+                ->map(fn ($m) => Pago::METODOS_PAGO[$m] ?? $m)
+                ->implode(', ');
+            $detalle .= ' '.($tipo === self::TIPO_DESHACER ? 'Pago revertido' : 'Pago').' en '.mb_strtolower($metodos).'.';
+        } elseif ($tipo === self::TIPO_AUSENTE) {
+            $detalle .= ' Sin recepción en domicilio.';
+        }
+
+        if ($primera?->comentarios) {
+            $detalle .= ' '.$primera->comentarios;
+        }
+
+        $titulos = [
+            self::TIPO_ABONO => 'Abono',
+            self::TIPO_AUSENTE => 'Ausente',
+            self::TIPO_DESHACER => 'Deshacer visita',
+        ];
+
+        return [
+            'empleado_id' => $ruta?->empleado_id,
+            'user_id' => $primera?->user_id,
+            'ruta_id' => $ruta?->id,
+            'ruta_parada_id' => $parada?->id,
+            'visita_id' => $primera?->id,
+            'tipo' => $tipo,
+            'titulo' => ($titulos[$tipo] ?? ucfirst($tipo)).' · '.$nombreCliente,
+            'detalle' => $detalle,
+            'monto_total' => $pagos->isNotEmpty() ? round((float) $pagos->sum('monto'), 2) : null,
+            'meta' => [
+                'cliente' => $nombreCliente,
+                'contratos' => $folios->all(),
+                'ruta_nombre' => $ruta?->nombre,
+                'lote' => $primera?->lote,
+                'visitas' => $visitas->pluck('id')->all(),
+            ],
+        ];
     }
 
     public function etiquetaTipo(): string

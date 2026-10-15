@@ -802,6 +802,12 @@
             return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
         function render(data) {
             if (sub && data.empleado) {
                 sub.textContent = data.empleado.nombre + ' · ' + (data.total || 0) + ' movimiento' + (data.total === 1 ? '' : 's');
@@ -828,10 +834,10 @@
                         html += '<span class="badge bg-light text-dark border">' + money(item.monto_total) + '</span>';
                     }
                     html += '</div>';
-                    html += '<p class="ruta-act-title">' + (item.titulo || '') + '</p>';
-                    if (item.detalle) html += '<p class="ruta-act-detail">' + item.detalle + '</p>';
+                    html += '<p class="ruta-act-title">' + esc(item.titulo) + '</p>';
+                    if (item.detalle) html += '<p class="ruta-act-detail">' + esc(item.detalle) + '</p>';
                     if (item.ruta_nombre) {
-                        html += '<div class="ruta-act-meta"><i class="bi bi-signpost me-1"></i>' + item.ruta_nombre + '</div>';
+                        html += '<div class="ruta-act-meta"><i class="bi bi-signpost me-1"></i>' + esc(item.ruta_nombre) + '</div>';
                     }
                     html += '</div></div>';
                 });

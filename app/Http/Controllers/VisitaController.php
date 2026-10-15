@@ -7,6 +7,7 @@ use App\Models\Comisione;
 use App\Models\Contrato;
 use App\Models\Pago;
 use App\Models\Ruta;
+use App\Models\RutaActividad;
 use App\Models\RutaParada;
 use App\Models\Visita;
 use Illuminate\Http\Request;
@@ -135,6 +136,12 @@ class VisitaController extends Controller
 
         $primera = $visitasCreadas->first();
 
+        $visitasCreadas->each->load(['contrato.cliente', 'pagos', 'rutaParada.ruta']);
+        RutaActividad::registrar(RutaActividad::datosDeVisitas(
+            $visitasCreadas,
+            $visitasCreadas->flatMap->pagos->isNotEmpty() ? RutaActividad::TIPO_ABONO : RutaActividad::TIPO_AUSENTE
+        ));
+
         $mensaje = $esAusente
             ? 'Visita sin recepción registrada con éxito.'
             : 'Visita registrada con éxito.';
@@ -186,6 +193,10 @@ class VisitaController extends Controller
 
         $rutaIds = collect();
 
+        $visitas->each->loadMissing('contrato.cliente');
+        $actividad = RutaActividad::datosDeVisitas($visitas, RutaActividad::TIPO_DESHACER);
+        $actividad['user_id'] = Auth::id();
+
         DB::transaction(function () use ($visitas, &$rutaIds) {
             foreach ($visitas as $v) {
                 foreach ($v->pagos as $pago) {
@@ -209,6 +220,8 @@ class VisitaController extends Controller
                 }
             });
         });
+
+        RutaActividad::registrar($actividad);
 
         return response()->json([
             'success' => true,

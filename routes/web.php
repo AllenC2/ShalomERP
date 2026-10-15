@@ -65,6 +65,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('rutas/plantillas/{plantilla}', [App\Http\Controllers\RutaController::class, 'showPlantilla'])->name('rutas.plantillas.show');
     Route::post('rutas/plantillas/{plantilla}/empleado', [App\Http\Controllers\RutaController::class, 'actualizarEmpleadoPlantilla'])->name('rutas.plantillas.actualizarEmpleado');
     Route::post('rutas/plantillas/{plantilla}/toggle-activa', [App\Http\Controllers\RutaController::class, 'toggleActivaPlantilla'])->name('rutas.plantillas.toggleActiva');
+    Route::delete('rutas/plantillas/{plantilla}', [App\Http\Controllers\RutaController::class, 'destroyPlantilla'])->name('rutas.plantillas.destroy');
     Route::resource('rutas', App\Http\Controllers\RutaController::class);
     Route::post('rutas/{ruta}/orden', [App\Http\Controllers\RutaController::class, 'actualizarOrden'])->name('rutas.actualizarOrden');
     Route::post('rutas/{ruta}/optimizar-orden', [App\Http\Controllers\RutaController::class, 'optimizarOrden'])->name('rutas.optimizarOrden');

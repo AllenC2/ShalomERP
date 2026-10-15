@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RutaPlantilla extends Model
 {
+    use SoftDeletes;
+
     const FRECUENCIA_DIARIA = 'diaria';
     const FRECUENCIA_SEMANAL = 'semanal';
     const FRECUENCIA_MENSUAL = 'mensual';

@@ -96,6 +96,10 @@
                                 @endif
                             </button>
                         </form>
+                        <button type="button" id="btnEliminarPlantilla" class="btn btn-header-action btn-header-eliminar"
+                            title="Eliminar plantilla" aria-label="Eliminar plantilla">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     @endif
                 </div>
             </div>
@@ -328,6 +332,98 @@
         </div>
     </div>
 </div>
+
+@if(auth()->user()->role === 'admin')
+<!-- Modal Eliminar plantilla -->
+<div class="modal fade" id="eliminarPlantillaModal" tabindex="-1" aria-labelledby="eliminarPlantillaModalLabel" aria-hidden="true" style="z-index: 2000;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="eliminarPlantillaModalLabel">
+                    <i class="bi bi-trash me-2 text-danger"></i>Eliminar plantilla
+                </h5>
+                <button type="button" class="btn-close" data-eliminar-cerrar aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">
+                    ¿Seguro que quieres eliminar la plantilla
+                    <strong>{{ $plantilla->nombre ?: ('Ruta #' . $plantilla->id) }}</strong>?
+                </p>
+                <div class="alert {{ $plantilla->activa ? 'alert-warning' : 'alert-light border' }} small mb-2">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Primero debes desactivar la plantilla para poder eliminarla.
+                    @if($plantilla->activa)
+                        <div class="fw-semibold mt-1">Esta plantilla sigue activa.</div>
+                    @endif
+                </div>
+                <p class="text-muted small mb-0">
+                    Dejará de generar rutas y no aparecerá en el listado. Las ejecuciones ya generadas se conservan.
+                </p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-eliminar-cerrar>Cancelar</button>
+                <form method="POST" action="{{ route('rutas.plantillas.destroy', $plantilla) }}" class="m-0">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger btn-sm" @disabled($plantilla->activa)>
+                        <i class="bi bi-trash me-1"></i>Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var modalEl = document.getElementById('eliminarPlantillaModal');
+    var btn = document.getElementById('btnEliminarPlantilla');
+    if (!modalEl || !btn) return;
+    if (modalEl.parentElement !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+
+    var bsInstance = null;
+    var backdrop = null;
+
+    function cerrarFallback() {
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+        if (backdrop) { backdrop.remove(); backdrop = null; }
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+    }
+
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.bootstrap && window.bootstrap.Modal) {
+            bsInstance = bsInstance || window.bootstrap.Modal.getOrCreateInstance(modalEl);
+            bsInstance.show();
+            return;
+        }
+        backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
+        modalEl.style.display = 'block';
+        modalEl.removeAttribute('aria-hidden');
+        modalEl.classList.add('show');
+    });
+
+    modalEl.querySelectorAll('[data-eliminar-cerrar]').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (bsInstance) { bsInstance.hide(); } else { cerrarFallback(); }
+        });
+    });
+    modalEl.addEventListener('click', function(e) {
+        if (!bsInstance && e.target === modalEl) cerrarFallback();
+    });
+})();
+</script>
+@endif
 
 <script>
 (function() {
@@ -721,6 +817,18 @@ document.addEventListener('DOMContentLoaded', function() {
     .btn-header-activar:hover {
         background: rgba(25, 135, 84, 0.14);
         color: #146c43;
+    }
+    .btn-header-eliminar {
+        width: 34px;
+        padding: 0;
+        background: #fff;
+        color: #dc3545;
+        border-color: rgba(220, 53, 69, 0.3);
+    }
+    .btn-header-eliminar:hover {
+        background: rgba(220, 53, 69, 0.08);
+        color: #b02a37;
+        border-color: rgba(220, 53, 69, 0.45);
     }
 
     .empleado-assign-form { margin: 0; }

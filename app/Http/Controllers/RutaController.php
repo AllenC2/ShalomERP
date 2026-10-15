@@ -142,6 +142,24 @@ class RutaController extends Controller
             ->with('success', $mensaje);
     }
 
+    public function destroyPlantilla(RutaPlantilla $plantilla): RedirectResponse
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($plantilla->activa) {
+            return redirect()
+                ->route('rutas.plantillas.show', $plantilla)
+                ->withErrors(['plantilla' => 'Primero debes desactivar la plantilla para poder eliminarla.']);
+        }
+
+        $plantilla->delete();
+
+        return redirect()->route('rutas.index')
+            ->with('success', 'Plantilla eliminada correctamente. Quedó registrada como borrada.');
+    }
+
     public function store(RutaRequest $request): RedirectResponse
     {
         try {
